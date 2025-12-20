@@ -13,7 +13,13 @@ from models import Lead, PaymentStatus
 from schemas import LeadCreate, LeadResponse, AuditReportSchema, CheckoutResponse
 from stripe_service import create_checkout_session, handle_webhook_event
 
+# Importar las rutas de pagos
+from api_payments import router as payments_router
+
 app = FastAPI(title="Lokigi - Local SEO Auditor")
+
+# Incluir rutas de pagos
+app.include_router(payments_router)
 
 # CORS para el frontend
 app.add_middleware(
