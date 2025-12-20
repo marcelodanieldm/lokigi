@@ -178,38 +178,64 @@ export default function AuditResultsPage() {
         />
       </section>
 
-      {/* Gated Recommendations Section */}
+      {/* Gated Recommendations Section - LEAD WALL */}
       <section className="container mx-auto px-4 py-12">
         {!showRecommendations ? (
           <div className="relative">
             {/* Blurred Preview */}
-            <div className="blur-md pointer-events-none select-none">
+            <div className="blur-lg pointer-events-none select-none brightness-75">
               <LocalComparison 
                 userMetrics={mockAuditData.comparison.user}
                 avgCompetitor={mockAuditData.comparison.avgCompetitor}
               />
             </div>
 
-            {/* Unlock Overlay */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md text-center border-4 border-orange-500">
-                <div className="text-6xl mb-4">🔒</div>
-                <h3 className="text-3xl font-black text-gray-900 mb-4">
-                  Análisis Competitivo Bloqueado
+            {/* Unlock Overlay - CENTRADO Y LLAMATIVO */}
+            <div className="absolute inset-0 flex items-center justify-center p-4">
+              <div className="bg-gradient-to-br from-white via-orange-50 to-red-50 rounded-3xl shadow-[0_20px_80px_rgba(0,0,0,0.3)] p-10 max-w-xl w-full text-center border-4 border-orange-500 transform hover:scale-105 transition-all">
+                {/* Icon con animación */}
+                <div className="text-8xl mb-6 animate-bounce">🔒</div>
+                
+                <h3 className="text-4xl font-black text-gray-900 mb-4 leading-tight">
+                  Descubre Cómo Arreglar <span className="text-red-600">Estos Fallos</span>
                 </h3>
-                <p className="text-gray-600 mb-6 leading-relaxed">
-                  Para ver la <span className="font-bold text-red-600">comparativa detallada</span> con 
-                  tu competencia y el <span className="font-bold text-red-600">plan de acción completo</span>, 
-                  necesitamos tus datos de contacto.
+                
+                <p className="text-lg text-gray-700 mb-6 leading-relaxed">
+                  Deja tu <span className="font-bold text-orange-600">email y WhatsApp</span> para 
+                  desbloquear tu <span className="font-bold text-orange-600">plan de acción GRATUITO</span> 
+                  y ver exactamente qué hace tu competencia para superarte.
                 </p>
+
+                {/* Beneficios */}
+                <div className="bg-white rounded-2xl p-6 mb-6 space-y-3 text-left border-2 border-orange-200">
+                  {[
+                    '✅ Plan de acción personalizado paso a paso',
+                    '✅ Comparativa detallada con tu competencia',
+                    '✅ Priorización por impacto económico',
+                    '✅ Acceso inmediato (sin tarjeta de crédito)'
+                  ].map((benefit, idx) => (
+                    <div key={idx} className="flex items-center gap-3">
+                      <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-green-600 text-xs">✓</span>
+                      </div>
+                      <span className="text-gray-800 font-medium">{benefit}</span>
+                    </div>
+                  ))}
+                </div>
+
                 <button
                   onClick={handleUnlockRecommendations}
-                  className="w-full bg-gradient-to-r from-red-600 to-orange-600 text-white font-bold py-4 px-8 rounded-xl hover:from-red-700 hover:to-orange-700 transition-all transform hover:scale-105 shadow-lg"
+                  className="w-full bg-gradient-to-r from-red-600 via-orange-600 to-red-600 text-white font-black text-xl py-5 px-8 rounded-2xl hover:from-red-700 hover:via-orange-700 hover:to-red-700 transition-all transform hover:scale-105 shadow-2xl hover:shadow-3xl relative overflow-hidden group"
                 >
-                  🔓 Desbloquear GRATIS
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    🔓 DESBLOQUEAR GRATIS AHORA
+                  </span>
+                  {/* Button shine effect */}
+                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/30 to-transparent" />
                 </button>
-                <p className="text-xs text-gray-500 mt-4">
-                  Solo toma 30 segundos. No requiere tarjeta de crédito.
+                
+                <p className="text-sm text-gray-500 mt-4 font-medium">
+                  ⏱️ Solo toma 30 segundos · 🔒 Tus datos están seguros
                 </p>
               </div>
             </div>
@@ -223,139 +249,269 @@ export default function AuditResultsPage() {
       </section>
 
       {/* Enhanced Pricing Section */}
-      <section className="container mx-auto px-4 py-12">
+      <section className="container mx-auto px-4 py-16">
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-black text-gray-900 mb-4">
-            Ya viste el problema. Ahora elige la solución 💡
+          <h2 className="text-5xl font-black text-gray-900 mb-4">
+            Ya viste el problema. <span className="text-orange-600">Ahora elige la solución 💡</span>
           </h2>
-          <p className="text-xl text-gray-600">
-            Cada día que pases sin actuar, <span className="font-bold text-red-600">pierdes más dinero</span>
+          <p className="text-2xl text-gray-600 font-medium">
+            Cada día que pases sin actuar, <span className="font-bold text-red-600">pierdes $170 USD</span>
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-          {/* E-book Card */}
-          <div className="relative bg-white rounded-3xl shadow-xl p-8 border-2 border-gray-200 hover:border-orange-400 transition-all transform hover:scale-105">
+        <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto mb-16">
+          {/* E-book Card - Self Service */}
+          <div className="relative bg-white rounded-3xl shadow-xl p-8 border-2 border-gray-200 hover:border-blue-400 transition-all transform hover:scale-105 hover:shadow-2xl">
             <div className="absolute -top-4 left-8">
-              <span className="bg-blue-500 text-white text-sm font-bold px-4 py-2 rounded-full shadow-lg">
-                POPULAR
+              <span className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-sm font-bold px-4 py-2 rounded-full shadow-lg">
+                HAZLO TÚ MISMO
               </span>
             </div>
 
-            <div className="text-5xl mb-4">📄</div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">Plan de Acción PDF</h3>
-            <p className="text-gray-600 mb-6">Hazlo tú mismo, paso a paso</p>
+            <div className="text-6xl mb-4">📚</div>
+            <h3 className="text-3xl font-bold text-gray-900 mb-2">Guía Paso a Paso (E-book)</h3>
+            <p className="text-gray-600 mb-6 text-lg">Para dueños de negocio que prefieren implementar ellos mismos</p>
 
             <div className="mb-6">
-              <div className="flex items-baseline gap-2">
-                <span className="text-5xl font-black text-gray-900">$9</span>
-                <span className="text-gray-400 line-through text-xl">$49</span>
-                <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full">
-                  82% OFF
-                </span>
+              <div className="flex items-baseline gap-3">
+                <span className="text-6xl font-black text-blue-600">$9</span>
+                <div className="flex flex-col">
+                  <span className="text-gray-400 line-through text-2xl">$49</span>
+                  <span className="bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full">
+                    82% OFF LANZAMIENTO
+                  </span>
+                </div>
               </div>
             </div>
 
-            <ul className="space-y-3 mb-8">
-              {[
-                'Plan personalizado para tu negocio',
-                'Análisis de tus 3 fallos críticos',
-                'Checklist accionable (30-60 días)',
-                'Priorización por impacto económico',
-                'Plantillas de respuesta a reseñas'
-              ].map((feature, idx) => (
-                <li key={idx} className="flex items-start gap-2">
-                  <div className="text-green-500 mt-1">✓</div>
-                  <span className="text-gray-700">{feature}</span>
-                </li>
-              ))}
-            </ul>
+            <div className="bg-blue-50 rounded-2xl p-4 mb-6 border-2 border-blue-200">
+              <div className="font-bold text-blue-900 mb-2">✅ Incluye:</div>
+              <ul className="space-y-2">
+                {[
+                  'Plan personalizado para tu negocio',
+                  'Análisis de tus 3 fallos críticos',
+                  'Checklist accionable (30-60 días)',
+                  'Priorización por impacto económico',
+                  'Plantillas de respuesta a reseñas',
+                  'Guía de optimización de fotos'
+                ].map((feature, idx) => (
+                  <li key={idx} className="flex items-start gap-2">
+                    <div className="text-blue-600 mt-1 font-bold">✓</div>
+                    <span className="text-gray-700">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
 
             <button
               onClick={() => handlePlanSelect('pdf')}
               disabled={isProcessingPayment}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-4 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50"
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-lg py-5 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 mb-4"
             >
-              {isProcessingPayment ? 'Procesando...' : 'Comprar por $9'}
+              {isProcessingPayment ? '⏳ Procesando...' : '📥 Comprar Guía por $9'}
             </button>
+
+            {/* Testimonial */}
+            <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+              <div className="flex items-start gap-3 mb-2">
+                <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+                  JR
+                </div>
+                <div>
+                  <div className="font-semibold text-gray-900">Juan Ramírez</div>
+                  <div className="text-sm text-gray-600">Café Don Juan, Lima</div>
+                </div>
+              </div>
+              <p className="text-sm text-gray-700 italic">
+                "Seguí la guía al pie de la letra y en 3 semanas mi perfil pasó de la página 2 a estar en el Top 3. 
+                Súper claro y fácil de implementar."
+              </p>
+              <div className="flex gap-1 mt-2">
+                {'⭐'.repeat(5)}
+              </div>
+            </div>
           </div>
 
-          {/* Service Card - WITH SHINE EFFECT */}
-          <div className="relative bg-gradient-to-br from-orange-50 to-red-50 rounded-3xl shadow-2xl p-8 border-4 border-orange-500 transform hover:scale-105 transition-all overflow-hidden">
+          {/* Service Card - VIP RECOMENDADA */}
+          <div className="relative bg-gradient-to-br from-orange-50 via-red-50 to-orange-50 rounded-3xl shadow-2xl p-8 border-4 border-orange-500 transform hover:scale-105 transition-all overflow-hidden">
             {/* Animated Shine Effect */}
-            <div className="absolute inset-0 overflow-hidden">
-              <div className="absolute -inset-full animate-[shine_3s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12" />
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <div className="absolute -inset-full animate-[shine_3s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/40 to-transparent skew-x-12" />
             </div>
 
             <div className="relative z-10">
               <div className="absolute -top-4 left-8">
-                <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-sm font-bold px-4 py-2 rounded-full shadow-lg animate-pulse">
-                  🔥 MÁS ELEGIDO
+                <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-sm font-bold px-5 py-2 rounded-full shadow-lg animate-pulse">
+                  🔥 MÁS POPULAR - RECOMENDADO
                 </span>
               </div>
 
-              <div className="text-5xl mb-4">🚀</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Optimización Full</h3>
-              <p className="text-gray-600 mb-6">Lo hacemos TODO por ti</p>
+              <div className="text-6xl mb-4">🚀</div>
+              <h3 className="text-3xl font-bold text-gray-900 mb-2">Optimización Profesional</h3>
+              <p className="text-gray-700 mb-6 text-lg font-medium">Los expertos lo hacen TODO por ti</p>
 
               <div className="mb-6">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-black text-gray-900">$99</span>
-                  <span className="text-gray-400 line-through text-xl">$299</span>
-                  <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full">
-                    67% OFF
-                  </span>
+                <div className="flex items-baseline gap-3">
+                  <span className="text-6xl font-black text-orange-600">$99</span>
+                  <div className="flex flex-col">
+                    <span className="text-gray-400 line-through text-2xl">$299</span>
+                    <span className="bg-green-100 text-green-800 text-xs font-bold px-3 py-1 rounded-full">
+                      67% OFF LANZAMIENTO
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <ul className="space-y-3 mb-8">
-                {[
-                  '✨ Todo del Plan PDF +',
-                  'Reclamamos/optimizamos tu Google Business',
-                  'Creación de landing page SEO optimizada',
-                  'Estrategia de reseñas (90 días)',
-                  'Actualización con fotos profesionales',
-                  '3 meses de seguimiento + soporte'
-                ].map((feature, idx) => (
-                  <li key={idx} className="flex items-start gap-2">
-                    <div className="text-orange-500 mt-1 font-bold">✓</div>
-                    <span className="text-gray-900 font-medium">{feature}</span>
-                  </li>
-                ))}
-              </ul>
+              {/* Badge de Resultados Rápidos */}
+              <div className="bg-green-100 border-2 border-green-500 rounded-xl p-4 mb-6 text-center">
+                <div className="text-green-800 font-black text-2xl mb-1">⚡ Resultados en 72 Horas</div>
+                <div className="text-green-700 text-sm font-semibold">
+                  Garantizamos mejoras visibles en menos de 3 días
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl p-5 mb-6 border-2 border-orange-200">
+                <div className="font-bold text-orange-900 mb-3 text-lg">✨ Todo del Plan PDF +</div>
+                <ul className="space-y-3">
+                  {[
+                    '🏆 Reclamamos y optimizamos tu Google Business',
+                    '🌐 Creación de landing page SEO optimizada',
+                    '⭐ Estrategia de reseñas (90 días)',
+                    '📸 Actualización con 5 fotos profesionales',
+                    '📊 3 meses de seguimiento + informes mensuales',
+                    '💬 Soporte prioritario por WhatsApp'
+                  ].map((feature, idx) => (
+                    <li key={idx} className="flex items-start gap-2">
+                      <div className="mt-1">
+                        <span className="text-orange-600 font-bold">✓</span>
+                      </div>
+                      <span className="text-gray-900 font-medium">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
 
               <button
                 onClick={() => handlePlanSelect('full')}
                 disabled={isProcessingPayment}
-                className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white font-black py-5 rounded-xl hover:from-orange-600 hover:to-red-600 transition-all shadow-2xl hover:shadow-3xl text-lg disabled:opacity-50 relative overflow-hidden group"
+                className="w-full bg-gradient-to-r from-orange-500 via-red-500 to-orange-500 text-white font-black text-xl py-6 rounded-2xl hover:from-orange-600 hover:via-red-600 hover:to-orange-600 transition-all shadow-2xl hover:shadow-3xl disabled:opacity-50 relative overflow-hidden group mb-4"
               >
-                <span className="relative z-10">
-                  {isProcessingPayment ? 'Procesando...' : '🔥 Contratar por $99'}
+                <span className="relative z-10 flex items-center justify-center gap-2">
+                  {isProcessingPayment ? '⏳ Procesando...' : '🔥 CONTRATAR AHORA POR $99'}
                 </span>
                 {/* Button Shine */}
                 <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/30 to-transparent" />
               </button>
 
-              <p className="text-center text-sm text-gray-600 mt-4 font-semibold">
-                ⚡ Resultados visibles en 7-14 días
+              {/* Testimonial */}
+              <div className="bg-white rounded-xl p-4 border-2 border-orange-200">
+                <div className="flex items-start gap-3 mb-2">
+                  <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold">
+                    MC
+                  </div>
+                  <div>
+                    <div className="font-semibold text-gray-900">María Castro</div>
+                    <div className="text-sm text-gray-600">Ferretería El Tornillo, CDMX</div>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-700 italic">
+                  "En 10 días pasamos de 15 a 89 llamadas mensuales. El equipo es profesional y los resultados hablan por sí solos. 
+                  Mejor inversión que hemos hecho este año."
+                </p>
+                <div className="flex gap-1 mt-2">
+                  {'⭐'.repeat(5)}
+                </div>
+              </div>
+
+              <p className="text-center text-sm text-orange-800 mt-4 font-bold bg-orange-100 rounded-full py-2">
+                🎯 Solo 5 espacios disponibles esta semana
               </p>
             </div>
           </div>
         </div>
 
+        {/* Social Proof - Otros negocios que subieron su ranking */}
+        <div className="max-w-5xl mx-auto mb-12">
+          <h3 className="text-3xl font-black text-gray-900 text-center mb-8">
+            🏆 Otros negocios que ya mejoraron su ranking
+          </h3>
+          
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              {
+                name: 'Pizzería Napolitana',
+                city: 'Bogotá',
+                before: 28,
+                after: 82,
+                revenue: '+$4,200/mes',
+                avatar: 'PN'
+              },
+              {
+                name: 'Peluquería Glamour',
+                city: 'Buenos Aires',
+                before: 35,
+                after: 91,
+                revenue: '+$3,800/mes',
+                avatar: 'PG'
+              },
+              {
+                name: 'Taller Mecánico Pro',
+                city: 'Santiago',
+                before: 42,
+                after: 88,
+                revenue: '+$5,600/mes',
+                avatar: 'TM'
+              }
+            ].map((business, idx) => (
+              <div key={idx} className="bg-white rounded-2xl shadow-lg p-6 border-2 border-gray-200 hover:border-green-400 transition-all">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                    {business.avatar}
+                  </div>
+                  <div>
+                    <div className="font-bold text-gray-900">{business.name}</div>
+                    <div className="text-sm text-gray-600">{business.city}</div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-center">
+                    <div className="text-3xl font-black text-red-600">{business.before}</div>
+                    <div className="text-xs text-gray-600 font-semibold">ANTES</div>
+                  </div>
+                  <div className="text-3xl text-gray-400">→</div>
+                  <div className="text-center">
+                    <div className="text-3xl font-black text-green-600">{business.after}</div>
+                    <div className="text-xs text-gray-600 font-semibold">DESPUÉS</div>
+                  </div>
+                </div>
+
+                <div className="bg-green-100 rounded-lg p-3 text-center border border-green-300">
+                  <div className="text-green-800 font-bold text-lg">{business.revenue}</div>
+                  <div className="text-xs text-green-700">Incremento en ventas</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Trust Indicators */}
-        <div className="mt-12 flex flex-wrap justify-center gap-8 text-center">
-          <div>
-            <div className="text-3xl font-black text-gray-900">100%</div>
-            <div className="text-sm text-gray-600">Garantía de reembolso</div>
+        <div className="flex flex-wrap justify-center gap-8 text-center max-w-4xl mx-auto">
+          <div className="flex-1 min-w-[150px]">
+            <div className="text-4xl font-black text-gray-900">100%</div>
+            <div className="text-sm text-gray-600 font-semibold">Garantía de satisfacción</div>
           </div>
-          <div>
-            <div className="text-3xl font-black text-gray-900">24h</div>
-            <div className="text-sm text-gray-600">Respuesta promedio</div>
+          <div className="flex-1 min-w-[150px]">
+            <div className="text-4xl font-black text-gray-900">&lt;24h</div>
+            <div className="text-sm text-gray-600 font-semibold">Respuesta promedio</div>
           </div>
-          <div>
-            <div className="text-3xl font-black text-gray-900">500+</div>
-            <div className="text-sm text-gray-600">Negocios mejorados</div>
+          <div className="flex-1 min-w-[150px]">
+            <div className="text-4xl font-black text-gray-900">500+</div>
+            <div className="text-sm text-gray-600 font-semibold">Negocios optimizados</div>
+          </div>
+          <div className="flex-1 min-w-[150px]">
+            <div className="text-4xl font-black text-gray-900">4.9★</div>
+            <div className="text-sm text-gray-600 font-semibold">Rating promedio</div>
           </div>
         </div>
       </section>

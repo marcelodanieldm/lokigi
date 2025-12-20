@@ -31,6 +31,7 @@ class LeadCreate(BaseModel):
 class CheckoutRequest(BaseModel):
     """Schema para solicitar checkout"""
     lead_id: int
+    price_id: Optional[str] = None  # Opcional: ID de precio de Stripe (ej: price_1A2B3C4D5E6F)
 
 
 class LeadResponse(BaseModel):
@@ -105,18 +106,38 @@ async def create_ebook_checkout(
 ):
     """
     Crea una sesión de checkout para el e-book ($9)
+    
+    Body:
+    {
+        "lead_id": 1,
+        "price_id": "price_1ABC123..." (opcional)
+    }
+    
+    Returns:
+    {
+        "url": "https://checkout.stripe.com/c/pay/cs_test_...",
+        "session_id": "cs_test_..."
+    }
     """
     try:
         result = StripePaymentService.create_checkout_session(
             lead_id=request.lead_id,
             product_type="ebook",
-            db=db
+            db=db,
+            price_id=request.price_id
         )
         return result
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail=str(e)
+        )
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        print(f"❌ Error al crear checkout de e-book: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail=f"Error al crear sesión de pago: {str(e)}"
+        )
 
 
 @router.post("/create-checkout-session/service")
@@ -126,18 +147,38 @@ async def create_service_checkout(
 ):
     """
     Crea una sesión de checkout para el servicio completo ($99)
+    
+    Body:
+    {
+        "lead_id": 1,
+        "price_id": "price_1XYZ789..." (opcional)
+    }
+    
+    Returns:
+    {
+        "url": "https://checkout.stripe.com/c/pay/cs_test_...",
+        "session_id": "cs_test_..."
+    }
     """
     try:
         result = StripePaymentService.create_checkout_session(
             lead_id=request.lead_id,
             product_type="service",
-            db=db
+            db=db,
+            price_id=request.price_id
         )
         return result
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail=str(e)
+        )
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        print(f"❌ Error al crear checkout de servicio: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail=f"Error al crear sesión de pago: {str(e)}"
+        )
 
 
 # Webhook de Stripe
@@ -146,11 +187,26 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     """
     Endpoint para recibir webhooks de Stripe
     
-    Configurar en Stripe Dashboard:
-    1. Ir a Developers > Webhooks
-    2. Agregar endpoint: https://tu-dominio.com/api/stripe/webhook
-    3. Seleccionar eventos: checkout.session.completed, payment_intent.succeeded
-    4. Copiar el webhook secret a .env como STRIPE_WEBHOOK_SECRET
+    🔧 CONFIGURACIÓN EN STRIPE DASHBOARD:
+    1. Ir a: https://dashboard.stripe.com/webhooks
+    2. Click "Add endpoint"
+    3. URL: https://tu-dominio.com/api/stripe/webhook
+    4. Eventos a escuchar:
+       - checkout.session.completed (REQUERIDO)
+       - payment_intent.succeeded (opcional)
+    5. Copiar el "Signing secret" (whsec_...)
+    6. Agregarlo al archivo .env como STRIPE_WEBHOOK_SECRET
+    
+    📦 EVENTOS MANEJADOS:
+    - checkout.session.completed: 
+      * Actualiza Lead.customer_status a 'cliente'
+      * Actualiza Order.status a 'completed' (pagada)
+      * Si es 'service', marca como lista para equipo de trabajo
+      * Si es 'ebook', genera link de descarga
+    
+    🔒 SEGURIDAD:
+    - Verifica la firma de Stripe para validar que el webhook es legítimo
+    - Rechaza peticiones sin firma válida
     """
     payload = await request.body()
     sig_header = request.headers.get('stripe-signature')
@@ -158,13 +214,14 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     if not sig_header:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Falta el header de firma"
+            detail="Falta el header 'stripe-signature'"
         )
     
     try:
         result = StripePaymentService.handle_webhook_event(payload, sig_header, db)
         return result
     except Exception as e:
+        print(f"❌ Error procesando webhook de Stripe: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)

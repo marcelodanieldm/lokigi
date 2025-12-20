@@ -39,42 +39,32 @@ class Lead(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     
-    # Información de contacto
+    # Información de contacto (campos esenciales)
     nombre = Column(String, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
     telefono = Column(String, nullable=False)
     whatsapp = Column(String, nullable=True)  # Número de WhatsApp
     
     # Datos del negocio auditado
-    nombre_negocio = Column(String, nullable=False)
-    rating = Column(Float)
-    numero_resenas = Column(Integer)
-    tiene_sitio_web = Column(Boolean, default=False)
-    fecha_ultima_foto = Column(String)
+    nombre_negocio = Column(String, nullable=False, index=True)  # business_name
     
     # Resultados de la auditoría
-    score_visibilidad = Column(Integer)
+    score_visibilidad = Column(Integer)  # initial_score (0-100)
     fallos_criticos = Column(JSON)  # Guardamos el JSON con los fallos
     audit_data = Column(JSON)  # Datos completos de la auditoría
     
     # Estado del cliente
     customer_status = Column(SQLEnum(CustomerStatus), default=CustomerStatus.LEAD)
     
-    # Estado del pago (mantener por compatibilidad)
-    payment_status = Column(SQLEnum(PaymentStatus), default=PaymentStatus.PENDING)
-    stripe_payment_intent_id = Column(String, nullable=True)
-    stripe_checkout_session_id = Column(String, nullable=True)
-    stripe_customer_id = Column(String, nullable=True)  # ID de cliente en Stripe
-    
-    # Ofertas
-    oferta_plan_express = Column(Boolean, default=False)  # Si se le ofreció el plan
-    plan_express_accepted = Column(Boolean, default=False)  # Si lo aceptó
+    # Stripe
+    stripe_customer_id = Column(String, nullable=True, index=True)  # ID de cliente en Stripe
+    stripe_checkout_session_id = Column(String, nullable=True)  # Última sesión de checkout
+    stripe_payment_intent_id = Column(String, nullable=True)  # Último payment intent
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    paid_at = Column(DateTime(timezone=True), nullable=True)
-    delivered_at = Column(DateTime(timezone=True), nullable=True)
+    paid_at = Column(DateTime(timezone=True), nullable=True)  # Fecha del primer pago
     
     # Relaciones
     orders = relationship("Order", back_populates="lead")
@@ -90,20 +80,20 @@ class Order(Base):
     id = Column(Integer, primary_key=True, index=True)
     
     # Relación con el lead
-    lead_id = Column(Integer, ForeignKey("leads.id"), nullable=False)
+    lead_id = Column(Integer, ForeignKey("leads.id"), nullable=False, index=True)
     lead = relationship("Lead", back_populates="orders")
     
     # Información del producto
-    product_type = Column(SQLEnum(ProductType), nullable=False)
-    amount = Column(Float, nullable=False)  # Monto pagado
+    product_type = Column(SQLEnum(ProductType), nullable=False, index=True)  # 'ebook' o 'service'
+    amount = Column(Float, nullable=False)  # Monto pagado en USD
     currency = Column(String, default="usd")
     
     # Información de Stripe
-    stripe_session_id = Column(String, unique=True, nullable=False)
-    stripe_payment_intent_id = Column(String, nullable=True)
+    stripe_session_id = Column(String, unique=True, nullable=False, index=True)
+    stripe_payment_intent_id = Column(String, nullable=True, index=True)
     
-    # Estado de la orden
-    status = Column(SQLEnum(OrderStatus), default=OrderStatus.PENDING)
+    # Estado de la orden: pending -> paid -> completed
+    status = Column(SQLEnum(OrderStatus), default=OrderStatus.PENDING, index=True)
     
     # Entregables
     download_link = Column(String, nullable=True)  # Link de descarga del e-book
