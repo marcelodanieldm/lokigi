@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import AuthGuard from '@/components/AuthGuard';
+import LogoutButton from '@/components/LogoutButton';
 import { 
   Clock, 
   CheckCircle2, 
@@ -204,9 +206,53 @@ export default function WorkDashboard() {
   };
 
   // ==========================================
-  // Render: Loading State
+  // Render: Main Layout
   // ==========================================
 
+  return (
+    <AuthGuard requiredRole="any">
+      <WorkDashboardContent
+        orders={orders}
+        selectedOrder={selectedOrder}
+        setSelectedOrder={setSelectedOrder}
+        tasks={tasks}
+        taskStats={taskStats}
+        internalNotes={internalNotes}
+        setInternalNotes={setInternalNotes}
+        loading={loading}
+        savingNotes={savingNotes}
+        completingOrder={completingOrder}
+        toggleTask={toggleTask}
+        completeOrder={completeOrder}
+        getTimeElapsed={getTimeElapsed}
+        getUrgencyColor={getUrgencyColor}
+        getCategoryBadgeColor={getCategoryBadgeColor}
+      />
+    </AuthGuard>
+  );
+}
+
+// ==========================================
+// Main Content Component
+// ==========================================
+
+function WorkDashboardContent({
+  orders,
+  selectedOrder,
+  setSelectedOrder,
+  tasks,
+  taskStats,
+  internalNotes,
+  setInternalNotes,
+  loading,
+  savingNotes,
+  completingOrder,
+  toggleTask,
+  completeOrder,
+  getTimeElapsed,
+  getUrgencyColor,
+  getCategoryBadgeColor
+}: any) {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
@@ -214,10 +260,6 @@ export default function WorkDashboard() {
       </div>
     );
   }
-
-  // ==========================================
-  // Render: Main Layout
-  // ==========================================
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-gray-100">
@@ -228,7 +270,7 @@ export default function WorkDashboard() {
             <div>
               <h1 className="text-2xl font-bold text-white">Work Queue</h1>
               <p className="text-sm text-gray-400 mt-1">
-                {orders.length} órdenes activas · {orders.reduce((acc, o) => acc + (taskStats.pending_tasks || 0), 0)} tareas pendientes
+                {orders.length} órdenes activas · {orders.reduce((acc: number, o: any) => acc + (taskStats.pending_tasks || 0), 0)} tareas pendientes
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -236,6 +278,7 @@ export default function WorkDashboard() {
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
                 <span className="text-gray-400">Sistema activo</span>
               </div>
+              <LogoutButton />
             </div>
           </div>
         </div>

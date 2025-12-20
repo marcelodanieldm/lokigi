@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import AuthGuard from '@/components/AuthGuard';
 import DashboardSidebar from '@/components/dashboard/DashboardSidebar';
 import {
   TrendingUp,
@@ -57,6 +58,14 @@ export default function DashboardHomePage() {
     }
   };
 
+  return (
+    <AuthGuard requiredRole="superuser">
+      <DashboardContent stats={stats} recentOrders={recentOrders} loading={loading} />
+    </AuthGuard>
+  );
+}
+
+function DashboardContent({ stats, recentOrders, loading }: any) {
   const statCards = [
     {
       title: 'Ingresos Totales',

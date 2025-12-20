@@ -40,6 +40,26 @@ class TaskCategory(str, enum.Enum):
     VERIFICACION = "verificacion"  # Revisión y verificación de cambios
 
 
+class UserRole(str, enum.Enum):
+    """Roles de usuarios del backoffice"""
+    SUPERUSER = "superuser"  # Acceso total al dashboard
+    WORKER = "worker"  # Solo acceso al Work Queue
+
+
+class User(Base):
+    """Modelo de Usuario del Backoffice"""
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, nullable=False, index=True)
+    hashed_password = Column(String, nullable=False)
+    full_name = Column(String, nullable=False)
+    role = Column(SQLEnum(UserRole), nullable=False, default=UserRole.WORKER)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=func.now(), nullable=False)
+    last_login = Column(DateTime, nullable=True)
+
+
 class Lead(Base):
     """Modelo de Lead - Usuario que completa el formulario"""
     __tablename__ = "leads"
