@@ -38,6 +38,12 @@ export default function DashboardSidebar({ stats }: DashboardSidebarProps) {
       exact: true
     },
     {
+      label: '🚀 Work Queue',
+      href: '/dashboard/work',
+      icon: ClipboardList,
+      highlight: true
+    },
+    {
       label: 'Todas las Órdenes',
       href: '/dashboard/orders',
       icon: ClipboardList,
