@@ -1,12 +1,33 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, Request, Header
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from openai import OpenAI
 from datetime import datetime
 from typing import Optional
+from sqlalchemy.orm import Session
 import os
 import json
 
+from database import get_db, init_db
+from models import Lead, PaymentStatus
+from schemas import LeadCreate, LeadResponse, AuditReportSchema, CheckoutResponse
+from stripe_service import create_checkout_session, handle_webhook_event
+
 app = FastAPI(title="Lokigi - Local SEO Auditor")
+
+# CORS para el frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://localhost:3001"],  # Frontend URLs
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Inicializar base de datos al arrancar
+@app.on_event("startup")
+async def startup_event():
+    init_db()
 
 # Configurar cliente OpenAI
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -111,11 +132,160 @@ async def root():
     }
 
 
+@app.post("/api/leads", response_model=LeadResponse)
+async def create_lead(lead_data: LeadCreate, db: Session = Depends(get_db)):
+    """
+    Crea un nuevo lead y genera la auditoría
+    """
+    try:
+        # Verificar si el email ya existe
+        existing_lead = db.query(Lead).filter(Lead.email == lead_data.email).first()
+        if existing_lead:
+            raise HTTPException(status_code=400, detail="Email ya registrado")
+        
+        # Generar datos simulados del negocio
+        datos_negocio = BusinessData(
+            nombre=lead_data.nombre_negocio,
+            rating=3.8,
+            numero_resenas=47,
+            tiene_sitio_web=False,
+            fecha_ultima_foto="2023-08-15"
+        )
+        
+        # Analizar con OpenAI
+        reporte = await analizar_con_openai(datos_negocio)
+        
+        # Determinar si se ofrece el plan express (score < 50)
+        oferta_plan = reporte.score_visibilidad < 50
+        
+        # Crear el lead en la base de datos
+        new_lead = Lead(
+            email=lead_data.email,
+            telefono=lead_data.telefono,
+            nombre_negocio=lead_data.nombre_negocio,
+            rating=datos_negocio.rating,
+            numero_resenas=datos_negocio.numero_resenas,
+            tiene_sitio_web=datos_negocio.tiene_sitio_web,
+            fecha_ultima_foto=datos_negocio.fecha_ultima_foto,
+            score_visibilidad=reporte.score_visibilidad,
+            fallos_criticos=[f.model_dump() for f in reporte.fallos_criticos],
+            oferta_plan_express=oferta_plan,
+            payment_status=PaymentStatus.PENDING
+        )
+        
+        db.add(new_lead)
+        db.commit()
+        db.refresh(new_lead)
+        
+        return new_lead
+        
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al crear lead: {str(e)}"
+        )
+
+
+@app.get("/api/leads/{lead_id}/audit")
+async def get_audit_results(lead_id: int, db: Session = Depends(get_db)):
+    """
+    Obtiene los resultados completos de auditoría de un lead
+    """
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead no encontrado")
+    
+    return {
+        "success": True,
+        "lead": {
+            "id": lead.id,
+            "email": lead.email,
+            "nombre_negocio": lead.nombre_negocio,
+        },
+        "datos_analizados": {
+            "nombre": lead.nombre_negocio,
+            "rating": lead.rating,
+            "numero_resenas": lead.numero_resenas,
+            "tiene_sitio_web": lead.tiene_sitio_web,
+            "fecha_ultima_foto": lead.fecha_ultima_foto,
+        },
+        "reporte": {
+            "fallos_criticos": lead.fallos_criticos,
+            "score_visibilidad": lead.score_visibilidad,
+        },
+        "oferta_plan_express": lead.oferta_plan_express,
+        "payment_status": lead.payment_status,
+        "timestamp": lead.created_at.isoformat()
+    }
+
+
+@app.post("/api/leads/{lead_id}/checkout", response_model=CheckoutResponse)
+async def create_checkout(
+    lead_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Crea una sesión de checkout de Stripe para el Plan Express
+    """
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead no encontrado")
+    
+    if not lead.oferta_plan_express:
+        raise HTTPException(status_code=400, detail="Este lead no califica para el plan express")
+    
+    if lead.payment_status == PaymentStatus.PAID:
+        raise HTTPException(status_code=400, detail="Ya has pagado por este plan")
+    
+    try:
+        # URLs de éxito y cancelación
+        success_url = f"http://localhost:3000/success?lead_id={lead_id}"
+        cancel_url = f"http://localhost:3000/audit/{lead_id}"
+        
+        checkout_data = create_checkout_session(lead, success_url, cancel_url)
+        
+        # Guardar el session_id en el lead
+        lead.stripe_checkout_session_id = checkout_data['session_id']
+        db.commit()
+        
+        return checkout_data
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al crear checkout: {str(e)}"
+        )
+
+
+@app.post("/api/stripe/webhook")
+async def stripe_webhook(
+    request: Request,
+    stripe_signature: str = Header(None, alias="stripe-signature"),
+    db: Session = Depends(get_db)
+):
+    """
+    Webhook para recibir eventos de Stripe
+    """
+    try:
+        payload = await request.body()
+        result = handle_webhook_event(payload, stripe_signature, db)
+        return result
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/audit/test")
 async def audit_test():
     """
-    Endpoint de prueba que simula datos de un negocio y genera un reporte
-    de auditoría SEO Local usando OpenAI
+    Endpoint de prueba (DEPRECATED - usar /api/leads)
     """
     try:
         # Generar datos simulados
