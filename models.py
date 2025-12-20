@@ -33,6 +33,13 @@ class OrderStatus(str, enum.Enum):
     CANCELLED = "cancelled"
 
 
+class TaskCategory(str, enum.Enum):
+    """Categorías de tareas"""
+    SEO = "seo"  # Tareas de optimización SEO
+    CONTENIDO = "contenido"  # Creación de contenido, fotos, etc.
+    VERIFICACION = "verificacion"  # Revisión y verificación de cambios
+
+
 class Lead(Base):
     """Modelo de Lead - Usuario que completa el formulario"""
     __tablename__ = "leads"
@@ -83,6 +90,9 @@ class Order(Base):
     lead_id = Column(Integer, ForeignKey("leads.id"), nullable=False, index=True)
     lead = relationship("Lead", back_populates="orders")
     
+    # Relación con tareas
+    tasks = relationship("Task", back_populates="order", cascade="all, delete-orphan")
+    
     # Información del producto
     product_type = Column(SQLEnum(ProductType), nullable=False, index=True)  # 'ebook' o 'service'
     amount = Column(Float, nullable=False)  # Monto pagado en USD
@@ -103,5 +113,38 @@ class Order(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     completed_at = Column(DateTime(timezone=True), nullable=True)
     
+    # Relaciones
+    tasks = relationship("Task", back_populates="order", cascade="all, delete-orphan")
+    
     def __repr__(self):
         return f"<Order {self.id} - {self.product_type} - {self.status}>"
+
+
+class Task(Base):
+    """Modelo de Tarea - Tareas operativas para completar órdenes"""
+    __tablename__ = "tasks"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    
+    # Relación con la orden
+    order_id = Column(Integer, ForeignKey("orders.id"), nullable=False, index=True)
+    order = relationship("Order", back_populates="tasks")
+    
+    # Información de la tarea
+    description = Column(Text, nullable=False)  # Descripción de la tarea
+    category = Column(SQLEnum(TaskCategory), nullable=False, index=True)  # Categoría de la tarea
+    is_completed = Column(Boolean, default=False, index=True)  # Estado de completado
+    
+    # Prioridad y orden
+    priority = Column(Integer, default=0)  # Mayor número = mayor prioridad
+    order_index = Column(Integer, default=0)  # Orden de visualización
+    
+    # Notas adicionales
+    notes = Column(Text, nullable=True)  # Notas del equipo sobre esta tarea
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    completed_at = Column(DateTime(timezone=True), nullable=True)  # Cuándo se completó
+    
+    def __repr__(self):
+        return f"<Task {self.id} - {self.category} - {'✓' if self.is_completed else '○'}>"

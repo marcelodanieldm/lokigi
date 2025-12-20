@@ -9,7 +9,13 @@ from typing import List, Optional
 from datetime import datetime
 
 from database import get_db
-from models import Order, Lead, ProductType, OrderStatus
+from models import Order, Lead, ProductType, OrderStatus, Task, TaskCategory
+from task_generator import (
+    generate_tasks_from_audit,
+    get_task_completion_percentage,
+    mark_task_completed,
+    mark_task_incomplete
+)
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
@@ -89,6 +95,36 @@ class DashboardStats(BaseModel):
     in_progress_orders: int
     completed_orders: int
     total_revenue: float
+
+
+class TaskResponse(BaseModel):
+    """Schema de respuesta para una tarea"""
+    id: int
+    order_id: int
+    description: str
+    category: str
+    is_completed: bool
+    priority: int
+    order_index: int
+    notes: Optional[str]
+    created_at: datetime
+    completed_at: Optional[datetime]
+    
+    class Config:
+        from_attributes = True
+
+
+class UpdateTaskRequest(BaseModel):
+    """Request para actualizar una tarea"""
+    is_completed: bool
+    notes: Optional[str] = None
+
+
+class TaskListResponse(BaseModel):
+    """Lista de tareas de una orden"""
+    tasks: List[TaskResponse]
+    completion_percentage: float
+    pending_tasks: int
 
 
 # Endpoints
@@ -380,3 +416,164 @@ async def _send_completion_email(client_email: str, client_name: str, business_n
     print(email_content)
     
     return True
+
+
+# ========================================
+# Endpoints de Gestión de Tareas
+# ========================================
+
+@router.get("/orders/{order_id}/tasks", response_model=TaskListResponse)
+def get_order_tasks(
+    order_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Obtiene todas las tareas de una orden con estadísticas.
+    
+    Devuelve:
+    - Lista completa de tareas ordenadas por priority desc
+    - Porcentaje de completitud
+    - Número de tareas pendientes
+    """
+    # Verificar que la orden existe
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Orden {order_id} no encontrada"
+        )
+    
+    # Obtener tareas ordenadas por prioridad
+    tasks = db.query(Task).filter(
+        Task.order_id == order_id
+    ).order_by(
+        Task.priority.desc(),
+        Task.order_index.asc()
+    ).all()
+    
+    # Calcular estadísticas
+    completion_percentage = get_task_completion_percentage(order_id, db)
+    pending_tasks = sum(1 for task in tasks if not task.is_completed)
+    
+    return TaskListResponse(
+        tasks=[TaskResponse.from_orm(task) for task in tasks],
+        completion_percentage=completion_percentage,
+        pending_tasks=pending_tasks
+    )
+
+
+@router.patch("/tasks/{task_id}", response_model=TaskResponse)
+def update_task(
+    task_id: int,
+    request: UpdateTaskRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Actualiza el estado de una tarea.
+    
+    Permite al trabajador:
+    - Marcar una tarea como completada o incompleta
+    - Agregar notas sobre el trabajo realizado
+    
+    Args:
+        task_id: ID de la tarea
+        request: Datos de actualización (is_completed, notes)
+    
+    Returns:
+        Tarea actualizada
+    """
+    # Buscar la tarea
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Tarea {task_id} no encontrada"
+        )
+    
+    # Actualizar según el estado solicitado
+    if request.is_completed:
+        mark_task_completed(task_id, request.notes or "", db)
+    else:
+        mark_task_incomplete(task_id, db)
+    
+    # Refrescar para obtener cambios
+    db.refresh(task)
+    
+    return TaskResponse.from_orm(task)
+
+
+@router.post("/orders/{order_id}/complete")
+def complete_order(
+    order_id: int,
+    request: CompleteOrderRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Marca una orden como completada y dispara notificaciones.
+    
+    Acciones:
+    1. Cambia el status de la orden a COMPLETED
+    2. Establece la fecha de completitud
+    3. Guarda notas finales (opcional)
+    4. Envía email al cliente notificando la finalización
+    
+    Args:
+        order_id: ID de la orden
+        request: Notas finales opcionales
+    
+    Returns:
+        Confirmación de completitud
+    """
+    # Buscar la orden
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Orden {order_id} no encontrada"
+        )
+    
+    # Verificar que no esté ya completada
+    if order.status == OrderStatus.COMPLETED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La orden ya está completada"
+        )
+    
+    # Actualizar estado
+    order.status = OrderStatus.COMPLETED
+    order.completed_at = datetime.utcnow()
+    
+    # Agregar notas si se proporcionaron
+    if request.notes:
+        if order.notes:
+            order.notes += f"\n\n[COMPLETITUD] {request.notes}"
+        else:
+            order.notes = f"[COMPLETITUD] {request.notes}"
+    
+    db.commit()
+    db.refresh(order)
+    
+    # Obtener lead para datos del cliente
+    lead = db.query(Lead).filter(Lead.id == order.lead_id).first()
+    if not lead:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Lead {order.lead_id} no encontrado"
+        )
+    
+    # Enviar email de notificación
+    _send_completion_email(
+        client_email=lead.email,
+        client_name=lead.nombre,
+        business_name=lead.nombre_negocio,
+        score_inicial=lead.score_inicial or 0,
+        score_final=85  # TODO: Calcular score final real
+    )
+    
+    return {
+        "success": True,
+        "message": f"Orden {order_id} completada exitosamente",
+        "order_id": order.id,
+        "completed_at": order.completed_at,
+        "status": order.status.value
+    }

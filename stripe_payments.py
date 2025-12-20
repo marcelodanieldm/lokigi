@@ -8,6 +8,7 @@ from typing import Dict, Optional
 from datetime import datetime
 from sqlalchemy.orm import Session
 from models import Lead, Order, CustomerStatus, ProductType, OrderStatus
+from task_generator import generate_tasks_from_audit
 
 # Configuración de Stripe desde variables de entorno
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
@@ -293,6 +294,21 @@ Score de visibilidad: {lead.score_visibilidad}/100
             print(f"🎯 Nueva orden de servicio pagada: Order #{order.id} - {lead.nombre_negocio}")
             print(f"   Cliente: {lead.nombre} ({lead.email})")
             print(f"   Score inicial: {lead.score_visibilidad}/100")
+            
+            # 🚀 GENERAR TAREAS AUTOMÁTICAMENTE
+            try:
+                tasks_created = generate_tasks_from_audit(
+                    order_id=order.id,
+                    audit_data=lead.audit_data or {},
+                    fallos_criticos=lead.fallos_criticos or [],
+                    db=db
+                )
+                print(f"✅ {len(tasks_created)} tareas generadas automáticamente para Order #{order.id}")
+                for task in tasks_created:
+                    print(f"   - [{task.category.value}] {task.description[:60]}... (prioridad: {task.priority})")
+            except Exception as e:
+                print(f"⚠️  Error generando tareas: {str(e)}")
+                # No fallamos el webhook si falla la generación de tareas
             
             # TODO: Notificar al equipo de trabajo
             # send_team_notification(order)
