@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from pydantic import BaseModel, EmailStr
-from typing import List, Optional
+from typing import List, Optional, Dict
 from datetime import datetime
 import io
 import zipfile
@@ -370,9 +370,6 @@ async def complete_order(
             "error": str(e),
             "order_id": order_id
         }
-        "order_id": order_id,
-        "email_sent": email_sent
-    }
 
 
 # Helper Functions

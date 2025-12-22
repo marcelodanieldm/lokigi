@@ -41,9 +41,16 @@ class TaskCategory(str, enum.Enum):
 
 
 class UserRole(str, enum.Enum):
-    """Roles de usuarios del backoffice"""
-    SUPERUSER = "superuser"  # Acceso total al dashboard
-    WORKER = "worker"  # Solo acceso al Work Queue
+    """
+    Roles RBAC (Role-Based Access Control)
+    
+    ADMIN: Acceso total - métricas, exportación, control de pagos
+    WORKER: Acceso limitado - Work Queue, sin métricas de negocio
+    CUSTOMER: Acceso personal - Solo sus reportes, pagos y Radar (si tiene suscripción)
+    """
+    ADMIN = "admin"  # Daniel y fundadores - Acceso total
+    WORKER = "worker"  # Empleados - Solo Work Queue
+    CUSTOMER = "customer"  # Clientes - Solo sus datos
 
 
 class SubscriptionStatus(str, enum.Enum):
@@ -55,18 +62,51 @@ class SubscriptionStatus(str, enum.Enum):
     PAUSED = "paused"  # Pausada temporalmente
 
 
+class AlertSeverity(str, enum.Enum):
+    """Niveles de severidad de las alertas Radar"""
+    LOW = "low"  # Baja prioridad
+    MEDIUM = "medium"  # Prioridad media
+    HIGH = "high"  # Alta prioridad
+    CRITICAL = "critical"  # Crítica - requiere acción inmediata
+
+
+class AlertType(str, enum.Enum):
+    """Tipos de alertas del sistema Radar"""
+    NEW_COMPETITOR = "new_competitor"  # Nuevo competidor detectado
+    COMPETITOR_IMPROVED = "competitor_improved"  # Competidor mejoró su score
+    RANKING_CHANGED = "ranking_changed"  # Cambio en el ranking
+    REVIEW_SPIKE = "review_spike"  # Aumento significativo de reseñas
+    SCORE_DROP = "score_drop"  # Caída en el score del negocio
+    VISIBILITY_ALERT = "visibility_alert"  # Alerta de visibilidad general
+
+
 class User(Base):
-    """Modelo de Usuario del Backoffice"""
+    """
+    Modelo de Usuario con RBAC (Role-Based Access Control)
+    
+    Roles:
+    - ADMIN: Acceso completo (Daniel + fundadores)
+    - WORKER: Solo Work Queue, sin métricas financieras
+    - CUSTOMER: Solo sus datos (reportes, pagos, Radar)
+    """
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, nullable=False, index=True)
     hashed_password = Column(String, nullable=False)
     full_name = Column(String, nullable=False)
-    role = Column(SQLEnum(UserRole), nullable=False, default=UserRole.WORKER)
+    role = Column(SQLEnum(UserRole), nullable=False, default=UserRole.CUSTOMER)
     is_active = Column(Boolean, default=True, nullable=False)
+    
+    # Para customers: vincular con su lead/cliente
+    customer_lead_id = Column(Integer, ForeignKey("leads.id"), nullable=True)
+    
+    # Timestamps
     created_at = Column(DateTime, default=func.now(), nullable=False)
     last_login = Column(DateTime, nullable=True)
+    
+    # Relaciones
+    customer_lead = relationship("Lead", foreign_keys=[customer_lead_id], backref="user_account")
 
 
 class Lead(Base):
@@ -399,47 +439,4 @@ class RadarSubscription(Base):
     
     def __repr__(self):
         return f"<RadarSubscription Lead:{self.lead_id} Status:{self.status} Price:${self.monthly_price}>"
-
-
-class CompetitorSnapshot(Base):
-    """Modelo de Snapshot de Competidor - Estado en un momento específico"""
-    __tablename__ = "competitor_snapshots"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    
-    # Relación con el competidor (Lead)
-    competitor_id = Column(Integer, ForeignKey("leads.id"), nullable=False, index=True)
-    
-    # Relación con la suscripción que lo monitorea
-    subscription_id = Column(Integer, ForeignKey("radar_subscriptions.id"), nullable=False, index=True)
-    
-    # Datos del snapshot
-    name = Column(String, nullable=False)
-    rating = Column(Float, nullable=True)
-    reviews_count = Column(Integer, nullable=True)
-    photos_count = Column(Integer, nullable=True)
-    response_rate = Column(Float, nullable=True)  # % de respuestas a reseñas
-    
-    # Score calculado
-    visibility_score = Column(Float, nullable=True)  # Score de visibilidad 0-100
-    
-    # Datos completos del competidor
-    snapshot_data = Column(JSON, nullable=False)  # Datos completos en JSON
-    
-    # Comparación con snapshot anterior
-    previous_snapshot_id = Column(Integer, ForeignKey("competitor_snapshots.id"), nullable=True)
-    rating_change = Column(Float, nullable=True)
-    reviews_change = Column(Integer, nullable=True)
-    photos_change = Column(Integer, nullable=True)
-    score_change = Column(Float, nullable=True)
-    
-    # Alertas generadas
-    alert_triggered = Column(Boolean, default=False, nullable=False)
-    alert_reasons = Column(JSON, nullable=True)  # Lista de razones por las que se disparó alerta
-    
-    # Timestamps
-    captured_at = Column(DateTime(timezone=True), server_default=func.now())
-    
-    def __repr__(self):
-        return f"<CompetitorSnapshot {self.name} Score:{self.visibility_score} Change:{self.score_change}>"
 

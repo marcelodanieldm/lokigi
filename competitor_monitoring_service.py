@@ -11,7 +11,8 @@ from models import (
     Lead, RadarSubscription, CompetitorSnapshot, RadarAlert,
     VisibilityHeatmap, SubscriptionStatus, AlertSeverity
 )
-from radar_service import RadarService
+from typing import Any
+# from radar_service import RadarService  # Temporalmente comentado
 import math
 
 
@@ -81,7 +82,7 @@ class CompetitorMonitoringService:
         db: Session,
         competitor_id: int,
         subscription_id: int,
-        radar_service: RadarService
+        radar_service: Any = None  # RadarService
     ) -> Optional[CompetitorSnapshot]:
         """
         Crea un snapshot del estado actual de un competidor
@@ -255,7 +256,7 @@ Te recomendamos revisar tu estrategia y considerar acciones inmediatas.
         cls,
         db: Session,
         subscription_id: int,
-        radar_service: RadarService
+        radar_service: Any = None  # RadarService
     ) -> Dict:
         """
         Monitorea todos los competidores de una suscripción
@@ -369,7 +370,7 @@ Te recomendamos revisar tu estrategia y considerar acciones inmediatas.
         cls,
         db: Session,
         subscription_id: int,
-        radar_service: RadarService
+        radar_service: Any = None  # RadarService
     ) -> Optional[VisibilityHeatmap]:
         """
         Actualiza el mapa de calor de visibilidad para una suscripción
