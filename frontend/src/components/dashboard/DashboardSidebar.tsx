@@ -13,7 +13,8 @@ import {
   X,
   Target,
   BarChart3,
-  Briefcase
+  Briefcase,
+  Zap
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -39,6 +40,14 @@ export default function DashboardSidebar({ stats }: DashboardSidebarProps) {
       href: '/dashboard',
       icon: LayoutDashboard,
       exact: true
+    },
+    {
+      label: '⚡ Command Center',
+      href: '/dashboard/command-center',
+      icon: Zap,
+      highlight: true,
+      description: 'BI Dashboard - Real-time',
+      adminOnly: true
     },
     {
       label: '📊 Analytics',

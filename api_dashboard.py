@@ -1441,3 +1441,434 @@ async def save_checklist(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al guardar checklist: {str(e)}"
         )
+
+
+# ========== COMMAND CENTER: FINANCIAL OVERVIEW ==========
+
+class FinancialMetrics(BaseModel):
+    """Métricas financieras detalladas"""
+    total_revenue: float
+    ebook_revenue: float
+    service_revenue: float
+    subscription_revenue: float
+    ebook_count: int
+    service_count: int
+    subscription_count: int
+    avg_order_value: float
+    revenue_by_country: List[Dict[str, any]]
+
+
+@router.get("/command-center/financial", response_model=FinancialMetrics)
+async def get_financial_overview(
+    time_range: str = "30d",
+    country: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Financial Overview - Ingresos desglosados por producto y país
+    Filtrable por moneda/país de origen (IP)
+    """
+    from datetime import datetime, timedelta
+    from sqlalchemy import func
+    
+    # Calcular fecha de inicio
+    if time_range == "7d":
+        start_date = datetime.now() - timedelta(days=7)
+    elif time_range == "30d":
+        start_date = datetime.now() - timedelta(days=30)
+    elif time_range == "90d":
+        start_date = datetime.now() - timedelta(days=90)
+    else:
+        start_date = datetime.min
+    
+    # Query base
+    orders_query = db.query(Order).join(Lead).filter(
+        Order.created_at >= start_date,
+        Order.status != OrderStatus.CANCELLED
+    )
+    
+    # Filtrar por país si se especifica
+    if country:
+        orders_query = orders_query.filter(Lead.pais == country)
+    
+    orders = orders_query.all()
+    
+    # Calcular métricas por producto
+    ebook_orders = [o for o in orders if o.product_type == ProductType.EBOOK]
+    service_orders = [o for o in orders if o.product_type == ProductType.SERVICE]
+    
+    # Suscripciones (MRR - Monthly Recurring Revenue)
+    subscriptions = db.query(Lead).filter(
+        Lead.premium_subscriber == True,
+        Lead.created_at >= start_date
+    )
+    if country:
+        subscriptions = subscriptions.filter(Lead.pais == country)
+    subscription_count = subscriptions.count()
+    
+    ebook_revenue = sum(o.amount for o in ebook_orders)
+    service_revenue = sum(o.amount for o in service_orders)
+    subscription_revenue = subscription_count * 29.0  # $29/mes
+    
+    total_revenue = ebook_revenue + service_revenue + subscription_revenue
+    
+    # Revenue por país
+    revenue_by_country_data = db.query(
+        Lead.pais,
+        func.sum(Order.amount).label('revenue'),
+        func.count(Order.id).label('orders')
+    ).join(Order).filter(
+        Order.created_at >= start_date,
+        Order.status != OrderStatus.CANCELLED
+    ).group_by(Lead.pais).all()
+    
+    # Mapeo de países
+    country_names = {
+        'BR': {'name': 'Brasil', 'flag': '🇧🇷'},
+        'AR': {'name': 'Argentina', 'flag': '🇦🇷'},
+        'US': {'name': 'Estados Unidos', 'flag': '🇺🇸'},
+        'MX': {'name': 'México', 'flag': '🇲🇽'},
+        'CO': {'name': 'Colombia', 'flag': '🇨🇴'},
+        'CL': {'name': 'Chile', 'flag': '🇨🇱'},
+        'PE': {'name': 'Perú', 'flag': '🇵🇪'},
+        'ES': {'name': 'España', 'flag': '🇪🇸'},
+    }
+    
+    revenue_by_country = []
+    for country_code, revenue, order_count in revenue_by_country_data:
+        if country_code:
+            country_info = country_names.get(country_code, {'name': country_code, 'flag': '🌎'})
+            revenue_by_country.append({
+                'country': country_code,
+                'country_name': country_info['name'],
+                'flag': country_info['flag'],
+                'revenue': float(revenue or 0),
+                'orders': order_count
+            })
+    
+    # Ordenar por revenue descendente
+    revenue_by_country.sort(key=lambda x: x['revenue'], reverse=True)
+    
+    avg_order_value = total_revenue / len(orders) if orders else 0
+    
+    return FinancialMetrics(
+        total_revenue=round(total_revenue, 2),
+        ebook_revenue=round(ebook_revenue, 2),
+        service_revenue=round(service_revenue, 2),
+        subscription_revenue=round(subscription_revenue, 2),
+        ebook_count=len(ebook_orders),
+        service_count=len(service_orders),
+        subscription_count=subscription_count,
+        avg_order_value=round(avg_order_value, 2),
+        revenue_by_country=revenue_by_country
+    )
+
+
+# ========== COMMAND CENTER: CONVERSION FUNNEL ==========
+
+class ConversionFunnelMetrics(BaseModel):
+    """Métricas del embudo de conversión"""
+    total_visitors: int  # Total de leads
+    completed_diagnosis: int  # Leads con score
+    initiated_checkout: int  # Leads con stripe_checkout_session_id
+    completed_purchase: int  # Leads con órdenes pagadas
+    visitor_to_diagnosis_rate: float
+    diagnosis_to_checkout_rate: float
+    checkout_to_purchase_rate: float
+    checkout_abandonment_rate: float
+    overall_conversion_rate: float
+
+
+@router.get("/command-center/funnel", response_model=ConversionFunnelMetrics)
+async def get_conversion_funnel(
+    time_range: str = "30d",
+    db: Session = Depends(get_db)
+):
+    """
+    Conversion Funnel - Lead to Customer
+    Incluye tasa de abandono en checkout de Stripe
+    """
+    from datetime import datetime, timedelta
+    from sqlalchemy import func
+    
+    # Calcular fecha de inicio
+    if time_range == "7d":
+        start_date = datetime.now() - timedelta(days=7)
+    elif time_range == "30d":
+        start_date = datetime.now() - timedelta(days=30)
+    elif time_range == "90d":
+        start_date = datetime.now() - timedelta(days=90)
+    else:
+        start_date = datetime.min
+    
+    # 1. Total visitors (leads)
+    total_visitors = db.query(Lead).filter(Lead.created_at >= start_date).count()
+    
+    # 2. Completed diagnosis (tienen score)
+    completed_diagnosis = db.query(Lead).filter(
+        Lead.created_at >= start_date,
+        Lead.score_visibilidad.isnot(None)
+    ).count()
+    
+    # 3. Initiated checkout (tienen stripe_checkout_session_id)
+    initiated_checkout = db.query(Lead).filter(
+        Lead.created_at >= start_date,
+        Lead.stripe_checkout_session_id.isnot(None)
+    ).count()
+    
+    # 4. Completed purchase (tienen órdenes con status != PENDING)
+    completed_purchase = db.query(Lead).join(Order).filter(
+        Lead.created_at >= start_date,
+        Order.status != OrderStatus.PENDING
+    ).distinct().count()
+    
+    # Calcular tasas
+    visitor_to_diagnosis = (completed_diagnosis / total_visitors * 100) if total_visitors > 0 else 0
+    diagnosis_to_checkout = (initiated_checkout / completed_diagnosis * 100) if completed_diagnosis > 0 else 0
+    checkout_to_purchase = (completed_purchase / initiated_checkout * 100) if initiated_checkout > 0 else 0
+    
+    checkout_abandonment = 100 - checkout_to_purchase
+    overall_conversion = (completed_purchase / total_visitors * 100) if total_visitors > 0 else 0
+    
+    return ConversionFunnelMetrics(
+        total_visitors=total_visitors,
+        completed_diagnosis=completed_diagnosis,
+        initiated_checkout=initiated_checkout,
+        completed_purchase=completed_purchase,
+        visitor_to_diagnosis_rate=round(visitor_to_diagnosis, 2),
+        diagnosis_to_checkout_rate=round(diagnosis_to_checkout, 2),
+        checkout_to_purchase_rate=round(checkout_to_purchase, 2),
+        checkout_abandonment_rate=round(checkout_abandonment, 2),
+        overall_conversion_rate=round(overall_conversion, 2)
+    )
+
+
+# ========== COMMAND CENTER: WORKER PERFORMANCE ==========
+
+class WorkerStats(BaseModel):
+    """Estadísticas de un worker"""
+    worker_id: int
+    worker_name: str
+    worker_email: str
+    orders_completed: int
+    orders_in_progress: int
+    avg_completion_time_hours: float
+    avg_score_improvement: float  # Diferencia entre score final e inicial
+    efficiency_score: float  # Score de 0-100 basado en velocidad y mejora
+
+
+class WorkerPerformanceResponse(BaseModel):
+    """Respuesta de performance de workers"""
+    workers: List[WorkerStats]
+    total_orders: int
+    avg_completion_time: float
+
+
+@router.get("/command-center/workers", response_model=WorkerPerformanceResponse)
+async def get_worker_performance(
+    time_range: str = "30d",
+    db: Session = Depends(get_db)
+):
+    """
+    Worker Performance - Eficiencia del equipo
+    Pedidos completados, tiempo promedio, score de mejora
+    """
+    from datetime import datetime, timedelta
+    from sqlalchemy import func
+    from models import User, UserRole
+    
+    # Calcular fecha de inicio
+    if time_range == "7d":
+        start_date = datetime.now() - timedelta(days=7)
+    elif time_range == "30d":
+        start_date = datetime.now() - timedelta(days=30)
+    elif time_range == "90d":
+        start_date = datetime.now() - timedelta(days=90)
+    else:
+        start_date = datetime.min
+    
+    # Obtener todos los workers
+    workers = db.query(User).filter(User.role == UserRole.WORKER).all()
+    
+    worker_stats_list = []
+    
+    for worker in workers:
+        # Órdenes completadas por este worker (simplificado: todas las completadas)
+        # En un sistema real, tendríamos un campo assigned_to en Order
+        completed_orders = db.query(Order).filter(
+            Order.status == OrderStatus.COMPLETED,
+            Order.completed_at >= start_date
+        ).all()
+        
+        in_progress_orders = db.query(Order).filter(
+            Order.status == OrderStatus.IN_PROGRESS,
+            Order.created_at >= start_date
+        ).all()
+        
+        # Calcular tiempo promedio de completitud
+        completion_times = []
+        score_improvements = []
+        
+        for order in completed_orders:
+            if order.completed_at and order.created_at:
+                time_diff = (order.completed_at - order.created_at).total_seconds() / 3600
+                completion_times.append(time_diff)
+            
+            # Score improvement (si existe audit_data)
+            lead = db.query(Lead).filter(Lead.id == order.lead_id).first()
+            if lead and lead.score_visibilidad:
+                # Score final sería 100 (después del servicio)
+                # Score inicial es lead.score_visibilidad
+                improvement = 100 - lead.score_visibilidad
+                score_improvements.append(improvement)
+        
+        avg_completion_time = sum(completion_times) / len(completion_times) if completion_times else 0
+        avg_score_improvement = sum(score_improvements) / len(score_improvements) if score_improvements else 0
+        
+        # Efficiency score (0-100)
+        # Basado en: velocidad (< 24h = 100, > 48h = 50) y mejora de score
+        time_score = max(0, 100 - (avg_completion_time / 0.48))  # 48 horas = 50 puntos
+        improvement_score = avg_score_improvement  # 0-100
+        efficiency_score = (time_score * 0.6 + improvement_score * 0.4)  # Ponderado 60% velocidad, 40% calidad
+        
+        worker_stats_list.append(WorkerStats(
+            worker_id=worker.id,
+            worker_name=worker.full_name,
+            worker_email=worker.email,
+            orders_completed=len(completed_orders),
+            orders_in_progress=len(in_progress_orders),
+            avg_completion_time_hours=round(avg_completion_time, 2),
+            avg_score_improvement=round(avg_score_improvement, 2),
+            efficiency_score=round(min(100, max(0, efficiency_score)), 2)
+        ))
+    
+    # Ordenar por efficiency_score descendente
+    worker_stats_list.sort(key=lambda x: x.efficiency_score, reverse=True)
+    
+    # Total de órdenes
+    total_orders = db.query(Order).filter(Order.created_at >= start_date).count()
+    
+    # Avg completion time global
+    all_completed = db.query(Order).filter(
+        Order.status == OrderStatus.COMPLETED,
+        Order.completed_at >= start_date,
+        Order.completed_at.isnot(None)
+    ).all()
+    
+    global_completion_times = [
+        (o.completed_at - o.created_at).total_seconds() / 3600
+        for o in all_completed if o.completed_at and o.created_at
+    ]
+    avg_global_completion = sum(global_completion_times) / len(global_completion_times) if global_completion_times else 0
+    
+    return WorkerPerformanceResponse(
+        workers=worker_stats_list,
+        total_orders=total_orders,
+        avg_completion_time=round(avg_global_completion, 2)
+    )
+
+
+# ========== COMMAND CENTER: GEOGRAPHICAL HEATMAP ==========
+
+class GeographicalData(BaseModel):
+    """Datos geográficos de diagnósticos"""
+    country: str
+    country_name: str
+    flag: str
+    diagnosis_count: int
+    lead_count: int
+    conversion_rate: float
+    lat: float
+    lng: float
+
+
+class GeographicalHeatmapResponse(BaseModel):
+    """Respuesta de heatmap geográfico"""
+    locations: List[GeographicalData]
+    total_diagnoses: int
+    top_country: str
+
+
+@router.get("/command-center/heatmap", response_model=GeographicalHeatmapResponse)
+async def get_geographical_heatmap(
+    time_range: str = "30d",
+    db: Session = Depends(get_db)
+):
+    """
+    Geographical Heatmap - Dónde se realizan los diagnósticos
+    Para decidir futuras campañas de marketing
+    """
+    from datetime import datetime, timedelta
+    from sqlalchemy import func
+    
+    # Calcular fecha de inicio
+    if time_range == "7d":
+        start_date = datetime.now() - timedelta(days=7)
+    elif time_range == "30d":
+        start_date = datetime.now() - timedelta(days=30)
+    elif time_range == "90d":
+        start_date = datetime.now() - timedelta(days=90)
+    else:
+        start_date = datetime.min
+    
+    # Diagnósticos por país (leads con score)
+    diagnoses_by_country = db.query(
+        Lead.pais,
+        func.count(Lead.id).label('diagnosis_count')
+    ).filter(
+        Lead.created_at >= start_date,
+        Lead.score_visibilidad.isnot(None)
+    ).group_by(Lead.pais).all()
+    
+    # Total de leads por país
+    leads_by_country = db.query(
+        Lead.pais,
+        func.count(Lead.id).label('lead_count')
+    ).filter(
+        Lead.created_at >= start_date
+    ).group_by(Lead.pais).all()
+    
+    # Mapeo de leads
+    leads_dict = {country: count for country, count in leads_by_country if country}
+    
+    # Mapeo de países con coordenadas
+    country_data = {
+        'BR': {'name': 'Brasil', 'flag': '🇧🇷', 'lat': -14.2350, 'lng': -51.9253},
+        'AR': {'name': 'Argentina', 'flag': '🇦🇷', 'lat': -38.4161, 'lng': -63.6167},
+        'US': {'name': 'Estados Unidos', 'flag': '🇺🇸', 'lat': 37.0902, 'lng': -95.7129},
+        'MX': {'name': 'México', 'flag': '🇲🇽', 'lat': 23.6345, 'lng': -102.5528},
+        'CO': {'name': 'Colombia', 'flag': '🇨🇴', 'lat': 4.5709, 'lng': -74.2973},
+        'CL': {'name': 'Chile', 'flag': '🇨🇱', 'lat': -35.6751, 'lng': -71.5430},
+        'PE': {'name': 'Perú', 'flag': '🇵🇪', 'lat': -9.1900, 'lng': -75.0152},
+        'ES': {'name': 'España', 'flag': '🇪🇸', 'lat': 40.4637, 'lng': -3.7492},
+    }
+    
+    locations = []
+    for country_code, diagnosis_count in diagnoses_by_country:
+        if country_code and country_code in country_data:
+            lead_count = leads_dict.get(country_code, 0)
+            conversion_rate = (diagnosis_count / lead_count * 100) if lead_count > 0 else 0
+            
+            info = country_data[country_code]
+            locations.append(GeographicalData(
+                country=country_code,
+                country_name=info['name'],
+                flag=info['flag'],
+                diagnosis_count=diagnosis_count,
+                lead_count=lead_count,
+                conversion_rate=round(conversion_rate, 2),
+                lat=info['lat'],
+                lng=info['lng']
+            ))
+    
+    # Ordenar por diagnosis_count descendente
+    locations.sort(key=lambda x: x.diagnosis_count, reverse=True)
+    
+    total_diagnoses = sum(d.diagnosis_count for d in locations)
+    top_country = locations[0].country_name if locations else "N/A"
+    
+    return GeographicalHeatmapResponse(
+        locations=locations,
+        total_diagnoses=total_diagnoses,
+        top_country=top_country
+    )
