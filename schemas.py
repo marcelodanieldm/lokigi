@@ -330,3 +330,100 @@ class VisibilityHeatmapResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
+# ============================================================================
+# SCHEMAS PARA EXIT FLOW ANTI-CHURN (Escudo de Retención)
+# ============================================================================
+
+class CancellationAttemptRequest(BaseModel):
+    """Request cuando usuario intenta cancelar suscripción"""
+    lead_id: int
+    subscription_id: int
+    language: str  # "es", "pt", "en"
+
+
+class CompetitorThreat(BaseModel):
+    """Amenaza de competidor detectada en micro-audit"""
+    competitor_name: str
+    threat_type: str  # "ranking_increase", "reviews_surge", "score_jump"
+    threat_level: str  # "critical", "high", "medium"
+    details: str  # Descripción del peligro
+    metric_change: dict  # {"reviews": +5, "rating": +0.3, etc}
+
+
+class MicroAuditResponse(BaseModel):
+    """Respuesta del micro-audit al intentar cancelar"""
+    lead_id: int
+    subscription_id: int
+    has_threats: bool
+    threats_detected: List[CompetitorThreat]
+    business_current_rank: int
+    total_competitors: int
+    days_since_last_scan: int
+    urgency_message: str  # Mensaje dinámico en idioma del usuario
+    risk_level: str  # "high", "medium", "low"
+
+
+class RetentionOfferType(BaseModel):
+    """Tipo de oferta de retención"""
+    offer_type: str  # "discount_50", "free_15_days", "premium_report"
+    original_price: float
+    discount_price: Optional[float]
+    free_days: Optional[int]
+    bonus_feature: Optional[str]
+    coupon_code: Optional[str]  # Código de Stripe
+    valid_until: datetime
+    savings_amount: float
+
+
+class RetentionOfferResponse(BaseModel):
+    """Respuesta con oferta de retención"""
+    lead_id: int
+    subscription_id: int
+    offer: RetentionOfferType
+    persuasion_message: str  # Mensaje en idioma del usuario
+    cta_button_text: str  # "Aceptar oferta", "Accept offer", etc
+    offer_accepted_url: Optional[str]  # URL para aplicar cupón
+
+
+class ChurnReason(BaseModel):
+    """Motivo de cancelación"""
+    reason_category: str  # "price", "not_using", "missing_features", "competitor", "other"
+    reason_detail: Optional[str]  # Texto libre del usuario
+    satisfaction_score: Optional[int]  # 1-5
+
+
+class ChurnFeedbackCreate(BaseModel):
+    """Request para guardar feedback de churn"""
+    lead_id: int
+    subscription_id: int
+    cancellation_reason: ChurnReason
+    accepted_retention_offer: bool
+    retention_offer_type: Optional[str]
+    language: str
+
+
+class ChurnFeedbackResponse(BaseModel):
+    """Respuesta de feedback guardado"""
+    id: int
+    lead_id: int
+    subscription_id: int
+    reason_category: str
+    reason_detail: Optional[str]
+    satisfaction_score: Optional[int]
+    accepted_retention_offer: bool
+    retention_offer_type: Optional[str]
+    language: str
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class CancellationFlowStatus(BaseModel):
+    """Estado del flujo de cancelación"""
+    step: int  # 1 = micro-audit, 2 = retention offer, 3 = feedback
+    can_proceed_to_cancel: bool
+    retention_offer_shown: bool
+    feedback_submitted: bool
+

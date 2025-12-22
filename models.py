@@ -440,3 +440,44 @@ class RadarSubscription(Base):
     def __repr__(self):
         return f"<RadarSubscription Lead:{self.lead_id} Status:{self.status} Price:${self.monthly_price}>"
 
+
+class ChurnFeedback(Base):
+    """
+    Modelo para guardar feedback de usuarios que cancelan suscripción.
+    
+    Permite análisis de patrones de churn para mejorar producto y retención.
+    """
+    __tablename__ = "churn_feedback"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    
+    # Referencias
+    lead_id = Column(Integer, ForeignKey("leads.id"), nullable=False, index=True)
+    lead = relationship("Lead", backref="churn_feedback")
+    subscription_id = Column(Integer, ForeignKey("radar_subscriptions.id"), nullable=True)
+    
+    # Razón de cancelación
+    reason_category = Column(String, nullable=False, index=True)  # "price", "not_using", "missing_features", "competitor", "other"
+    reason_detail = Column(Text, nullable=True)  # Texto libre del usuario
+    satisfaction_score = Column(Integer, nullable=True)  # 1-5
+    
+    # Datos del flujo de retención
+    accepted_retention_offer = Column(Boolean, default=False, nullable=False)
+    retention_offer_type = Column(String, nullable=True)  # "discount_50", "free_15_days", etc
+    retention_offer_shown = Column(Boolean, default=False, nullable=False)
+    
+    # Contexto
+    language = Column(String, nullable=False)  # "es", "pt", "en"
+    user_agent = Column(String, nullable=True)  # Para análisis de dispositivo
+    
+    # Análisis adicional
+    had_active_threats = Column(Boolean, default=False, nullable=False)  # Si tenía amenazas de competidores
+    days_subscribed = Column(Integer, nullable=True)  # Días desde que se suscribió
+    total_alerts_received = Column(Integer, default=0, nullable=False)  # Total de alertas que recibió
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    def __repr__(self):
+        return f"<ChurnFeedback Lead:{self.lead_id} Reason:{self.reason_category} Accepted:{self.accepted_retention_offer}>"
+
