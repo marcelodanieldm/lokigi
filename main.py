@@ -19,13 +19,52 @@ from api_payments import router as payments_router
 from api_dashboard import router as dashboard_router
 from api_auth import router as auth_router
 from api_lokigi_score import router as lokigi_score_router
+from api_v1 import router as api_v1_router
 
-app = FastAPI(title="Lokigi - Local SEO Auditor")
+app = FastAPI(
+    title="Lokigi - Local SEO Auditor",
+    description="""
+    🌎 **API Multilingüe de Presupuesto Cero**
+    
+    Lokigi es una plataforma de auditoría SEO local que funciona con:
+    - ✅ FastAPI + Supabase (PostgreSQL)
+    - ✅ Google Gemini AI (capa gratuita)
+    - ✅ i18n automático por IP (PT/ES/EN)
+    - ✅ Algoritmo Lokigi Score (0-100)
+    - ✅ Cálculo de Lucro Cesante
+    
+    ## 🎯 Endpoint Principal
+    
+    **POST /api/v1/analyze** - Analiza un negocio local y calcula:
+    - Lokigi Score (0-100) con 4 dimensiones
+    - Lucro Cesante mensual/anual en USD
+    - Problemas críticos detectados
+    - Plan de acción priorizado
+    
+    ## 🌍 Países Soportados
+    - 🇦🇷 Argentina
+    - 🇧🇷 Brasil
+    - 🇲🇽 México
+    - 🇨🇴 Colombia
+    - 🇨🇱 Chile
+    - 🇪🇸 España
+    - 🇺🇸 Estados Unidos
+    """,
+    version="1.0.0",
+    contact={
+        "name": "Lokigi Team",
+        "email": "support@lokigi.com",
+    },
+    license_info={
+        "name": "MIT",
+    },
+)
 
 # Middleware de detección de idioma (debe ir ANTES de CORS)
 app.add_middleware(LanguageDetectionMiddleware)
 
-# Incluir rutas de pagos y dashboard
+# Incluir rutas (V1 primero para que aparezca arriba en Swagger)
+app.include_router(api_v1_router)
 app.include_router(payments_router)
 app.include_router(dashboard_router)
 app.include_router(auth_router)
