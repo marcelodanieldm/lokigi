@@ -10,7 +10,8 @@ import {
   DollarSign,
   LogOut,
   Menu,
-  X
+  X,
+  Target
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -36,6 +37,13 @@ export default function DashboardSidebar({ stats }: DashboardSidebarProps) {
       href: '/dashboard',
       icon: LayoutDashboard,
       exact: true
+    },
+    {
+      label: '🎯 Lokigi Score',
+      href: '/dashboard/lokigi-score',
+      icon: Target,
+      highlight: true,
+      description: 'Análisis Manual - Presupuesto $0'
     },
     {
       label: '🚀 Work Queue',

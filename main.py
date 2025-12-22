@@ -17,6 +17,7 @@ from stripe_service import create_checkout_session, handle_webhook_event
 from api_payments import router as payments_router
 from api_dashboard import router as dashboard_router
 from api_auth import router as auth_router
+from api_lokigi_score import router as lokigi_score_router
 
 app = FastAPI(title="Lokigi - Local SEO Auditor")
 
@@ -24,6 +25,7 @@ app = FastAPI(title="Lokigi - Local SEO Auditor")
 app.include_router(payments_router)
 app.include_router(dashboard_router)
 app.include_router(auth_router)
+app.include_router(lokigi_score_router)
 
 # CORS para el frontend
 app.add_middleware(
