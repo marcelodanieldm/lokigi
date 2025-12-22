@@ -23,13 +23,12 @@ def print_result(business_name, result, country):
     print(f"{emoji} LOKIGI SCORE: {result.total_score}/100")
     print()
     
-    # Dimensiones
+    # Dimensiones (NUEVAS PROPORCIONES: 40/25/20/15)
     print("📊 SCORES POR DIMENSIÓN:")
-    print(f"   • NAP (Nombre, Dirección, Teléfono): {result.dimension_scores['NAP']}/20")
-    print(f"   • Reseñas: {result.dimension_scores['Reseñas']}/20")
-    print(f"   • Fotos: {result.dimension_scores['Fotos']}/20")
-    print(f"   • Categorías: {result.dimension_scores['Categorías']}/20")
-    print(f"   • Verificación: {result.dimension_scores['Verificación']}/20")
+    print(f"   • Propiedad (Reclamado/Verificado): {result.dimension_scores['Propiedad']}/40 (40%)")
+    print(f"   • Reputación (Reseñas/Rating): {result.dimension_scores['Reputación']}/25 (25%)")
+    print(f"   • Contenido Visual (Fotos): {result.dimension_scores['Contenido Visual']}/20 (20%)")
+    print(f"   • Presencia Digital (NAP/Categorías): {result.dimension_scores['Presencia Digital']}/15 (15%)")
     print()
     
     # Lucro Cesante

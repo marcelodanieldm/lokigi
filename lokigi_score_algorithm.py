@@ -237,20 +237,25 @@ class LokigiScoreCalculator:
     ) -> LokigiScoreResult:
         """
         Calcula el Lokigi Score completo (0-100) con análisis de lucro cesante
+        
+        Proporciones por dimensión:
+        - Propiedad (Verificación + Reclamo): 40 puntos
+        - Reputación (Reseñas + Rating): 25 puntos
+        - Contenido Visual (Fotos + Frescura): 20 puntos
+        - Presencia Digital (NAP + Categorías): 15 puntos
         """
         
         # 1. Parse manual data
         nap, reviews, photos, categories, verification = self.parse_manual_data(scraped)
         
-        # 2. Calcular score por dimensión (20 puntos cada una)
+        # 2. Calcular score por dimensión (con proporciones del Data Team)
         scores = {}
-        scores["NAP"] = self._score_nap(nap)
-        scores["Reseñas"] = self._score_reviews(reviews)
-        scores["Fotos"] = self._score_photos(photos)
-        scores["Categorías"] = self._score_categories(categories)
-        scores["Verificación"] = self._score_verification(verification)
+        scores["Propiedad"] = self._score_verification(verification)  # 40 puntos
+        scores["Reputación"] = self._score_reviews(reviews)  # 25 puntos
+        scores["Contenido Visual"] = self._score_photos(photos)  # 20 puntos
+        scores["Presencia Digital"] = self._score_nap(nap, scraped.country) + self._score_categories(categories)  # 10+5 = 15 puntos
         
-        # 3. Score total (suma de las 5 dimensiones)
+        # 3. Score total (suma de las 4 dimensiones)
         total_score = sum(scores.values())
         
         # 4. Calcular posición estimada en ranking (basado en score)
@@ -286,52 +291,76 @@ class LokigiScoreCalculator:
             ranking_improvement_potential=lucro_data["improvement_potential"]
         )
     
-    # ========== SCORING POR DIMENSIÓN (20 puntos cada una) ==========
+    # ========== SCORING POR DIMENSIÓN ==========
     
-    def _score_nap(self, nap: NAP) -> int:
-        """Score dimensión NAP: 0-20 puntos"""
+    def _score_nap(self, nap: NAP, country: Country) -> int:
+        """
+        Score dimensión NAP (parte de Presencia Digital): 0-10 puntos
+        
+        Adaptación internacional:
+        - USA: Más peso en consistencia NAP (importante para directorios)
+        - LATAM (BR/AR): Más peso en presencia de WhatsApp (canal principal de contacto)
+        """
         score = 0
         
+        # Distribución base
         if nap.name_complete:
-            score += 4
-        if nap.address_complete:
-            score += 6
-        if nap.phone_present:
-            score += 4
-        if nap.phone_format_valid:
             score += 2
-        score += int(nap.consistency_score * 4)  # 0-4 puntos
+        if nap.address_complete:
+            score += 2
+        if nap.phone_present:
+            score += 2
+        if nap.phone_format_valid:
+            score += 1
         
-        return min(20, score)
+        # Adaptación por país
+        if country == Country.EEUU:
+            # USA: Doble peso en consistencia NAP
+            score += int(nap.consistency_score * 3)  # 0-3 puntos
+        else:
+            # LATAM: Si el teléfono parece WhatsApp, bonus extra
+            # (asumimos que si tiene formato válido en LATAM, es WhatsApp)
+            if nap.phone_present and nap.phone_format_valid:
+                score += 2  # Bonus WhatsApp
+            score += int(nap.consistency_score * 1)  # 0-1 punto
+        
+        return min(10, score)
     
     def _score_reviews(self, reviews: ReviewsMetrics) -> int:
-        """Score dimensión Reseñas: 0-20 puntos"""
+        """
+        Score dimensión Reputación: 0-25 puntos
+        
+        Distribución:
+        - Rating promedio: 0-10 puntos
+        - Cantidad de reseñas: 0-10 puntos
+        - Frescura/Sentiment: 0-5 puntos
+        """
         score = 0
         
-        # Rating (0-8 puntos)
+        # Rating (0-10 puntos)
         if reviews.average_rating >= 4.5:
-            score += 8
+            score += 10
         elif reviews.average_rating >= 4.0:
-            score += 6
-        elif reviews.average_rating >= 3.5:
-            score += 4
-        elif reviews.average_rating >= 3.0:
-            score += 2
-        
-        # Cantidad (0-8 puntos)
-        if reviews.total_reviews >= 100:
             score += 8
+        elif reviews.average_rating >= 3.5:
+            score += 5
+        elif reviews.average_rating >= 3.0:
+            score += 3
+        
+        # Cantidad (0-10 puntos)
+        if reviews.total_reviews >= 100:
+            score += 10
         elif reviews.total_reviews >= 50:
-            score += 6
+            score += 8
         elif reviews.total_reviews >= 25:
-            score += 4
+            score += 5
         elif reviews.total_reviews >= 10:
-            score += 2
+            score += 3
         
-        # Sentiment (0-4 puntos)
-        score += int(reviews.sentiment_score * 4)
+        # Sentiment (0-5 puntos)
+        score += int(reviews.sentiment_score * 5)
         
-        return min(20, score)
+        return min(25, score)
     
     def _score_photos(self, photos: PhotosMetrics) -> int:
         """Score dimensión Fotos: 0-20 puntos"""
@@ -353,32 +382,44 @@ class LokigiScoreCalculator:
         return min(20, score)
     
     def _score_categories(self, categories: CategoryMetrics) -> int:
-        """Score dimensión Categorías: 0-20 puntos"""
+        """
+        Score dimensión Categorías (parte de Presencia Digital): 0-5 puntos
+        """
         score = 0
         
         if categories.primary_category_set:
-            score += 10
+            score += 3
         
-        # Categorías adicionales (0-5 puntos)
-        score += min(5, categories.additional_categories * 2)
+        # Categorías adicionales (0-2 puntos)
+        if categories.additional_categories >= 3:
+            score += 2
+        elif categories.additional_categories >= 1:
+            score += 1
         
-        # Relevancia (0-5 puntos)
-        score += int(categories.category_relevance_score * 5)
-        
-        return min(20, score)
+        return min(5, score)
     
     def _score_verification(self, verification: VerificationMetrics) -> int:
-        """Score dimensión Verificación: 0-20 puntos"""
+        """
+        Score dimensión Propiedad: 0-40 puntos
+        
+        Esta es la dimensión MÁS CRÍTICA del algoritmo (40% del score)
+        porque indica control y legitimidad del negocio.
+        """
         score = 0
         
+        # Negocio reclamado (0-25 puntos) - ULTRA CRÍTICO
         if verification.is_claimed:
-            score += 10  # MÁS CRÍTICO
+            score += 25
+        
+        # Badge de verificación (0-10 puntos) - CRÍTICO
         if verification.is_verified:
-            score += 5
+            score += 10
+        
+        # Horarios configurados (0-5 puntos)
         if verification.business_hours_set:
             score += 5
         
-        return min(20, score)
+        return min(40, score)
     
     # ========== CÁLCULO DE LUCRO CESANTE ==========
     
@@ -805,33 +846,28 @@ class LokigiScoreCalculator:
         sorted_dimensions = sorted(scores.items(), key=lambda x: x[1])
         weakest_dims = [dim for dim, score in sorted_dimensions[:2]]
         
-        # Recomendaciones específicas por dimensión
-        if "Verificación" in weakest_dims or scores["Verificación"] < 15:
+        # Recomendaciones específicas por dimensión (NUEVOS NOMBRES)
+        if "Propiedad" in weakest_dims or scores.get("Propiedad", 0) < 25:
             recommendations.append(
                 "1️⃣ ACCIÓN INMEDIATA: Reclama tu negocio en Google My Business. "
                 "Esto solo toma 5 minutos y aumenta tu visibilidad un 40%."
             )
         
-        if "Reseñas" in weakest_dims or scores["Reseñas"] < 12:
+        if "Reputación" in weakest_dims or scores.get("Reputación", 0) < 15:
             recommendations.append(
                 "2️⃣ URGENTE: Implementa un sistema para pedir reseñas. "
                 "Objetivo: conseguir 3-5 reseñas nuevas por semana."
             )
         
-        if "NAP" in weakest_dims or scores["NAP"] < 15:
+        if "Presencia Digital" in weakest_dims or scores.get("Presencia Digital", 0) < 10:
             recommendations.append(
                 "3️⃣ PRIORIDAD: Completa tu perfil con teléfono, dirección y horarios correctos."
             )
         
-        if "Fotos" in weakest_dims or scores["Fotos"] < 12:
+        if "Contenido Visual" in weakest_dims or scores.get("Contenido Visual", 0) < 12:
             recommendations.append(
                 "4️⃣ Esta semana: Sube 10 fotos profesionales (productos, local, equipo). "
                 "Actualiza fotos cada mes."
-            )
-        
-        if "Categorías" in weakest_dims or scores["Categorías"] < 15:
-            recommendations.append(
-                "5️⃣ Optimiza categorías: Define tu categoría principal y agrega 2-3 secundarias relevantes."
             )
         
         # Recomendación de potencial
