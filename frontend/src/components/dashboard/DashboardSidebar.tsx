@@ -11,7 +11,9 @@ import {
   LogOut,
   Menu,
   X,
-  Target
+  Target,
+  BarChart3,
+  Briefcase
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -39,17 +41,25 @@ export default function DashboardSidebar({ stats }: DashboardSidebarProps) {
       exact: true
     },
     {
-      label: '🎯 Lokigi Score',
-      href: '/dashboard/lokigi-score',
-      icon: Target,
+      label: '📊 Analytics',
+      href: '/dashboard/analytics',
+      icon: BarChart3,
       highlight: true,
-      description: 'Análisis Manual - Presupuesto $0'
+      description: 'Leads por País - Admin',
+      adminOnly: true
     },
     {
       label: '🚀 Work Queue',
       href: '/dashboard/work',
-      icon: ClipboardList,
-      highlight: true
+      icon: Briefcase,
+      highlight: true,
+      description: 'Panel de Trabajo'
+    },
+    {
+      label: '🎯 Lokigi Score',
+      href: '/dashboard/lokigi-score',
+      icon: Target,
+      description: 'Análisis Manual - $0'
     },
     {
       label: 'Todas las Órdenes',

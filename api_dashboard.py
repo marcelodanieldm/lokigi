@@ -577,3 +577,144 @@ def complete_order(
         "completed_at": order.completed_at,
         "status": order.status.value
     }
+
+
+# ==========================================
+# ANALYTICS ENDPOINTS
+# ==========================================
+
+class LeadsByCountryResponse(BaseModel):
+    """Leads agrupados por país"""
+    country: str
+    count: int
+    revenue: float
+    percentage: float
+
+
+class AnalyticsResponse(BaseModel):
+    """Respuesta de analytics"""
+    total_leads: int
+    total_orders: int
+    total_revenue: float
+    conversion_rate: float
+    leads_by_country: List[LeadsByCountryResponse]
+
+
+@router.get("/analytics", response_model=AnalyticsResponse)
+async def get_analytics(
+    time_range: str = "30d",
+    db: Session = Depends(get_db)
+):
+    """
+    Obtiene analytics para dashboard de admin
+    
+    Decisión crítica: ¿Dónde invertir tiempo (único capital)?
+    
+    Parámetros:
+    - time_range: "7d", "30d", "all"
+    """
+    from datetime import datetime, timedelta
+    from sqlalchemy import func
+    
+    # Calcular fecha de inicio según time_range
+    if time_range == "7d":
+        start_date = datetime.now() - timedelta(days=7)
+    elif time_range == "30d":
+        start_date = datetime.now() - timedelta(days=30)
+    else:  # "all"
+        start_date = datetime.min
+    
+    # Query base con filtro de fecha
+    leads_query = db.query(Lead).filter(Lead.created_at >= start_date)
+    orders_query = db.query(Order).filter(Order.created_at >= start_date)
+    
+    # Total leads
+    total_leads = leads_query.count()
+    
+    # Total orders (solo COMPLETED porque son pagados)
+    total_orders = orders_query.filter(Order.status == OrderStatus.COMPLETED).count()
+    
+    # Total revenue
+    total_revenue = db.query(func.sum(Order.amount)).filter(
+        Order.created_at >= start_date,
+        Order.status == OrderStatus.COMPLETED
+    ).scalar() or 0.0
+    
+    # Conversion rate
+    conversion_rate = (total_orders / total_leads * 100) if total_leads > 0 else 0.0
+    
+    # Leads por país (agrupado)
+    leads_by_country = db.query(
+        Lead.pais.label('country'),
+        func.count(Lead.id).label('count')
+    ).filter(
+        Lead.created_at >= start_date
+    ).group_by(Lead.pais).all()
+    
+    # Revenue por país
+    revenue_by_country = {}
+    for country_code in [row.country for row in leads_by_country]:
+        country_revenue = db.query(func.sum(Order.amount)).join(Lead).filter(
+            Lead.pais == country_code,
+            Order.created_at >= start_date,
+            Order.status == OrderStatus.COMPLETED
+        ).scalar() or 0.0
+        revenue_by_country[country_code] = country_revenue
+    
+    # Construir response
+    leads_by_country_response = []
+    for row in leads_by_country:
+        country = row.country or 'OTHER'
+        count = row.count
+        revenue = revenue_by_country.get(country, 0.0)
+        percentage = (count / total_leads * 100) if total_leads > 0 else 0.0
+        
+        leads_by_country_response.append(LeadsByCountryResponse(
+            country=country,
+            count=count,
+            revenue=revenue,
+            percentage=percentage
+        ))
+    
+    # Ordenar por revenue descendente
+    leads_by_country_response.sort(key=lambda x: x.revenue, reverse=True)
+    
+    return AnalyticsResponse(
+        total_leads=total_leads,
+        total_orders=total_orders,
+        total_revenue=total_revenue,
+        conversion_rate=conversion_rate,
+        leads_by_country=leads_by_country_response
+    )
+
+
+# ==========================================
+# ENDPOINT PARA GUARDAR NOTAS
+# ==========================================
+
+class SaveNotesRequest(BaseModel):
+    """Request para guardar notas internas"""
+    notes: str
+
+
+@router.post("/orders/{order_id}/notes")
+async def save_order_notes(
+    order_id: int,
+    request: SaveNotesRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Guarda notas internas de una orden
+    """
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Orden {order_id} no encontrada"
+        )
+    
+    order.notes = request.notes
+    db.commit()
+    
+    return {"success": True, "message": "Notas guardadas correctamente"}
+
