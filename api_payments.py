@@ -181,6 +181,53 @@ async def create_service_checkout(
         )
 
 
+@router.post("/create-checkout-session/subscription")
+async def create_subscription_checkout(
+    request: CheckoutRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Crea una sesión de checkout para la suscripción premium ($29/mes)
+    
+    Body:
+    {
+        "lead_id": 1,
+        "price_id": "price_1ABC123..." (opcional)
+    }
+    
+    Returns:
+    {
+        "url": "https://checkout.stripe.com/c/pay/cs_test_...",
+        "session_id": "cs_test_..."
+    }
+    
+    🎯 PLAN PREMIUM ($29/mes):
+    - Reporte mensual de Heatmap (Tú vs. Competidores)
+    - Alertas automáticas de cambios
+    - Soporte prioritario
+    - Acceso a dashboard premium
+    """
+    try:
+        result = StripePaymentService.create_checkout_session(
+            lead_id=request.lead_id,
+            product_type="subscription",
+            db=db,
+            price_id=request.price_id
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail=str(e)
+        )
+    except Exception as e:
+        print(f"❌ Error al crear checkout de suscripción: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail=f"Error al crear sesión de pago: {str(e)}"
+        )
+
+
 # Webhook de Stripe
 @router.post("/stripe/webhook")
 async def stripe_webhook(request: Request, db: Session = Depends(get_db)):

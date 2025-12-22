@@ -83,6 +83,12 @@ class Lead(Base):
     # Estado del cliente
     customer_status = Column(SQLEnum(CustomerStatus), default=CustomerStatus.LEAD)
     
+    # Suscripción Premium
+    premium_subscriber = Column(Boolean, default=False, nullable=False)  # Flag para suscriptores $29/mes
+    subscription_id = Column(String, nullable=True, index=True)  # ID de suscripción en Stripe
+    subscription_status = Column(String, nullable=True)  # active, canceled, past_due, etc.
+    subscription_current_period_end = Column(DateTime(timezone=True), nullable=True)  # Fin del período actual
+    
     # Stripe
     stripe_customer_id = Column(String, nullable=True, index=True)  # ID de cliente en Stripe
     stripe_checkout_session_id = Column(String, nullable=True)  # Última sesión de checkout

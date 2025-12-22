@@ -29,13 +29,23 @@ PRODUCTS = {
         "name": "Plan de Acción SEO Local PDF",
         "description": "Plan personalizado paso a paso para optimizar tu presencia local",
         "price": 900,  # $9 en centavos
-        "currency": "usd"
+        "currency": "usd",
+        "type": "one_time"
     },
     "service": {
         "name": "Optimización SEO Local Completa",
         "description": "Servicio completo de optimización + 3 meses de seguimiento",
         "price": 9900,  # $99 en centavos
-        "currency": "usd"
+        "currency": "usd",
+        "type": "one_time"
+    },
+    "subscription": {
+        "name": "Plan Premium - Heatmap Mensual",
+        "description": "Reporte mensual de competidores + alertas de cambios + soporte prioritario",
+        "price": 2900,  # $29 en centavos
+        "currency": "usd",
+        "type": "subscription",
+        "recurring_interval": "month"
     }
 }
 
@@ -103,23 +113,43 @@ class StripePaymentService:
             if price_id:
                 line_items = [{'price': price_id, 'quantity': 1}]
             else:
-                line_items = [{
-                    'price_data': {
-                        'currency': product['currency'],
-                        'product_data': {
-                            'name': product['name'],
-                            'description': product['description'],
+                # Configurar line_items según el tipo de producto
+                if product['type'] == 'subscription':
+                    line_items = [{
+                        'price_data': {
+                            'currency': product['currency'],
+                            'product_data': {
+                                'name': product['name'],
+                                'description': product['description'],
+                            },
+                            'unit_amount': product['price'],
+                            'recurring': {
+                                'interval': product['recurring_interval']
+                            }
                         },
-                        'unit_amount': product['price'],
-                    },
-                    'quantity': 1,
-                }]
+                        'quantity': 1,
+                    }]
+                else:
+                    line_items = [{
+                        'price_data': {
+                            'currency': product['currency'],
+                            'product_data': {
+                                'name': product['name'],
+                                'description': product['description'],
+                            },
+                            'unit_amount': product['price'],
+                        },
+                        'quantity': 1,
+                    }]
+            
+            # Mode depende del tipo de producto
+            mode = 'subscription' if product.get('type') == 'subscription' else 'payment'
             
             session = stripe.checkout.Session.create(
                 customer=customer_id,
                 payment_method_types=['card'],
                 line_items=line_items,
-                mode='payment',
+                mode=mode,
                 success_url=f"{FRONTEND_URL}/success?session_id={{CHECKOUT_SESSION_ID}}",
                 cancel_url=f"{FRONTEND_URL}/audit-results?lead_id={lead_id}&canceled=true",
                 metadata={
@@ -129,16 +159,19 @@ class StripePaymentService:
                 }
             )
             
-            # Crear orden en estado pending
-            order = Order(
-                lead_id=lead_id,
-                product_type=ProductType.EBOOK if product_type == "ebook" else ProductType.SERVICE,
-                amount=product['price'] / 100,  # Convertir centavos a dólares
-                currency=product['currency'],
-                stripe_session_id=session.id,
-                status=OrderStatus.PENDING
-            )
-            db.add(order)
+            # Crear orden en estado pending (solo para one-time payments)
+            # Para suscripciones, la orden se crea en el webhook
+            if product.get('type') != 'subscription':
+                product_type_enum = ProductType.EBOOK if product_type == "ebook" else ProductType.SERVICE
+                order = Order(
+                    lead_id=lead_id,
+                    product_type=product_type_enum,
+                    amount=product['price'] / 100,  # Convertir centavos a dólares
+                    currency=product['currency'],
+                    stripe_session_id=session.id,
+                    status=OrderStatus.PENDING
+                )
+                db.add(order)
             
             # Actualizar lead con session ID
             lead.stripe_checkout_session_id = session.id
@@ -212,6 +245,18 @@ class StripePaymentService:
             session = event['data']['object']
             return StripePaymentService._handle_checkout_completed(session, db)
         
+        elif event_type == 'customer.subscription.created':
+            subscription = event['data']['object']
+            return StripePaymentService._handle_subscription_created(subscription, db)
+        
+        elif event_type == 'customer.subscription.updated':
+            subscription = event['data']['object']
+            return StripePaymentService._handle_subscription_updated(subscription, db)
+        
+        elif event_type == 'customer.subscription.deleted':
+            subscription = event['data']['object']
+            return StripePaymentService._handle_subscription_deleted(subscription, db)
+        
         elif event_type == 'payment_intent.succeeded':
             payment_intent = event['data']['object']
             return StripePaymentService._handle_payment_succeeded(payment_intent, db)
@@ -224,48 +269,61 @@ class StripePaymentService:
     def _handle_checkout_completed(session: Dict, db: Session) -> Dict:
         """
         Procesa un checkout completado
+        
+        Maneja 3 casos según el equipo de Data:
+        1. $9 (ebook): Dispara email con enlace de descarga
+        2. $99 (service): Crea orden de trabajo para Workers
+        3. $29/mes (subscription): Activa flag premium_subscriber
         """
         lead_id = int(session['metadata']['lead_id'])
         product_type = session['metadata']['product_type']
         
-        # Obtener lead y orden
+        # Obtener lead
         lead = db.query(Lead).filter(Lead.id == lead_id).first()
-        order = db.query(Order).filter(
-            Order.stripe_session_id == session['id']
-        ).first()
+        if not lead:
+            return {"status": "error", "message": "Lead no encontrado"}
         
-        if not lead or not order:
-            return {"status": "error", "message": "Lead u orden no encontrados"}
-        
-        # Actualizar lead a CLIENTE (es cliente porque pagó)
+        # Actualizar lead a CLIENTE (porque pagó)
         lead.customer_status = CustomerStatus.CLIENTE
-        if not lead.paid_at:  # Solo actualizar la primera vez
+        if not lead.paid_at:
             lead.paid_at = datetime.utcnow()
         lead.stripe_payment_intent_id = session.get('payment_intent')
         
-        # Actualizar orden de PENDING a COMPLETED
-        # El status va de: pending (creada) -> completed (pagada)
-        order.stripe_payment_intent_id = session.get('payment_intent')
-        order.status = OrderStatus.COMPLETED  # Marca como 'paid' (completado significa pagado)
-        order.completed_at = datetime.utcnow()
-        
-        # Procesamiento específico por producto
+        # CASO 1: E-BOOK ($9) - Enviar email con descarga
         if product_type == "ebook":
-            # Generar link de descarga del e-book
-            download_link = StripePaymentService._generate_ebook_download_link(lead, order)
-            order.download_link = download_link
+            order = db.query(Order).filter(
+                Order.stripe_session_id == session['id']
+            ).first()
             
-            print(f"✅ E-book generado para {lead.email}: {download_link}")
-            
-            # TODO: Enviar email con link de descarga
-            # send_ebook_email(lead.email, lead.nombre, download_link)
-            
-            result_message = f"E-book generado y listo para enviar a {lead.email}"
-            
+            if order:
+                order.stripe_payment_intent_id = session.get('payment_intent')
+                order.status = OrderStatus.COMPLETED
+                order.completed_at = datetime.utcnow()
+                
+                # Generar link de descarga
+                download_link = StripePaymentService._generate_ebook_download_link(lead, order)
+                order.download_link = download_link
+                
+                print(f"✅ [$9 E-BOOK] Generado para {lead.email}: {download_link}")
+                
+                # TODO: Enviar email automático con SendGrid/Mailgun (capa gratuita)
+                # send_ebook_email(lead.email, lead.nombre, download_link)
+                
+                result_message = f"E-book generado y enviado a {lead.email}"
+            else:
+                result_message = "E-book procesado (orden no encontrada)"
+        
+        # CASO 2: SERVICIO ($99) - Crear orden de trabajo para Workers
         elif product_type == "service":
-            # Marcar orden como lista para el equipo de trabajo
-            # El status 'completed' indica que está PAGADA y lista para trabajar
-            order.notes = f"""🎯 NUEVA ORDEN DE SERVICIO - PAGADA
+            order = db.query(Order).filter(
+                Order.stripe_session_id == session['id']
+            ).first()
+            
+            if order:
+                order.stripe_payment_intent_id = session.get('payment_intent')
+                order.status = OrderStatus.COMPLETED  # PAGADA y lista para trabajar
+                order.completed_at = datetime.utcnow()
+                order.notes = f"""🎯 NUEVA ORDEN DE SERVICIO - PAGADA
 
 📊 INFORMACIÓN DEL CLIENTE:
 Negocio: {lead.nombre_negocio}
@@ -279,42 +337,65 @@ Score de visibilidad: {lead.score_visibilidad}/100
 
 ✅ PRÓXIMOS PASOS:
 1. Contactar al cliente en las próximas 24 horas
-2. Agendar reunión inicial para definir estrategia
-3. Reclamar y optimizar Google Business Profile
+2. Agendar reunión inicial
+3. Reclamar Google Business Profile
 4. Subir fotos con geoetiquetado
-5. Configurar mensajes automáticos
-6. Crear landing page optimizada
-7. Implementar estrategia de reseñas
-8. Seguimiento mensual (3 meses)
+5. Optimizar categorías y descripción
+6. Implementar estrategia de reseñas
+7. Seguimiento mensual (3 meses)
 
 💰 Monto pagado: ${order.amount} USD
 📅 Fecha de pago: {order.completed_at.strftime('%Y-%m-%d %H:%M')}
 """
+                
+                print(f"🎯 [$99 SERVICE] Nueva orden: Order #{order.id} - {lead.nombre_negocio}")
+                
+                # 🚀 GENERAR TAREAS AUTOMÁTICAMENTE para Workers
+                try:
+                    tasks_created = generate_tasks_from_audit(
+                        order_id=order.id,
+                        audit_data=lead.audit_data or {},
+                        fallos_criticos=lead.fallos_criticos or [],
+                        db=db
+                    )
+                    print(f"✅ {len(tasks_created)} tareas generadas para Workers")
+                except Exception as e:
+                    print(f"⚠️  Error generando tareas: {str(e)}")
+                
+                result_message = f"Orden #{order.id} lista para Workers"
+            else:
+                result_message = "Servicio procesado (orden no encontrada)"
+        
+        # CASO 3: SUSCRIPCIÓN ($29/mes) - Activar premium_subscriber
+        elif product_type == "subscription":
+            subscription_id = session.get('subscription')
             
-            print(f"🎯 Nueva orden de servicio pagada: Order #{order.id} - {lead.nombre_negocio}")
-            print(f"   Cliente: {lead.nombre} ({lead.email})")
-            print(f"   Score inicial: {lead.score_visibilidad}/100")
+            # Activar flag de suscriptor premium
+            lead.premium_subscriber = True
+            lead.subscription_id = subscription_id
+            lead.subscription_status = 'active'
             
-            # 🚀 GENERAR TAREAS AUTOMÁTICAMENTE
-            try:
-                tasks_created = generate_tasks_from_audit(
-                    order_id=order.id,
-                    audit_data=lead.audit_data or {},
-                    fallos_criticos=lead.fallos_criticos or [],
-                    db=db
-                )
-                print(f"✅ {len(tasks_created)} tareas generadas automáticamente para Order #{order.id}")
-                for task in tasks_created:
-                    print(f"   - [{task.category.value}] {task.description[:60]}... (prioridad: {task.priority})")
-            except Exception as e:
-                print(f"⚠️  Error generando tareas: {str(e)}")
-                # No fallamos el webhook si falla la generación de tareas
+            # Obtener detalles de la suscripción desde Stripe
+            if subscription_id:
+                try:
+                    subscription = stripe.Subscription.retrieve(subscription_id)
+                    lead.subscription_current_period_end = datetime.fromtimestamp(
+                        subscription.current_period_end
+                    )
+                except Exception as e:
+                    print(f"⚠️  Error obteniendo detalles de suscripción: {str(e)}")
             
-            # TODO: Notificar al equipo de trabajo
-            # send_team_notification(order)
-            # slack_notify(f"Nueva orden pagada: {lead.nombre_negocio} - ${order.amount}")
+            print(f"✅ [$29/MES SUBSCRIPTION] Activada para {lead.email}")
+            print(f"   Subscription ID: {subscription_id}")
+            print(f"   Premium features habilitados")
             
-            result_message = f"Orden #{order.id} marcada como PAGADA y lista para el equipo de trabajo"
+            # TODO: Enviar email de bienvenida premium
+            # send_premium_welcome_email(lead.email, lead.nombre)
+            
+            result_message = f"Suscripción premium activada para {lead.email}"
+        
+        else:
+            result_message = f"Producto desconocido: {product_type}"
         
         db.commit()
         
@@ -324,6 +405,90 @@ Score de visibilidad: {lead.score_visibilidad}/100
             "product_type": product_type,
             "message": result_message
         }
+    
+    
+    @staticmethod
+    def _handle_subscription_created(subscription: Dict, db: Session) -> Dict:
+        """
+        Maneja creación de nueva suscripción
+        """
+        customer_id = subscription.get('customer')
+        subscription_id = subscription.get('id')
+        
+        # Buscar lead por stripe_customer_id
+        lead = db.query(Lead).filter(Lead.stripe_customer_id == customer_id).first()
+        if not lead:
+            return {"status": "error", "message": "Lead no encontrado"}
+        
+        # Activar premium
+        lead.premium_subscriber = True
+        lead.subscription_id = subscription_id
+        lead.subscription_status = subscription.get('status', 'active')
+        lead.subscription_current_period_end = datetime.fromtimestamp(
+            subscription.get('current_period_end', 0)
+        )
+        
+        db.commit()
+        
+        print(f"✅ Suscripción creada: {subscription_id} para {lead.email}")
+        
+        return {"status": "success", "subscription_id": subscription_id}
+    
+    
+    @staticmethod
+    def _handle_subscription_updated(subscription: Dict, db: Session) -> Dict:
+        """
+        Maneja actualización de suscripción (renovación, cambio de plan, etc.)
+        """
+        subscription_id = subscription.get('id')
+        
+        lead = db.query(Lead).filter(Lead.subscription_id == subscription_id).first()
+        if not lead:
+            return {"status": "error", "message": "Lead no encontrado"}
+        
+        # Actualizar estado
+        new_status = subscription.get('status')
+        lead.subscription_status = new_status
+        lead.subscription_current_period_end = datetime.fromtimestamp(
+            subscription.get('current_period_end', 0)
+        )
+        
+        # Si la suscripción fue cancelada o está past_due, desactivar premium
+        if new_status in ['canceled', 'unpaid', 'past_due']:
+            lead.premium_subscriber = False
+            print(f"⚠️  Suscripción {subscription_id} desactivada: {new_status}")
+        else:
+            lead.premium_subscriber = True
+            print(f"✅ Suscripción {subscription_id} actualizada: {new_status}")
+        
+        db.commit()
+        
+        return {"status": "success", "subscription_id": subscription_id, "new_status": new_status}
+    
+    
+    @staticmethod
+    def _handle_subscription_deleted(subscription: Dict, db: Session) -> Dict:
+        """
+        Maneja cancelación de suscripción
+        """
+        subscription_id = subscription.get('id')
+        
+        lead = db.query(Lead).filter(Lead.subscription_id == subscription_id).first()
+        if not lead:
+            return {"status": "error", "message": "Lead no encontrado"}
+        
+        # Desactivar premium
+        lead.premium_subscriber = False
+        lead.subscription_status = 'canceled'
+        
+        db.commit()
+        
+        print(f"❌ Suscripción cancelada: {subscription_id} para {lead.email}")
+        
+        # TODO: Enviar email de cancelación
+        # send_cancellation_email(lead.email, lead.nombre)
+        
+        return {"status": "success", "subscription_id": subscription_id}
     
     
     @staticmethod
