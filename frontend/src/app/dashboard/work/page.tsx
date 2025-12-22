@@ -30,6 +30,8 @@ interface Order {
   score_inicial: number | null;
   created_at: string;
   completed_at: string | null;
+  pais: string | null;
+  idioma: string | null;
 }
 
 export default function WorkerDashboardPage() {
@@ -115,6 +117,47 @@ export default function WorkerDashboardPage() {
     }).format(date);
   };
 
+  const getCountryFlag = (countryCode: string | null) => {
+    const flags: Record<string, string> = {
+      BR: '🇧🇷',
+      US: '🇺🇸',
+      ES: '🇪🇸',
+      MX: '🇲🇽',
+      AR: '🇦🇷',
+      CL: '🇨🇱',
+      CO: '🇨🇴',
+      PE: '🇵🇪',
+      VE: '🇻🇪',
+      UY: '🇺🇾',
+      PY: '🇵🇾',
+      EC: '🇪🇨',
+      BO: '🇧🇴',
+      CR: '🇨🇷',
+      PA: '🇵🇦',
+      GT: '🇬🇹',
+      HN: '🇭🇳',
+      SV: '🇸🇻',
+      NI: '🇳🇮',
+      DO: '🇩🇴',
+      CU: '🇨🇺',
+      PR: '🇵🇷',
+    };
+    return countryCode ? flags[countryCode] || '🌎' : '🌎';
+  };
+
+  const getTimeElapsed = (dateString: string) => {
+    const now = new Date();
+    const created = new Date(dateString);
+    const diffMs = now.getTime() - created.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    
+    if (diffHours < 1) return { text: '<1h', color: 'text-neon-500', urgent: false };
+    if (diffHours < 12) return { text: `${diffHours}h`, color: 'text-cyber-blue', urgent: false };
+    if (diffHours < 24) return { text: `${diffHours}h`, color: 'text-warning-500', urgent: true };
+    const diffDays = Math.floor(diffHours / 24);
+    return { text: `${diffDays}d`, color: 'text-danger-500', urgent: true };
+  };
+
   return (
     <AuthGuard requiredRole="worker">
       <div className="flex min-h-screen bg-dark-900">
@@ -185,10 +228,12 @@ export default function WorkerDashboardPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {orders.map((order) => (
+              {orders.map((order) => {
+                const timeElapsed = getTimeElapsed(order.created_at);
+                return (
                 <div
                   key={order.id}
-                  className="card card-hover cursor-pointer group"
+                  className={`card card-hover cursor-pointer group ${timeElapsed.urgent ? 'border-2 border-danger-500/50' : ''}`}
                   onClick={() => router.push(`/dashboard/work/${order.id}`)}
                 >
                   <div className="flex items-center justify-between">
@@ -200,8 +245,9 @@ export default function WorkerDashboardPage() {
                             <span className="text-neon-500 font-mono font-bold">#{order.id}</span>
                           </div>
                           <div>
-                            <h3 className="text-lg font-bold text-white group-hover:text-neon-500 transition-colors">
+                            <h3 className="text-lg font-bold text-white group-hover:text-neon-500 transition-colors flex items-center gap-2">
                               {order.business_name}
+                              <span className="text-2xl">{getCountryFlag(order.pais)}</span>
                             </h3>
                             <p className="text-sm text-gray-400 flex items-center gap-2">
                               <User className="w-3 h-3" />
@@ -209,7 +255,13 @@ export default function WorkerDashboardPage() {
                             </p>
                           </div>
                         </div>
-                        {getStatusBadge(order.status)}
+                        <div className="flex items-center gap-2">
+                          {/* Time Elapsed Badge */}
+                          <span className={`px-3 py-1 rounded-lg border ${timeElapsed.urgent ? 'bg-danger-500/20 border-danger-500/50' : 'bg-gray-800 border-gray-700'} ${timeElapsed.color} text-xs font-mono font-bold`}>
+                            ⏱️ {timeElapsed.text}
+                          </span>
+                          {getStatusBadge(order.status)}
+                        </div>
                       </div>
 
                       {/* Info Row */}
@@ -217,6 +269,9 @@ export default function WorkerDashboardPage() {
                         <span className="flex items-center gap-1">
                           <Calendar className="w-4 h-4" />
                           {formatDate(order.created_at)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          🌐 {order.idioma?.toUpperCase() || 'N/A'}
                         </span>
                         <span className="flex items-center gap-1">
                           <Building2 className="w-4 h-4" />
@@ -239,7 +294,7 @@ export default function WorkerDashboardPage() {
                     </div>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           )}
         </main>

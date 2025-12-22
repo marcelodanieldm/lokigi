@@ -5,6 +5,9 @@ import { use } from 'react';
 import { useRouter } from 'next/navigation';
 import AuthGuard from '@/components/AuthGuard';
 import DashboardSidebar from '@/components/dashboard/DashboardSidebar';
+import AICopywriterButton from '@/components/dashboard/AICopywriterButton';
+import GeotagButton from '@/components/dashboard/GeotagButton';
+import CompletionChecklist from '@/components/dashboard/CompletionChecklist';
 import {
   ArrowLeft,
   User,
@@ -49,6 +52,7 @@ export default function WorkOrderDetailPage({ params }: { params: Promise<{ orde
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [completing, setCompleting] = useState(false);
+  const [checklistComplete, setChecklistComplete] = useState(false);
   
   // Manual fields
   const [competitorLinks, setCompetitorLinks] = useState('');
@@ -90,6 +94,11 @@ export default function WorkOrderDetailPage({ params }: { params: Promise<{ orde
   };
 
   const handleCompleteOrder = async () => {
+    if (!checklistComplete) {
+      alert('⚠️ Debes completar todos los items del checklist antes de finalizar');
+      return;
+    }
+
     if (!reportUrl.trim()) {
       alert('Por favor ingresa la URL del reporte final');
       return;
@@ -114,6 +123,10 @@ export default function WorkOrderDetailPage({ params }: { params: Promise<{ orde
     } catch (error) {
       console.error('Error completing order:', error);
       alert('Error al completar pedido');
+    } finally {
+      setCompleting(false);
+    }
+  };
     } finally {
       setCompleting(false);
     }
@@ -291,7 +304,26 @@ export default function WorkOrderDetailPage({ params }: { params: Promise<{ orde
                   >
                     <ExternalLink className="w-4 h-4" />
                     Ver en Google Maps
-                    </a>
+                  </a>
+                </div>
+              </div>
+
+              {/* AI Tools */}
+              <div className="card">
+                <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                  🤖 Herramientas AI
+                </h3>
+                <div className="space-y-2">
+                  <AICopywriterButton
+                    businessName={order.business_name}
+                    businessCategory={order.audit_data?.category}
+                    orderId={order.id}
+                  />
+                  <GeotagButton
+                    businessName={order.business_name}
+                    businessAddress={order.audit_data?.address}
+                    orderId={order.id}
+                  />
                 </div>
               </div>
             </div>
@@ -354,6 +386,12 @@ https://maps.google.com/...`}
                 </button>
               </div>
 
+              {/* Checklist de Finalización */}
+              <CompletionChecklist
+                orderId={order.id}
+                onChecklistComplete={setChecklistComplete}
+              />
+
               {/* Final Report URL */}
               <div className="card border-2 border-neon-500/30">
                 <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
@@ -374,8 +412,10 @@ https://maps.google.com/...`}
                 
                 <button
                   onClick={handleCompleteOrder}
-                  disabled={completing || !reportUrl.trim()}
-                  className="btn-primary w-full"
+                  disabled={completing || !reportUrl.trim() || !checklistComplete}
+                  className={`btn-primary w-full ${
+                    !checklistComplete ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 >
                   {completing ? (
                     <>
@@ -391,7 +431,13 @@ https://maps.google.com/...`}
                 </button>
                 
                 <p className="text-xs text-gray-500 mt-3 text-center">
-                  ⚠️ El cliente recibirá un email con el link al reporte
+                  {checklistComplete ? (
+                    <>⚠️ El cliente recibirá un email con el link al reporte</>
+                  ) : (
+                    <span className="text-warning-500">
+                      ⚠️ Completa el checklist antes de finalizar
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
