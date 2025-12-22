@@ -132,3 +132,111 @@ class DataQualityReportSummary(BaseModel):
     requires_cleanup_service: bool
     critical_alerts_count: int
     evaluated_at: datetime
+
+
+# ===== RADAR LOKIGI SCHEMAS =====
+
+class CompetitorSnapshotCreate(BaseModel):
+    """Request para crear snapshot de competidor"""
+    lead_id: int
+    competitor_name: str
+    competitor_data: dict  # Datos completos del competidor
+
+
+class CompetitorSnapshotResponse(BaseModel):
+    """Respuesta de snapshot de competidor"""
+    id: int
+    lead_id: int
+    competitor_name: str
+    score: float
+    rating: Optional[float]
+    review_count: Optional[int]
+    photo_count: Optional[int]
+    has_website: Optional[bool]
+    changes_detected: Optional[dict]
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class CompetitorHistoryResponse(BaseModel):
+    """Histórico de un competidor"""
+    competitor_name: str
+    snapshots: List[dict]  # Lista de snapshots ordenados cronológicamente
+    total_snapshots: int
+
+
+class RadarAlertResponse(BaseModel):
+    """Respuesta de alerta de Radar"""
+    id: int
+    lead_id: int
+    alert_type: str
+    severity: str
+    competitor_name: Optional[str]
+    title: str
+    message: str
+    trigger_data: Optional[dict]
+    recommendations: Optional[List[str]]
+    status: str
+    notification_sent: bool
+    notification_sent_at: Optional[datetime]
+    created_at: datetime
+    read_at: Optional[datetime]
+    
+    class Config:
+        from_attributes = True
+
+
+class VisibilityHeatmapResponse(BaseModel):
+    """Respuesta de mapa de calor de visibilidad"""
+    id: int
+    lead_id: int
+    center_coordinates: List[float]  # [lat, lng]
+    radius_meters: float
+    area_dominance_score: float
+    competitor_density: Optional[float]
+    area_growth_percent: Optional[float]
+    dominance_change: Optional[float]
+    heatmap_data: dict  # Datos completos para renderizar
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class RadarScanRequest(BaseModel):
+    """Request para escanear competidores"""
+    lead_id: int
+    competitors_data: List[dict]  # Lista de datos de competidores
+    business_coordinates: Optional[List[float]] = None  # [lat, lng]
+    business_score: Optional[float] = None
+
+
+class RadarScanResponse(BaseModel):
+    """Respuesta de scan de Radar"""
+    lead_id: int
+    scan_timestamp: datetime
+    competitors_scanned: int
+    movements_detected: int
+    alerts_generated: int
+    scan_results: List[dict]
+
+
+class CompetitorComparisonResponse(BaseModel):
+    """Comparación de competidores"""
+    business_score: float
+    business_rank: int  # Posición en el ranking
+    total_competitors: int
+    competitors: List[dict]  # Lista ordenada por score
+
+
+class RadarStatusResponse(BaseModel):
+    """Estado del monitoreo de Radar"""
+    lead_id: int
+    is_premium_subscriber: bool
+    last_scan_date: Optional[datetime]
+    next_scan_date: Optional[datetime]
+    total_competitors_tracked: int
+    pending_alerts: int
+    latest_heatmap_date: Optional[datetime]

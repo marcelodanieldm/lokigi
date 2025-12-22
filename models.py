@@ -219,3 +219,123 @@ class DataQualityEvaluation(Base):
     
     def __repr__(self):
         return f"<DataQualityEvaluation Lead:{self.lead_id} Score:{self.overall_score}% {'⚠️ Cleanup Required' if self.requires_cleanup_service else '✓'}>"
+
+
+class CompetitorSnapshot(Base):
+    """Modelo de Snapshot de Competidor - Histórico mensual de métricas de competidores"""
+    __tablename__ = "competitor_snapshots"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    
+    # Relación con el lead (el negocio que está monitoreando)
+    lead_id = Column(Integer, ForeignKey("leads.id"), nullable=False, index=True)
+    
+    # Identificación del competidor
+    competitor_name = Column(String, nullable=False, index=True)
+    competitor_place_id = Column(String, nullable=True, index=True)  # Google Place ID si está disponible
+    
+    # Métricas del competidor en este snapshot
+    score = Column(Float, nullable=False)  # Score de visibilidad (0-100)
+    rating = Column(Float, nullable=True)  # Rating de Google (0-5)
+    review_count = Column(Integer, nullable=True)  # Número de reseñas
+    photo_count = Column(Integer, nullable=True)  # Número de fotos
+    has_website = Column(Boolean, nullable=True)
+    
+    # Datos completos del snapshot (JSON)
+    snapshot_data = Column(JSON, nullable=False)  # Todos los datos del competidor
+    
+    # Cambios detectados vs snapshot anterior
+    changes_detected = Column(JSON, nullable=True)  # {"score_delta": +5, "review_delta": +10, etc.}
+    
+    # Tipo de snapshot
+    snapshot_type = Column(String, default="monthly")  # monthly, manual, alert_triggered
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    def __repr__(self):
+        return f"<CompetitorSnapshot {self.competitor_name} Lead:{self.lead_id} Score:{self.score}>"
+
+
+class RadarAlert(Base):
+    """Modelo de Alerta de Radar - Alertas generadas por movimientos de competidores"""
+    __tablename__ = "radar_alerts"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    
+    # Relación con el lead (el cliente que recibe la alerta)
+    lead_id = Column(Integer, ForeignKey("leads.id"), nullable=False, index=True)
+    
+    # Tipo de alerta
+    alert_type = Column(String, nullable=False, index=True)  # competitor_movement, market_shift, position_risk
+    severity = Column(String, nullable=False, index=True)  # critical, warning, info
+    
+    # Competidor que generó la alerta
+    competitor_name = Column(String, nullable=True)
+    competitor_snapshot_id = Column(Integer, ForeignKey("competitor_snapshots.id"), nullable=True)
+    
+    # Contenido de la alerta
+    title = Column(String, nullable=False)  # "Alerta Lokigi: [Competidor X] se está moviendo"
+    message = Column(Text, nullable=False)  # Descripción detallada
+    
+    # Métricas que dispararon la alerta
+    trigger_data = Column(JSON, nullable=True)  # {"score_increase": 5, "new_reviews": 10, etc.}
+    
+    # Recomendaciones para el cliente
+    recommendations = Column(JSON, nullable=True)  # Lista de acciones sugeridas
+    
+    # Estado de la alerta
+    status = Column(String, default="pending", index=True)  # pending, sent, read, dismissed
+    
+    # Notificación enviada
+    notification_sent = Column(Boolean, default=False)
+    notification_sent_at = Column(DateTime(timezone=True), nullable=True)
+    notification_channels = Column(JSON, nullable=True)  # ["email", "whatsapp"]
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    read_at = Column(DateTime(timezone=True), nullable=True)
+    
+    def __repr__(self):
+        return f"<RadarAlert [{self.severity}] {self.title} Lead:{self.lead_id}>"
+
+
+class VisibilityHeatmap(Base):
+    """Modelo de Mapa de Calor de Visibilidad - Snapshots mensuales del área de influencia"""
+    __tablename__ = "visibility_heatmaps"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    
+    # Relación con el lead
+    lead_id = Column(Integer, ForeignKey("leads.id"), nullable=False, index=True)
+    
+    # Datos del heatmap
+    center_coordinates = Column(JSON, nullable=False)  # [lat, lng] del negocio
+    radius_meters = Column(Float, nullable=False)  # Radio de influencia calculado
+    
+    # Métricas de visibilidad por zona
+    visibility_zones = Column(JSON, nullable=False)  # Grid de zonas con scores de visibilidad
+    
+    # Competidores en el área
+    competitors_in_area = Column(JSON, nullable=False)  # Lista de competidores con coordenadas
+    competitor_density = Column(Float, nullable=True)  # Competidores por km²
+    
+    # Score global del área
+    area_dominance_score = Column(Float, nullable=False)  # 0-100: Qué tan dominante es el negocio en su área
+    
+    # Comparación con período anterior
+    previous_heatmap_id = Column(Integer, ForeignKey("visibility_heatmaps.id"), nullable=True)
+    area_growth_percent = Column(Float, nullable=True)  # % de crecimiento/reducción del área de influencia
+    dominance_change = Column(Float, nullable=True)  # Cambio en dominance score
+    
+    # Datos completos del heatmap (JSON)
+    heatmap_data = Column(JSON, nullable=False)  # Datos para renderizar el mapa
+    
+    # Tipo de snapshot
+    snapshot_type = Column(String, default="monthly")  # monthly, manual
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    def __repr__(self):
+        return f"<VisibilityHeatmap Lead:{self.lead_id} Dominance:{self.area_dominance_score}% Growth:{self.area_growth_percent}%>"

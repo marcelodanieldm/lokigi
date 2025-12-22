@@ -21,6 +21,7 @@ from api_auth import router as auth_router
 from api_lokigi_score import router as lokigi_score_router
 from api_v1 import router as api_v1_router
 from api_data_quality import router as data_quality_router
+from api_radar import router as radar_router
 
 app = FastAPI(
     title="Lokigi - Local SEO Auditor",
@@ -71,6 +72,7 @@ app.include_router(dashboard_router)
 app.include_router(auth_router)
 app.include_router(lokigi_score_router)
 app.include_router(data_quality_router)
+app.include_router(radar_router)
 
 # CORS para el frontend
 app.add_middleware(
