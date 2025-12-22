@@ -5,7 +5,7 @@ Solo usar en desarrollo
 """
 import os
 from database import Base, engine
-from models import Lead, Order, Task, User
+from models import Lead, Order, Task, User, RadarSubscription, CompetitorSnapshot
 
 def recreate_database():
     """
@@ -35,7 +35,9 @@ def recreate_database():
     print("   - leads")
     print("   - orders")
     print("   - tasks")
-    print("   - users (NUEVA)")
+    print("   - users")
+    print("   - radar_subscriptions (NUEVA)")
+    print("   - competitor_snapshots (NUEVA)")
     print("\n🚀 Puedes iniciar el servidor ahora: python main.py")
 
 if __name__ == "__main__":

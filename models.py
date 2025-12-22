@@ -46,6 +46,15 @@ class UserRole(str, enum.Enum):
     WORKER = "worker"  # Solo acceso al Work Queue
 
 
+class SubscriptionStatus(str, enum.Enum):
+    """Estados de suscripción Radar Lokigi"""
+    ACTIVE = "active"  # Activa y pagando
+    TRIAL = "trial"  # Período de prueba
+    CANCELLED = "cancelled"  # Cancelada por el usuario
+    EXPIRED = "expired"  # Expirada por falta de pago
+    PAUSED = "paused"  # Pausada temporalmente
+
+
 class User(Base):
     """Modelo de Usuario del Backoffice"""
     __tablename__ = "users"
@@ -339,3 +348,98 @@ class VisibilityHeatmap(Base):
     
     def __repr__(self):
         return f"<VisibilityHeatmap Lead:{self.lead_id} Dominance:{self.area_dominance_score}% Growth:{self.area_growth_percent}%>"
+
+
+class RadarSubscription(Base):
+    """Modelo de Suscripción a Radar Lokigi ($29/mes)"""
+    __tablename__ = "radar_subscriptions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    
+    # Relación con el lead
+    lead_id = Column(Integer, ForeignKey("leads.id"), nullable=False, index=True, unique=True)
+    lead = relationship("Lead", backref="radar_subscription")
+    
+    # Estado de la suscripción
+    status = Column(SQLEnum(SubscriptionStatus), nullable=False, default=SubscriptionStatus.TRIAL)
+    
+    # Datos de pago
+    stripe_subscription_id = Column(String, nullable=True, index=True)  # ID de Stripe Subscription
+    stripe_customer_id = Column(String, nullable=True)  # ID del customer en Stripe
+    
+    # Precios y billing
+    monthly_price = Column(Float, default=29.0, nullable=False)
+    currency = Column(String, default="USD", nullable=False)
+    
+    # Fechas importantes
+    trial_start = Column(DateTime(timezone=True), nullable=True)
+    trial_end = Column(DateTime(timezone=True), nullable=True)
+    current_period_start = Column(DateTime(timezone=True), nullable=True)
+    current_period_end = Column(DateTime(timezone=True), nullable=True)
+    cancelled_at = Column(DateTime(timezone=True), nullable=True)
+    
+    # Configuración del radar
+    competitors_to_track = Column(JSON, nullable=False, default=[])  # Lista de IDs de competidores
+    monitoring_frequency_days = Column(Integer, default=30, nullable=False)  # Frecuencia de monitoreo
+    last_monitoring_at = Column(DateTime(timezone=True), nullable=True)
+    next_monitoring_at = Column(DateTime(timezone=True), nullable=True)
+    
+    # Alertas
+    alerts_enabled = Column(Boolean, default=True, nullable=False)
+    alert_email = Column(String, nullable=True)
+    alert_phone = Column(String, nullable=True)  # Para WhatsApp
+    
+    # Métricas de uso
+    total_alerts_sent = Column(Integer, default=0, nullable=False)
+    total_heatmaps_generated = Column(Integer, default=0, nullable=False)
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    def __repr__(self):
+        return f"<RadarSubscription Lead:{self.lead_id} Status:{self.status} Price:${self.monthly_price}>"
+
+
+class CompetitorSnapshot(Base):
+    """Modelo de Snapshot de Competidor - Estado en un momento específico"""
+    __tablename__ = "competitor_snapshots"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    
+    # Relación con el competidor (Lead)
+    competitor_id = Column(Integer, ForeignKey("leads.id"), nullable=False, index=True)
+    
+    # Relación con la suscripción que lo monitorea
+    subscription_id = Column(Integer, ForeignKey("radar_subscriptions.id"), nullable=False, index=True)
+    
+    # Datos del snapshot
+    name = Column(String, nullable=False)
+    rating = Column(Float, nullable=True)
+    reviews_count = Column(Integer, nullable=True)
+    photos_count = Column(Integer, nullable=True)
+    response_rate = Column(Float, nullable=True)  # % de respuestas a reseñas
+    
+    # Score calculado
+    visibility_score = Column(Float, nullable=True)  # Score de visibilidad 0-100
+    
+    # Datos completos del competidor
+    snapshot_data = Column(JSON, nullable=False)  # Datos completos en JSON
+    
+    # Comparación con snapshot anterior
+    previous_snapshot_id = Column(Integer, ForeignKey("competitor_snapshots.id"), nullable=True)
+    rating_change = Column(Float, nullable=True)
+    reviews_change = Column(Integer, nullable=True)
+    photos_change = Column(Integer, nullable=True)
+    score_change = Column(Float, nullable=True)
+    
+    # Alertas generadas
+    alert_triggered = Column(Boolean, default=False, nullable=False)
+    alert_reasons = Column(JSON, nullable=True)  # Lista de razones por las que se disparó alerta
+    
+    # Timestamps
+    captured_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    def __repr__(self):
+        return f"<CompetitorSnapshot {self.name} Score:{self.visibility_score} Change:{self.score_change}>"
+

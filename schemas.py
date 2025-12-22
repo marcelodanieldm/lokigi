@@ -240,3 +240,93 @@ class RadarStatusResponse(BaseModel):
     total_competitors_tracked: int
     pending_alerts: int
     latest_heatmap_date: Optional[datetime]
+
+
+# ============================================================================
+# SCHEMAS PARA RADAR LOKIGI SUBSCRIPTION ($29/mes)
+# ============================================================================
+
+class RadarSubscriptionCreate(BaseModel):
+    """Crear suscripción Radar"""
+    lead_id: int
+    competitor_ids: List[int]
+    alert_email: Optional[str] = None
+    alert_phone: Optional[str] = None
+
+
+class RadarSubscriptionResponse(BaseModel):
+    """Respuesta de suscripción Radar"""
+    id: int
+    lead_id: int
+    status: str
+    monthly_price: float
+    currency: str
+    trial_start: Optional[datetime]
+    trial_end: Optional[datetime]
+    current_period_start: Optional[datetime]
+    current_period_end: Optional[datetime]
+    competitors_to_track: List[int]
+    monitoring_frequency_days: int
+    last_monitoring_at: Optional[datetime]
+    next_monitoring_at: Optional[datetime]
+    alerts_enabled: bool
+    total_alerts_sent: int
+    total_heatmaps_generated: int
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class CompetitorSnapshotResponse(BaseModel):
+    """Snapshot de competidor"""
+    id: int
+    competitor_id: int
+    subscription_id: int
+    name: str
+    rating: Optional[float]
+    reviews_count: Optional[int]
+    photos_count: Optional[int]
+    visibility_score: Optional[float]
+    rating_change: Optional[float]
+    reviews_change: Optional[int]
+    photos_change: Optional[int]
+    score_change: Optional[float]
+    alert_triggered: bool
+    alert_reasons: Optional[List[dict]]
+    captured_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class MonitoringResultResponse(BaseModel):
+    """Resultado de monitoreo"""
+    subscription_id: int
+    lead_id: int
+    monitored_at: str
+    competitors_checked: int
+    snapshots_created: int
+    alerts_generated: int
+    snapshots: List[dict]
+    alerts: List[dict]
+
+
+class VisibilityHeatmapResponse(BaseModel):
+    """Respuesta de heatmap de visibilidad"""
+    id: int
+    lead_id: int
+    center_coordinates: List[float]
+    radius_meters: float
+    visibility_zones: dict
+    competitors_in_area: List[dict]
+    competitor_density: Optional[float]
+    area_dominance_score: float
+    area_growth_percent: Optional[float]
+    dominance_change: Optional[float]
+    heatmap_data: dict
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
