@@ -174,3 +174,48 @@ class Task(Base):
     
     def __repr__(self):
         return f"<Task {self.id} - {self.category} - {'✓' if self.is_completed else '○'}>"
+
+
+class DataQualityEvaluation(Base):
+    """Modelo de Evaluación de Calidad de Datos - NAP Consistency"""
+    __tablename__ = "data_quality_evaluations"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    
+    # Relación con el lead
+    lead_id = Column(Integer, ForeignKey("leads.id"), nullable=False, index=True, unique=True)
+    
+    # Score global de integridad (0-100)
+    overall_score = Column(Float, nullable=False, index=True)
+    
+    # Scores por dimensión
+    name_consistency_score = Column(Float, nullable=True)
+    phone_consistency_score = Column(Float, nullable=True)
+    address_consistency_score = Column(Float, nullable=True)
+    location_accuracy_score = Column(Float, nullable=True)
+    completeness_score = Column(Float, nullable=True)
+    
+    # Datos detallados de la evaluación (JSON)
+    evaluation_data = Column(JSON, nullable=False)  # Resultados completos de NAPEvaluator
+    
+    # Alertas críticas detectadas
+    alerts = Column(JSON, nullable=True)  # Lista de alertas
+    
+    # Recomendaciones generadas
+    recommendations = Column(JSON, nullable=True)  # Lista de recomendaciones
+    
+    # Flag: ¿Requiere servicio de limpieza? (score < 90%)
+    requires_cleanup_service = Column(Boolean, default=False, index=True)
+    
+    # Plataformas evaluadas
+    platforms_evaluated = Column(JSON, nullable=True)  # ["google_maps", "facebook", "instagram", "website"]
+    
+    # Estado de la evaluación
+    status = Column(String, default="completed")  # completed, pending, error
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    def __repr__(self):
+        return f"<DataQualityEvaluation Lead:{self.lead_id} Score:{self.overall_score}% {'⚠️ Cleanup Required' if self.requires_cleanup_service else '✓'}>"
