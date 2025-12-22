@@ -12,6 +12,7 @@ from database import get_db, init_db
 from models import Lead, PaymentStatus
 from schemas import LeadCreate, LeadResponse, AuditReportSchema, CheckoutResponse
 from stripe_service import create_checkout_session, handle_webhook_event
+from middleware_i18n import LanguageDetectionMiddleware
 
 # Importar las rutas de pagos y dashboard
 from api_payments import router as payments_router
@@ -20,6 +21,9 @@ from api_auth import router as auth_router
 from api_lokigi_score import router as lokigi_score_router
 
 app = FastAPI(title="Lokigi - Local SEO Auditor")
+
+# Middleware de detección de idioma (debe ir ANTES de CORS)
+app.add_middleware(LanguageDetectionMiddleware)
 
 # Incluir rutas de pagos y dashboard
 app.include_router(payments_router)
@@ -34,6 +38,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Detected-Language", "X-Detected-Country"],  # Exponer headers de i18n
 )
 
 # Inicializar base de datos al arrancar

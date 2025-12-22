@@ -1,27 +1,27 @@
 """
 Servicio de análisis SEO Local - El Consultor de IA
 Transforma datos técnicos en impacto económico real
+Ahora con Google Gemini (GRATIS) y soporte i18n
 """
 
 from datetime import datetime
 from typing import List, Dict
 import random
 from audit_schemas import BusinessData, AuditResponse, FODAAnalysis, CompetitorData
-from openai import OpenAI
+from gemini_service import GeminiAIService
+from i18n_service import I18nService, Language
 import os
 import json
 
 
 class SEOLocalAnalyzer:
-    """Consultor de SEO Local con IA que habla en términos de dinero"""
+    """Consultor de SEO Local con IA (Gemini) que habla en términos de dinero"""
     
-    def __init__(self):
-        # OpenAI es opcional - funciona con análisis basado en reglas si no hay key
-        api_key = os.getenv("OPENAI_API_KEY")
-        if api_key:
-            self.openai_client = OpenAI(api_key=api_key)
-        else:
-            self.openai_client = None
+    def __init__(self, language: Language = Language.ENGLISH):
+        # Usar Google Gemini (gratis) en lugar de OpenAI
+        self.ai_service = GeminiAIService(language)
+        self.i18n = I18nService(language)
+        self.language = language
     
     def analyze(self, business: BusinessData, use_ai: bool = True) -> AuditResponse:
         """
@@ -39,14 +39,14 @@ class SEOLocalAnalyzer:
         # 4. Generar competidores simulados
         competitors = self._generate_competitors(business)
         
-        # 5. Análisis FODA
-        if use_ai and self.openai_client:
-            # Usar IA para análisis más sofisticado
-            foda = self._generate_foda_with_ai(business, score, competitors)
-            detailed_analysis = self._generate_detailed_analysis_with_ai(business, score, critical_fix)
-            action_plan = self._generate_action_plan_with_ai(business, critical_fix)
+        # 5. Análisis FODA con Gemini (o reglas si no está disponible)
+        if use_ai and self.ai_service.is_available():
+            # Usar Gemini para análisis más sofisticado
+            foda = self.ai_service.generate_foda_analysis(business, score, competitors)
+            detailed_analysis = self.ai_service.generate_detailed_analysis(business, score, critical_fix, economic_impact)
+            action_plan = self.ai_service.generate_action_plan(business, critical_fix)
         else:
-            # Análisis basado en reglas
+            # Análisis basado en reglas (sin IA)
             foda = self._generate_foda_rule_based(business, score)
             detailed_analysis = self._generate_detailed_analysis_rule_based(business, score, critical_fix, economic_impact)
             action_plan = self._generate_action_plan_rule_based(business)
@@ -115,68 +115,69 @@ class SEOLocalAnalyzer:
     
     def _identify_critical_fix(self, business: BusinessData) -> str:
         """
-        Identifica el problema MÁS urgente a resolver
+        Identifica el problema MÁS urgente a resolver (con i18n)
         """
-        issues = []
+        i18n = self.i18n
         
         if not business.is_claimed:
-            return "🚨 URGENTE: Tu negocio NO está reclamado en Google. Cualquiera puede editar tu información y robar clientes. Reclámalo HOY."
+            return i18n.t("critical_fix_unclaimed")
         
         if not business.has_website:
-            return "🌐 CRÍTICO: Sin sitio web pierdes el 30% de conversiones. Clientes buscan más info y van a la competencia."
+            return i18n.t("critical_fix_no_website")
         
         if business.rating < 3.0:
-            return "⭐ ALERTA ROJA: Rating por debajo de 3.0 espanta al 78% de clientes potenciales. Mejora tu reputación YA."
+            return i18n.t("critical_fix_low_rating")
         
         if business.review_count < 10:
-            return "💬 PROBLEMA: Solo tienes {} reseñas. Negocios con +50 reseñas tienen 270% más clics.".format(business.review_count)
+            return i18n.t("critical_fix_few_reviews", business.review_count)
         
         days_since_photo = self._calculate_days_since_photo(business.last_photo_date)
         if days_since_photo > 365:
-            return "📸 ABANDONADO: Tu última foto tiene {} días. Negocios con fotos recientes obtienen 42% más clics.".format(days_since_photo)
+            return i18n.t("critical_fix_old_photos", days_since_photo)
         
-        return "📊 Optimización General: Mejora continua en todos los frentes para superar a la competencia."
+        return i18n.t("critical_fix_general")
     
     def _calculate_economic_impact(self, business: BusinessData) -> str:
         """
-        Transforma problemas técnicos en DINERO PERDIDO
+        Transforma problemas técnicos en DINERO PERDIDO (con i18n)
         """
+        i18n = self.i18n
         monthly_loss = 0
         loss_breakdown = []
         
         # Sin sitio web: -30% conversiones
         if not business.has_website:
             monthly_loss += 1800
-            loss_breakdown.append("$1,800/mes por falta de sitio web")
+            loss_breakdown.append(i18n.t("economic_impact_no_website", 1800))
         
         # No reclamado: -40% visibilidad
         if not business.is_claimed:
             monthly_loss += 2400
-            loss_breakdown.append("$2,400/mes por no reclamar tu negocio")
+            loss_breakdown.append(i18n.t("economic_impact_unclaimed", 2400))
         
         # Rating bajo
         if business.rating < 3.5:
             monthly_loss += 1200
-            loss_breakdown.append("$1,200/mes por rating bajo")
+            loss_breakdown.append(i18n.t("economic_impact_low_rating", 1200))
         
         # Pocas reseñas
         if business.review_count < 30:
             monthly_loss += 900
-            loss_breakdown.append("$900/mes por falta de reseñas")
+            loss_breakdown.append(i18n.t("economic_impact_few_reviews", 900))
         
         # Fotos desactualizadas
         days_since_photo = self._calculate_days_since_photo(business.last_photo_date)
         if days_since_photo > 180:
             monthly_loss += 600
-            loss_breakdown.append("$600/mes por fotos desactualizadas")
+            loss_breakdown.append(i18n.t("economic_impact_old_photos", 600))
         
         if monthly_loss == 0:
-            return "✅ Buen trabajo. Pérdidas mínimas estimadas. Mantén el momentum."
+            return i18n.t("economic_impact_good")
         
         annual_loss = monthly_loss * 12
         
-        impact = f"💸 ESTÁS PERDIENDO ${monthly_loss:,}/mes (${annual_loss:,}/año)\n\n"
-        impact += "Desglose:\n"
+        impact = i18n.t("economic_impact_losing", monthly_loss, annual_loss) + "\n\n"
+        impact += i18n.t("economic_impact_breakdown") + "\n"
         for item in loss_breakdown:
             impact += f"• {item}\n"
         
