@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from pydantic import BaseModel, EmailStr
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 from datetime import datetime
 import io
 import zipfile
@@ -1455,7 +1455,7 @@ class FinancialMetrics(BaseModel):
     service_count: int
     subscription_count: int
     avg_order_value: float
-    revenue_by_country: List[Dict[str, any]]
+    revenue_by_country: List[Dict[str, Any]]
 
 
 @router.get("/command-center/financial", response_model=FinancialMetrics)

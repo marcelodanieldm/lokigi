@@ -8,13 +8,13 @@ interface User {
   id: number;
   email: string;
   full_name: string;
-  role: 'superuser' | 'worker';
+  role: 'admin' | 'superuser' | 'worker' | 'customer';
   is_active: boolean;
 }
 
 interface AuthGuardProps {
   children: React.ReactNode;
-  requiredRole?: 'superuser' | 'worker' | 'any';
+  requiredRole?: 'admin' | 'superuser' | 'worker' | 'any';
 }
 
 export default function AuthGuard({ children, requiredRole = 'any' }: AuthGuardProps) {
@@ -41,10 +41,12 @@ export default function AuthGuard({ children, requiredRole = 'any' }: AuthGuardP
       // Verificar rol si es requerido
       if (requiredRole !== 'any' && user.role !== requiredRole) {
         // Redirigir al dashboard correcto según el rol
-        if (user.role === 'superuser') {
+        if (user.role === 'admin' || user.role === 'superuser') {
           router.push('/dashboard');
-        } else {
+        } else if (user.role === 'worker') {
           router.push('/dashboard/work');
+        } else {
+          router.push('/backoffice');
         }
         return;
       }
@@ -57,12 +59,16 @@ export default function AuthGuard({ children, requiredRole = 'any' }: AuthGuardP
       });
 
       if (!response.ok) {
-        throw new Error('Token inválido');
+        // Token inválido o expirado - limpiar sin error
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user');
+        router.push('/backoffice');
+        return;
       }
 
       setAuthenticated(true);
     } catch (error) {
-      console.error('Auth error:', error);
+      // Error de conexión u otro - limpiar localStorage y redirigir
       localStorage.removeItem('auth_token');
       localStorage.removeItem('user');
       router.push('/backoffice');

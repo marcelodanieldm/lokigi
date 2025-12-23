@@ -427,3 +427,38 @@ class CancellationFlowStatus(BaseModel):
     retention_offer_shown: bool
     feedback_submitted: bool
 
+
+# ========== Customer Portal Schemas ==========
+
+class OrderResponse(BaseModel):
+    """Schema de respuesta para orden"""
+    id: int
+    lead_id: int
+    product_type: str
+    amount: float
+    currency: str
+    status: str
+    download_link: Optional[str]
+    notes: Optional[str]
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class TaskResponse(BaseModel):
+    """Schema de respuesta para tarea"""
+    id: int
+    order_id: int
+    description: str
+    category: str
+    is_completed: bool
+    priority: int
+    order_index: int
+    notes: Optional[str]
+    created_at: datetime
+    completed_at: Optional[datetime]
+    
+    class Config:
+        from_attributes = True

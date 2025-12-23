@@ -59,7 +59,7 @@ export default function DashboardHomePage() {
   };
 
   return (
-    <AuthGuard requiredRole="superuser">
+    <AuthGuard requiredRole="admin">
       <DashboardContent stats={stats} recentOrders={recentOrders} loading={loading} />
     </AuthGuard>
   );

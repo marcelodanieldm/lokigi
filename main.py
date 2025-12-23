@@ -65,7 +65,17 @@ app = FastAPI(
     },
 )
 
-# Middleware de detección de idioma (debe ir ANTES de CORS)
+# CORS debe ir PRIMERO (antes de otros middlewares)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://localhost:3001"],  # Frontend URLs
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["X-Detected-Language", "X-Detected-Country"],  # Exponer headers de i18n
+)
+
+# Middleware de detección de idioma (después de CORS)
 app.add_middleware(LanguageDetectionMiddleware)
 
 # Incluir rutas (V1 primero para que aparezca arriba en Swagger)
@@ -80,23 +90,18 @@ app.include_router(radar_router)
 app.include_router(customer_portal_router)
 app.include_router(retention_router)  # Exit Flow Anti-Churn
 
-# CORS para el frontend
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001"],  # Frontend URLs
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["X-Detected-Language", "X-Detected-Country"],  # Exponer headers de i18n
-)
-
 # Inicializar base de datos al arrancar
 @app.on_event("startup")
 async def startup_event():
     init_db()
 
-# Configurar cliente OpenAI
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Configurar cliente OpenAI (opcional, solo si existe la API key)
+openai_api_key = os.getenv("OPENAI_API_KEY")
+if openai_api_key:
+    client = OpenAI(api_key=openai_api_key)
+else:
+    client = None
+    print("⚠️  WARNING: OPENAI_API_KEY no configurada - Funciones de IA deshabilitadas")
 
 
 class BusinessData(BaseModel):
@@ -163,6 +168,13 @@ El formato de respuesta DEBE ser un JSON válido con esta estructura exacta:
 Sé directo, agresivo y enfócate en el impacto económico real. Usa datos y cifras concretas."""
     
     try:
+        # Verificar si el cliente de OpenAI está disponible
+        if client is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Servicio de IA no disponible. Configura OPENAI_API_KEY en .env"
+            )
+        
         # Llamada a OpenAI
         response = client.chat.completions.create(
             model="gpt-4o",

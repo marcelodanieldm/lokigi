@@ -11,8 +11,14 @@ export default function BackofficeLogin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Función para login rápido (solo para desarrollo/testing)
+  const quickLogin = async (userEmail: string, userPassword: string) => {
+    // Limpiar localStorage antes de intentar login
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user');
+    
+    setEmail(userEmail);
+    setPassword(userPassword);
     setError('');
     setLoading(true);
 
@@ -22,7 +28,7 @@ export default function BackofficeLogin() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: userEmail, password: userPassword }),
       });
 
       if (!response.ok) {
@@ -32,12 +38,10 @@ export default function BackofficeLogin() {
 
       const data = await response.json();
       
-      // Guardar token y usuario en localStorage
       localStorage.setItem('auth_token', data.access_token);
       localStorage.setItem('user', JSON.stringify(data.user));
 
-      // Redirigir según el rol
-      if (data.user.role === 'superuser') {
+      if (data.user.role === 'admin' || data.user.role === 'superuser') {
         router.push('/dashboard');
       } else if (data.user.role === 'worker') {
         router.push('/dashboard/work');
@@ -52,11 +56,13 @@ export default function BackofficeLogin() {
     }
   };
 
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    quickLogin(email, password);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center p-4">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-10"></div>
-      
       <div className="relative w-full max-w-md">
         {/* Logo & Title */}
         <div className="text-center mb-8">
@@ -148,6 +154,55 @@ export default function BackofficeLogin() {
               <div className="w-full border-t border-gray-700"></div>
             </div>
             <div className="relative flex justify-center text-xs">
+              <span className="px-2 bg-gray-800/50 text-gray-400">Acceso rápido para testing</span>
+            </div>
+          </div>
+
+          {/* Quick Login Buttons */}
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => quickLogin('admin@lokigi.com', 'admin123')}
+              disabled={loading}
+              className="w-full flex items-center gap-3 p-4 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 hover:border-blue-500/50 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+            >
+              <div className="flex items-center justify-center w-10 h-10 bg-blue-500/20 rounded-lg group-hover:bg-blue-500/30 transition-all">
+                <Shield className="w-5 h-5 text-blue-400" />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-sm font-semibold text-blue-300">Login como ADMIN</p>
+                <p className="text-xs text-gray-400">admin@lokigi.com</p>
+              </div>
+              {loading && email === 'admin@lokigi.com' && (
+                <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => quickLogin('worker@lokigi.com', 'worker123')}
+              disabled={loading}
+              className="w-full flex items-center gap-3 p-4 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 hover:border-green-500/50 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+            >
+              <div className="flex items-center justify-center w-10 h-10 bg-green-500/20 rounded-lg group-hover:bg-green-500/30 transition-all">
+                <Briefcase className="w-5 h-5 text-green-400" />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-sm font-semibold text-green-300">Login como WORKER</p>
+                <p className="text-xs text-gray-400">worker@lokigi.com</p>
+              </div>
+              {loading && email === 'worker@lokigi.com' && (
+                <Loader2 className="w-5 h-5 text-green-400 animate-spin" />
+              )}
+            </button>
+          </div>
+
+          {/* Divider */}
+          <div className="relative my-8">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-700"></div>
+            </div>
+            <div className="relative flex justify-center text-xs">
               <span className="px-2 bg-gray-800/50 text-gray-400">Roles disponibles</span>
             </div>
           </div>
@@ -157,8 +212,8 @@ export default function BackofficeLogin() {
             <div className="flex items-center gap-3 p-3 bg-blue-500/5 border border-blue-500/20 rounded-lg">
               <Shield className="w-5 h-5 text-blue-400 flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-blue-300">Superusuario</p>
-                <p className="text-xs text-gray-400">Acceso total al dashboard</p>
+                <p className="text-sm font-medium text-blue-300">Administrador</p>
+                <p className="text-xs text-gray-400">Acceso total al Command Center</p>
               </div>
             </div>
 
