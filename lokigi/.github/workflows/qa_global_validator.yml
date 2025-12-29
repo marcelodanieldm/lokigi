@@ -108,6 +108,9 @@ jobs:
           pytest tests/test_impact_report_pdf.py
           pytest tests/test_dashboard_premium.py
 
+          # QA Marketing Conversion
+          pytest tests/test_marketing_conversion.py
+
       - name: Show QA Automation README
         run: cat tests/QA_AUTOMATION_README.md || true
 
@@ -116,3 +119,6 @@ jobs:
 
       - name: Show QA Dashboard Premium README
         run: cat tests/QA_DASHBOARD_PREMIUM_README.md || true
+
+      - name: Show QA Marketing Conversion README
+        run: cat tests/QA_MARKETING_CONVERSION_README.md || true
