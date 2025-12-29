@@ -61,12 +61,66 @@ def detect_competitor_anomalies(snapshots: List[Dict[str, Any]], country: str = 
                 })
     return alerts
 
-# Ejemplo de integración con Gemini (simulado)
-def redactar_alerta_gemini(alert: Dict[str, str], lang: str = 'es') -> str:
-    # Aquí se llamaría a la IA real, simulado para demo
-    base = alert['alert']
-    if lang == 'pt':
-        return f"[PT] {base}"
-    elif lang == 'en':
-        return f"[EN] {base}"
-    return base
+
+# --- Integración avanzada con Gemini para auditoría de marketing local ---
+import os
+import google.generativeai as genai
+
+def redactar_alerta_gemini(alert: Dict[str, str], lang: str = 'es', contexto: Dict = None) -> Dict:
+    """
+    Llama a Gemini API con prompt avanzado para obtener recomendaciones tipo consultoría.
+    Estructura de respuesta: JSON con QuickWin, StrategicGap, TechnicalFix.
+    """
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        return {
+            "QuickWin": "[Error: Falta GEMINI_API_KEY]",
+            "StrategicGap": "[Error: Falta GEMINI_API_KEY]",
+            "TechnicalFix": "[Error: Falta GEMINI_API_KEY]"
+        }
+    genai.configure(api_key=api_key)
+
+    # Contexto de negocio enriquecido
+    contexto = contexto or {}
+    rubro = contexto.get("rubro", "Negocio local")
+    competencia = contexto.get("competencia", "No detectada")
+    fallo = contexto.get("fallo", "No especificado")
+    pais = contexto.get("pais", "ES")
+
+    # System prompt avanzado
+    system_prompt = (
+        "Eres un experto en Growth Hacking para negocios locales. "
+        "Tu tono es directo, profesional y enfocado en el retorno de inversión (ROI). "
+        "No des consejos obvios. Audita bajo estándares de conversión de marketing local. "
+        f"Rubro: {rubro}. "
+        f"Competencia detectada: {competencia}. "
+        f"Fallo crítico: {fallo}. "
+        f"País: {pais}. "
+        "Responde en JSON con las claves: QuickWin, StrategicGap, TechnicalFix. "
+        "Si el país es Brasil, responde en portugués nativo con jerga empresarial local."
+    )
+
+    # Mensaje de usuario (input)
+    user_prompt = alert.get('alert', 'Audita el negocio y genera recomendaciones.')
+
+    model = genai.GenerativeModel('gemini-pro')
+    response = model.generate_content([
+        {"role": "system", "parts": [system_prompt]},
+        {"role": "user", "parts": [user_prompt]}
+    ])
+
+    # Intentar extraer JSON del output
+    import json
+    try:
+        # Gemini puede devolver texto, intentamos extraer el JSON
+        text = response.text.strip()
+        # Buscar primer y último corchete para extraer JSON
+        start = text.find('{')
+        end = text.rfind('}')+1
+        if start != -1 and end != -1:
+            json_str = text[start:end]
+            return json.loads(json_str)
+        else:
+            return {"QuickWin": "[Formato inesperado]", "StrategicGap": text, "TechnicalFix": "[Revisar output]"}
+    except Exception as e:
+        return {"QuickWin": "[Error de parsing]", "StrategicGap": str(e), "TechnicalFix": "[Revisar output]"}

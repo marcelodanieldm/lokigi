@@ -1,0 +1,57 @@
+# .github/workflows/qa_global_validator.yml
+
+name: QA Global Validator
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest requests
+
+      - name: Install Node.js dependencies
+        run: |
+          npm install -g playwright lighthouse
+          npx playwright install --with-deps
+
+      - name: Start backend (FastAPI)
+        run: |
+          pip install -r backend/requirements.txt
+          uvicorn backend.main:app --host 0.0.0.0 --port 8000 &
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+      - name: Wait for backend
+        run: |
+          for i in {1..20}; do
+            if curl -s http://localhost:8000/docs; then exit 0; fi
+            sleep 2
+          done
+          exit 1
+
+      - name: Run QA Global Validator tests
+        run: pytest tests/test_global_validator.py
+
+      - name: Show QA Automation README
+        run: cat tests/QA_AUTOMATION_README.md

@@ -1,0 +1,8 @@
+# requirements.txt para Lokigi Backend
+fastapi
+pydantic
+reportlab
+requests
+# Para integración con Gemini API (Google Generative AI)
+google-generativeai
+supabase-py

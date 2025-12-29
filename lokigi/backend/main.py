@@ -1,6 +1,76 @@
 
 
-from fastapi import FastAPI, HTTPException, Query, Body, Response, Request
+from fastapi import FastAPI, HTTPException, Query, Body, Response, Request, BackgroundTasks
+import uuid
+import os
+from supabase import create_client, Client
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
+# --- Auditoría asíncrona con streaming y cacheo ---
+class AsyncAuditRequest(BaseModel):
+    score: float
+    rubro: str = "Peluquería"
+    competencia: str = "3 locales en un radio de 1km con 4.5 estrellas"
+    fallo: str = "No tiene fotos de los trabajos realizados (Social Proof)"
+    pais: str = "AR"
+    lang: str = "es"
+    client: Business
+    competitors: List[Business]
+    locale: str = "es"
+
+def cache_audit_result(audit_id, result):
+    if supabase:
+        supabase.table("audit_cache").insert({"audit_id": audit_id, "result": result}).execute()
+
+def get_cached_audit(audit_id):
+    if supabase:
+        res = supabase.table("audit_cache").select("result").eq("audit_id", audit_id).single().execute()
+        if res.data:
+            return res.data["result"]
+    return None
+
+def async_audit_task(audit_id, data: AsyncAuditRequest):
+    # IA audit
+    contexto = {
+        "rubro": data.rubro,
+        "competencia": data.competencia,
+        "fallo": data.fallo,
+        "pais": data.pais,
+        "lang": data.lang
+    }
+    alert = {"alert": f"Score actual: {data.score}. Diagnóstico AI requerido."}
+    ai_result = redactar_alerta_gemini(alert, lang=data.lang, contexto=contexto)
+    # Dominance
+    client = data.client.dict()
+    competitors = [c.dict() for c in data.competitors]
+    dom_result = dominance_index(client, competitors, locale=data.locale)
+    # Cachear resultado
+    result = {"ai": ai_result, "dominance": dom_result}
+    cache_audit_result(audit_id, result)
+
+@app.post("/audit")
+def audit_async(data: AsyncAuditRequest, background_tasks: BackgroundTasks):
+    """
+    Inicia auditoría asíncrona. Devuelve audit_id inmediato (<500ms).
+    El análisis IA y Dominance se procesa en background y se cachea en Supabase.
+    """
+    audit_id = str(uuid.uuid4())
+    # Si ya existe en cache, no relanzar
+    if get_cached_audit(audit_id):
+        return {"audit_id": audit_id}
+    background_tasks.add_task(async_audit_task, audit_id, data)
+    return {"audit_id": audit_id}
+
+@app.get("/audit/result/{audit_id}")
+def get_audit_result(audit_id: str):
+    """
+    Devuelve el resultado de la auditoría si está listo.
+    """
+    result = get_cached_audit(audit_id)
+    if result:
+        return result
+    return {"status": "processing"}
 import io
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
@@ -8,6 +78,41 @@ from pydantic import BaseModel, Field
 from typing import Dict, Optional
 from .growth_projection import project_growth
 from .alert_radar import detect_competitor_anomalies, redactar_alerta_gemini
+from .dominance_index import dominance_index
+
+# Dominance Index API
+from typing import List
+
+class Business(BaseModel):
+        lat: float
+        lon: float
+        rating: float
+        review_count: int
+        name: str = "Cliente"
+
+class DominanceRequest(BaseModel):
+        client: Business
+        competitors: List[Business]
+        locale: str = "es"
+
+@app.post("/dominance-index")
+def dominance_index_api(data: DominanceRequest):
+        """
+        Calcula el Dominance Index, Competidor Amenaza y heatmap de rivalidad.
+        Body ejemplo:
+        {
+            "client": {"lat": 38.72, "lon": -9.13, "rating": 4.8, "review_count": 120, "name": "Mi Negocio"},
+            "competitors": [
+                {"lat": 38.723, "lon": -9.14, "rating": 4.7, "review_count": 200, "name": "Barberia Lisboa"},
+                ...
+            ],
+            "locale": "pt"
+        }
+        """
+        client = data.client.dict()
+        competitors = [c.dict() for c in data.competitors]
+        result = dominance_index(client, competitors, locale=data.locale)
+        return result
 
 
 app = FastAPI()
@@ -39,12 +144,32 @@ def alert_radar(data: AlertRadarRequest):
     insights = [redactar_alerta_gemini(alert, lang=data.lang) for alert in alerts]
     return {"alerts": insights, "raw": alerts}
 
-class GrowthProjectionRequest(BaseModel):
-    initial_score: float = Field(..., ge=0, le=100)
-    final_score: float = Field(..., ge=0, le=100)
-    initial_metrics: Dict[str, float]
-    final_metrics: Dict[str, float]
-    daily_revenue: float
+        @app.post("/audit/gemini_prompt", status_code=status.HTTP_200_OK)
+        def audit_gemini_prompt(data: GeminiAuditRequest) -> Any:
+            """
+            Endpoint para auditar un negocio local usando Gemini y prompt engineering avanzado.
+            Devuelve un JSON con QuickWin, StrategicGap y TechnicalFix.
+            """
+            contexto = {
+                "rubro": data.rubro,
+                "competencia": data.competencia,
+                "fallo": data.fallo,
+                "pais": data.pais,
+                "lang": data.lang
+            }
+            # El score puede usarse para enriquecer el contexto si se desea
+            alert = {"alert": f"Score actual: {data.score}. Diagnóstico AI requerido."}
+            result = redactar_alerta_gemini(alert, lang=data.lang, contexto=contexto)
+            return result
+
+        class GeminiAuditRequest(BaseModel):
+            score: float
+            rubro: str = "Peluquería"
+            competencia: str = "3 locales en un radio de 1km con 4.5 estrellas"
+            fallo: str = "No tiene fotos de los trabajos realizados (Social Proof)"
+            pais: str = "AR"
+            lang: str = "es"
+
     currency: str = "USD"
 
 @app.post("/growth/projection")
