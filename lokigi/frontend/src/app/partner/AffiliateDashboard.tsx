@@ -34,6 +34,16 @@ export default function AffiliateDashboard({
   return (
     <div className="min-h-screen bg-gray-950 text-white px-4 py-8">
       <h1 className="text-3xl font-bold text-green-400 mb-6">Partner Portal</h1>
+      <div className="mb-6">
+        <a
+          href="/frontend/src/app/partner/ONBOARDING_AFILIADOS_VISUAL.md"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block bg-green-900 text-green-300 border border-green-400 rounded px-4 py-2 text-sm font-semibold hover:bg-green-800 hover:text-green-200 transition"
+        >
+          📖 Ver Guía Visual de Onboarding de Afiliados
+        </a>
+      </div>
       {/* Métricas */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
         <MetricCard label="Clics" value={clicks} />
