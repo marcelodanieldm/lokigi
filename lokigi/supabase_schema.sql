@@ -20,3 +20,16 @@ CREATE TABLE IF NOT EXISTS roi_tracker (
 -- Índices útiles
 CREATE INDEX IF NOT EXISTS idx_visibility_points_dominance ON visibility_points(dominance);
 CREATE INDEX IF NOT EXISTS idx_roi_tracker_month_year ON roi_tracker(month, year);
+
+-- Tabla de órdenes para almacenar reportes PDF generados
+CREATE TABLE IF NOT EXISTS orders (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_email text NOT NULL,
+    business_id uuid,
+    report_url text,
+    lang text DEFAULT 'es',
+    created_at timestamptz DEFAULT now()
+);
+
+-- Bucket público para reportes PDF
+-- (Crear desde Supabase Storage UI: bucket 'reports', público)

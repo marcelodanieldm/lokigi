@@ -1,3 +1,17 @@
+        - name: Email notification on failure
+          if: failure()
+          uses: dawidd6/action-send-mail@v3
+          with:
+            server_address: smtp.gmail.com
+            server_port: 465
+            username: ${{ secrets.SMTP_USERNAME }}
+            password: ${{ secrets.SMTP_PASSWORD }}
+            subject: "Lokigi CI/CD: Fallo en QA Global Validator"
+            to: ${{ secrets.NOTIFY_EMAIL }}
+            from: Lokigi QA <${{ secrets.SMTP_USERNAME }}>
+            body: |
+              El pipeline de QA Global Validator ha fallado.
+              Revisa los detalles en: https://github.com/<USER>/<REPO>/actions
   e2e:
     runs-on: ubuntu-latest
     needs: test
@@ -87,8 +101,14 @@ jobs:
 
       - name: Run all QA and API tests
         run: |
+
           pytest tests/
           pytest tests/test_response_bot_qa.py
+          pytest tests/test_growth_projection.py
+          pytest tests/test_impact_report_pdf.py
 
       - name: Show QA Automation README
-        run: cat tests/QA_AUTOMATION_README.md
+        run: cat tests/QA_AUTOMATION_README.md || true
+
+      - name: Show QA Impact Report README
+        run: cat tests/QA_IMPACT_REPORT_README.md || true

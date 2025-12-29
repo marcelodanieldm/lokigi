@@ -1,3 +1,29 @@
+from pydantic import BaseModel
+from typing import Dict
+from growth_projection import project_growth
+
+# --- Endpoint para proyección de crecimiento ---
+class GrowthProjectionRequest(BaseModel):
+    initial_score: float
+    final_score: float
+    initial_metrics: Dict[str, float]
+    final_metrics: Dict[str, float]
+    daily_revenue: float
+    currency: str = "USD"
+
+@app.post("/growth/projection")
+def growth_projection(data: GrowthProjectionRequest):
+    """
+    Calcula la proyección de crecimiento y dataset para radar chart.
+    """
+    return project_growth(
+        initial_score=data.initial_score,
+        final_score=data.final_score,
+        initial_metrics=data.initial_metrics,
+        final_metrics=data.final_metrics,
+        daily_revenue=data.daily_revenue,
+        currency=data.currency
+    )
 # Integración del Review Response Engine
 from review_response_engine import router as review_response_router
 
@@ -272,3 +298,46 @@ def generate_impact_report_pdf(payload: dict = Body(...)):
     buffer.close()
     return Response(content=pdf_bytes, media_type="application/pdf")
 # Para correr: uvicorn main:app --reload
+
+# Endpoint para generación y automatización de PDF de éxito
+from utils.success_pdf import generate_success_certificate_pdf
+from utils.supabase_pdf import upload_pdf_to_supabase
+from utils.email_sendgrid import send_success_email
+import uuid
+
+class OrderRequest(BaseModel):
+    user_email: str
+    business_id: str = None
+    lang: str = "es"  # 'es', 'pt', 'en'
+    name: str = ""
+    address: str = ""
+    final_score: float = 0
+    improvements: list = []
+    photos: list = []
+    ranking: list = []
+    radar_labels: list = []
+    radar_before: list = []
+    radar_after: list = []
+
+@app.post("/order")
+def create_order_and_report(data: OrderRequest):
+    # 1. Generar PDF multilingüe
+    pdf_bytes = generate_success_certificate_pdf(data.dict(), lang=data.lang)
+    # 2. Subir a Supabase Storage
+    order_id = str(uuid.uuid4())
+    filename = f"{order_id}.pdf"
+    public_url = upload_pdf_to_supabase(pdf_bytes, filename)
+    if not public_url:
+        raise HTTPException(status_code=500, detail="Error al subir PDF a Supabase")
+    # 3. Guardar en tabla orders
+    if supabase:
+        supabase.table("orders").insert({
+            "id": order_id,
+            "user_email": data.user_email,
+            "business_id": data.business_id,
+            "report_url": public_url,
+            "lang": data.lang
+        }).execute()
+    # 4. Enviar email con enlace
+    email_ok = send_success_email(data.user_email, public_url, lang=data.lang)
+    return {"order_id": order_id, "report_url": public_url, "email_sent": email_ok}
