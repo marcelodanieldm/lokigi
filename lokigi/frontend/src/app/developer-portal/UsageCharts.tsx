@@ -18,7 +18,7 @@ const data = {
     {
       label: "Consumo de créditos",
       data: [12, 19, 3, 5, 2, 3, 7],
-      backgroundColor: "#39FF14BB",
+      backgroundColor: "#2563eb",
       borderRadius: 6,
     },
   ],
@@ -28,18 +28,18 @@ const options = {
   responsive: true,
   plugins: {
     legend: {
-      labels: { color: "#39FF14" },
+      labels: { color: "#2563eb" },
     },
     title: {
       display: true,
       text: "Consumo Diario",
-      color: "#39FF14",
+      color: "#2563eb",
       font: { size: 18 },
     },
   },
   scales: {
-    x: { ticks: { color: "#39FF14" }, grid: { color: "#222" } },
-    y: { ticks: { color: "#39FF14" }, grid: { color: "#222" } },
+    x: { ticks: { color: "#2563eb" }, grid: { color: "#e5e7eb" } },
+    y: { ticks: { color: "#2563eb" }, grid: { color: "#e5e7eb" } },
   },
 };
 

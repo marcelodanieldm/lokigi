@@ -19,3 +19,5 @@ export function useSuperuser() {
   }, []);
   return isSuperuser;
 }
+
+// Todos los mensajes y retornos deben ser claros, profesionales y alineados al nuevo tono empresarial.

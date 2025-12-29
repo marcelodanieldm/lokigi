@@ -11,14 +11,14 @@ import { Radar } from "react-chartjs-2";
 
 // Helper para renderizar el ImpactReport en PDF (simplificado)
 const styles = StyleSheet.create({
-  page: { backgroundColor: "#18181b", color: "#fff", fontFamily: "monospace", padding: 32 },
+  page: { backgroundColor: "#f4f6fa", color: "#1e293b", fontFamily: "sans-serif", padding: 32 },
   section: { marginBottom: 24 },
-  h1: { fontSize: 32, color: "#39FF14", marginBottom: 16 },
-  h2: { fontSize: 20, color: "#39FF14", marginBottom: 8 },
+  h1: { fontSize: 32, color: "#2563eb", marginBottom: 16 },
+  h2: { fontSize: 20, color: "#2563eb", marginBottom: 8 },
   text: { fontSize: 14, marginBottom: 8 },
   table: { flexDirection: "column", width: "auto", marginBottom: 16 },
   row: { flexDirection: "row" },
-  cell: { padding: 4, fontSize: 12, border: "1px solid #333" }
+  cell: { padding: 4, fontSize: 12, border: "1px solid #e5e7eb" }
 });
 
 // Tipos explícitos para las props

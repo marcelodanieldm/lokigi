@@ -32,20 +32,24 @@ export default function SupabaseAuthPanel() {
 
   if (user) {
     return (
-      <div className="bg-gray-900 p-4 rounded-xl mb-6 flex flex-col items-center">
-        <div className="mb-2 text-[#39FF14]">Bienvenido, {user.email}</div>
-        <button
-          className="bg-[#39FF14] text-black font-bold px-4 py-2 rounded-lg hover:scale-105 transition"
-          onClick={handleLogout}
-        >Logout</button>
+      <div className="card bg-white text-corporate-dark border border-corporate-gray p-6 mb-6">
+        <h2 className="text-2xl font-bold text-corporate-blue mb-4">Acceso Seguro</h2>
+        <div className="mb-2 text-gray-700">Bienvenido, {user.email}</div>
+        <div className="flex gap-4 mt-4">
+          <button
+            className="bg-[#39FF14] text-black font-bold px-4 py-2 rounded-lg hover:scale-105 transition"
+            onClick={handleLogout}
+          >Cerrar sesión</button>
+        </div>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleLogin} className="bg-gray-900 p-4 rounded-xl mb-6 flex flex-col items-center">
+    <form onSubmit={handleLogin} className="card bg-white text-corporate-dark border border-corporate-gray p-6 mb-6">
+      <h2 className="text-2xl font-bold text-corporate-blue mb-4">Acceso Seguro</h2>
       <input
-        className="mb-2 px-3 py-2 rounded bg-gray-800 text-white border border-[#39FF14] font-mono"
+        className="mb-2 px-3 py-2 rounded bg-gray-100 text-gray-900 border border-[#39FF14] font-mono"
         type="email"
         placeholder="Email"
         value={email}
@@ -53,7 +57,7 @@ export default function SupabaseAuthPanel() {
         required
       />
       <input
-        className="mb-2 px-3 py-2 rounded bg-gray-800 text-white border border-[#39FF14] font-mono"
+        className="mb-2 px-3 py-2 rounded bg-gray-100 text-gray-900 border border-[#39FF14] font-mono"
         type="password"
         placeholder="Password"
         value={password}
@@ -63,7 +67,7 @@ export default function SupabaseAuthPanel() {
       <button
         className="bg-[#39FF14] text-black font-bold px-4 py-2 rounded-lg hover:scale-105 transition"
         type="submit"
-      >Login</button>
+      >Iniciar sesión</button>
       {error && <div className="text-red-400 mt-2">{error}</div>}
     </form>
   );

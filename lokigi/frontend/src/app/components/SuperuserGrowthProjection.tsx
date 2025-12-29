@@ -40,8 +40,8 @@ export default function SuperuserGrowthProjection() {
   }
 
   return (
-    <div className="bg-gray-950 text-white p-8 rounded-xl max-w-2xl mx-auto mt-8 font-mono">
-      <h2 className="text-2xl font-bold mb-4 text-[#39FF14]">Proyección de Crecimiento (Lokigi)</h2>
+    <div className="card bg-white text-corporate-dark border border-corporate-gray p-6 mb-6">
+      <h2 className="text-2xl font-bold text-corporate-blue mb-4">Proyección de Crecimiento (Superuser)</h2>
       <button
         className="bg-[#39FF14] text-black font-bold px-6 py-2 rounded-lg mb-6 hover:scale-105 transition"
         onClick={handleProjection}

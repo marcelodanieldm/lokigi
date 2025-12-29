@@ -147,21 +147,25 @@ export default function PremiumDashboardPage() {
   return (
     <>
       {loadingAudit || dominance === null ? <SkeletonAudit /> : (
-        <div className="bg-gray-900/80 rounded-xl p-4 border border-[#39FF14] flex flex-col items-center mb-4">
-          <span className="text-xs text-gray-400 mb-1">Dominance Index</span>
-          <span className="text-2xl font-bold text-[#39FF14]">{(dominance * 100).toFixed(1)}%</span>
-          <span className="text-xs text-gray-400 mt-1">Amenaza: <b className="text-[#FF1744]">{threat}</b></span>
+        <div className="card flex flex-col items-center mb-4">
+          <span className="text-xs text-gray-600 mb-1">Dominance Index</span>
+          <span className="text-2xl font-bold text-corporate-blue">{(dominance * 100).toFixed(1)}%</span>
+          <span className="text-xs text-gray-600 mt-1">Amenaza: <b className="text-red-500">{threat}</b></span>
         </div>
       )}
       {growth && (
-        <div className="bg-gray-900/80 rounded-xl p-4 border border-green-400 flex flex-col items-center mb-4 w-full max-w-xl">
-          <span className="text-xs text-gray-400 mb-1">Crecimiento Proyectado</span>
-          <span className="text-2xl font-bold text-green-400">{growth.currency_symbol}{growth.projected_gain.toLocaleString()} {growth.currency}</span>
-          <span className="text-xs text-gray-400 mt-1">Visibilidad: <b className="text-green-400">{growth.visibility_gain_pct}%</b></span>
+        <div className="card flex flex-col items-center mb-4 w-full max-w-xl">
+          <span className="text-xs text-gray-600 mb-1">Crecimiento Proyectado</span>
+          <span className="text-2xl font-bold text-corporate-blue">{growth.currency_symbol}{growth.projected_gain.toLocaleString()} {growth.currency}</span>
+          <span className="text-xs text-gray-600 mt-1">Visibilidad: <b className="text-corporate-blue">{growth.visibility_gain_pct}%</b></span>
           {/* Radar Chart */}
           <RadarChart data={growth.radar} />
         </div>
       )}
+      <PremiumControlTower points={points} alerts={alerts} roi={roi} />
+    </>
+  );
+}
 
 // --- RadarChart Component ---
 function RadarChart({ data }) {
@@ -217,7 +221,5 @@ function RadarChart({ data }) {
   }, [data]);
   return <canvas ref={canvasRef} width={320} height={200} className="mt-2" />;
 }
-      <PremiumControlTower points={points} alerts={alerts} roi={roi} />
-    </>
-  );
-}
+
+// Asegúrate de que PremiumControlTower y subcomponentes usen clases como 'card', 'bg-white', 'text-corporate-dark', 'border-corporate-gray', etc.

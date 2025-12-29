@@ -77,34 +77,34 @@ export default function DashboardPage() {
   return (
     <>
       <MainNav />
-      <main className="min-h-screen bg-black text-white flex flex-col items-center py-12">
+      <main className="min-h-screen bg-corporate-gray text-corporate-dark flex flex-col items-center py-12">
       <SupabaseAuthPanel />
       <div className="w-full flex justify-end max-w-6xl mb-4">
         <Link href={{ pathname: "/impact-report", query: impactReportData }}
-          className="bg-[#39FF14] text-black font-bold px-6 py-2 rounded-lg hover:scale-105 transition">
+          className="btn">
           Ver Impact Report
         </Link>
       </div>
       <h1 className="text-4xl font-extrabold mb-8 text-center tracking-tight">
         The Mirror Effect
       </h1>
-      <section className="w-full max-w-2xl bg-gray-900 rounded-2xl p-8 shadow-xl mb-8">
+      <section className="w-full max-w-2xl card mb-8">
         <GaugeChart score={score} />
       </section>
-      <section className="w-full max-w-2xl bg-gray-900 rounded-2xl p-8 shadow-xl mb-8">
+      <section className="w-full max-w-2xl card mb-8">
         <ProfitLeaking amount={lucroCesante} />
       </section>
-      <section className="w-full max-w-4xl bg-gray-900 rounded-2xl p-8 shadow-xl mb-8">
+      <section className="w-full max-w-4xl card mb-8">
         <BusinessComparison />
       </section>
-      <section className="w-full max-w-2xl bg-gray-900 rounded-2xl p-8 shadow-xl mb-8 flex flex-col items-center">
-        <div className="mb-4 text-lg text-center text-gray-200">
+      <section className="w-full max-w-2xl card mb-8 flex flex-col items-center">
+        <div className="mb-4 text-lg text-center text-gray-600">
           Consejos de la IA para mejorar tu visibilidad local y superar a tu
           competencia.
         </div>
         <CTAButton onClick={() => alert("¡Acción de conversión!")} />
       </section>
-      <div className="w-full max-w-6xl bg-gray-900 rounded-2xl p-8 shadow-xl mb-8">
+      <div className="w-full max-w-6xl card mb-8">
         <CompetitorWarRoom
           client={client || { lat: 40.4168, lon: -3.7038 }}
           competitors={

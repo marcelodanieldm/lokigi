@@ -27,7 +27,22 @@ export default function ImpactReport({
   }
 }) {
   return (
-    <div className="bg-gray-950 text-white font-mono min-h-screen p-0">
+    <div className="card bg-white text-corporate-dark border border-corporate-gray p-6 mb-6">
+      <h2 className="text-2xl font-bold text-corporate-blue mb-4">Impact Report</h2>
+      <div className="mb-2 text-gray-700">Resumen de Impacto</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <span className="font-semibold">ROI:</span> <span className="text-corporate-blue">20%</span>
+        </div>
+        <div>
+          <span className="font-semibold">Visibilidad:</span> <span className="text-corporate-blue">Alta</span>
+        </div>
+      </div>
+      <div className="mt-4">
+        <button className="bg-corporate-blue text-white font-bold py-2 px-4 rounded shadow hover:bg-corporate-dark transition-all">
+          Descargar PDF
+        </button>
+      </div>
       {/* Página 1: Medidor de Score */}
       <section className="flex flex-col items-center justify-center h-screen">
         <h1 className="text-4xl font-extrabold mb-8 text-[#39FF14]">Lokigi Impact Report</h1>

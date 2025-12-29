@@ -19,11 +19,11 @@ export default function ApiKeyManager() {
   return (
     <div id="api-keys">
       <h2 className="text-xl font-semibold mb-4">API Key Management</h2>
-      <button onClick={generateKey} className="bg-green-500 hover:bg-green-400 text-black font-bold py-2 px-4 rounded mb-4">Generar nueva API Key</button>
-      {newKey && <div className="mb-4 text-green-400">Nueva llave: <span className="font-mono">{newKey}</span></div>}
+      <button onClick={generateKey} className="btn mb-4">Generar nueva API Key</button>
+      {newKey && <div className="mb-4 text-corporate-blue">Nueva llave: <span className="font-mono">{newKey}</span></div>}
       <table className="w-full text-sm mb-4">
         <thead>
-          <tr className="text-green-400">
+          <tr className="text-corporate-blue">
             <th className="text-left">Key</th>
             <th>Creada</th>
             <th>Consumo</th>
@@ -32,11 +32,11 @@ export default function ApiKeyManager() {
         </thead>
         <tbody>
           {keys.map(k => (
-            <tr key={k.id} className="border-b border-gray-800">
+            <tr key={k.id} className="border-b border-gray-200">
               <td className="font-mono text-xs">{k.key}</td>
               <td>{k.created}</td>
               <td>{k.usage}</td>
-              <td><button onClick={() => revokeKey(k.id)} className="text-red-400 hover:underline">Revocar</button></td>
+              <td><button onClick={() => revokeKey(k.id)} className="text-red-500 hover:underline">Revocar</button></td>
             </tr>
           ))}
         </tbody>

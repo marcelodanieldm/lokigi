@@ -23,43 +23,19 @@ export default function PremiumControlTower({ points, alerts, roi }) {
   const [center, setCenter] = useState([points?.[0]?.lat || 0, points?.[0]?.lon || 0]);
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white p-0 md:p-6 flex flex-col gap-4">
-      <h1 className="text-2xl md:text-3xl font-bold text-[#39FF14] mb-2 md:mb-4">Control Tower</h1>
-      {/* Heatmap */}
-      <div className="w-full h-72 md:h-96 rounded-xl overflow-hidden border-2 border-[#39FF14] shadow-lg">
-        <Map center={center} zoom={13} style={{ height: "100%", width: "100%" }} scrollWheelZoom={true}>
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          {points.map((p, i) => (
-            <Circle
-              key={i}
-              center={[p.lat, p.lon]}
-              radius={120}
-              pathOptions={{ color: p.dominance === 'client' ? '#39FF14' : '#FF1744', fillOpacity: 0.5 }}
-            />
-          ))}
-        </Map>
+    <div className="card bg-white text-corporate-dark border border-corporate-gray p-6 mb-6">
+      <h2 className="text-2xl font-bold text-corporate-blue mb-4">Premium Control Tower</h2>
+      <div className="mb-2 text-gray-700">{summary}</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <span className="font-semibold">Alertas:</span> <span className="text-corporate-blue">{alerts}</span>
+        </div>
+        <div>
+          <span className="font-semibold">ROI:</span> <span className="text-corporate-blue">{roi}</span>
+        </div>
       </div>
-      {/* Alert Feed */}
-      <div className="bg-gray-900/80 rounded-xl p-4 border border-[#39FF14] max-h-56 overflow-y-auto">
-        <h2 className="text-lg font-semibold text-[#39FF14] mb-2">Alertas</h2>
-        <ul className="space-y-2">
-          {alerts.length === 0 && <li className="text-gray-400">Sin alertas recientes.</li>}
-          {alerts.map((a, i) => (
-            <li key={i} className="text-sm flex items-center gap-2">
-              <span className={
-                a.type === 'danger' ? 'text-[#FF1744]' :
-                a.type === 'info' ? 'text-[#39FF14]' : 'text-white'
-              }>●</span>
-              <span>{a.text}</span>
-              <span className="ml-auto text-xs text-gray-500">{a.date}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-      {/* ROI Tracker */}
-      <div className="bg-gray-900/80 rounded-xl p-4 border border-[#39FF14] flex flex-col items-center">
-        <span className="text-xs text-gray-400 mb-1">Dinero Protegido este mes</span>
-        <span className="text-2xl font-bold text-[#39FF14]">{roi.amount.toLocaleString()} {roi.currency}</span>
+      <div className="mt-4">
+        <CTAButton onClick={onAction} label="Ver detalles" />
       </div>
     </div>
   );
