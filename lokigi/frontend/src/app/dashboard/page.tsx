@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import MainNav from "../components/MainNav";
 import { GaugeChart } from "../components/GaugeChart";
 import { ProfitLeaking } from "../components/ProfitLeaking";
 import { BusinessComparison } from "../components/BusinessComparison";
@@ -74,7 +75,9 @@ export default function DashboardPage() {
   };
 
   return (
-    <main className="min-h-screen bg-black text-white flex flex-col items-center py-12">
+    <>
+      <MainNav />
+      <main className="min-h-screen bg-black text-white flex flex-col items-center py-12">
       <SupabaseAuthPanel />
       <div className="w-full flex justify-end max-w-6xl mb-4">
         <Link href={{ pathname: "/impact-report", query: impactReportData }}
@@ -129,6 +132,7 @@ export default function DashboardPage() {
           <SuperuserGrowthProjection />
         </div>
       )}
-    </main>
+      </main>
+    </>
   );
 }
