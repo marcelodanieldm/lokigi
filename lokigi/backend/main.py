@@ -62,6 +62,8 @@ from sentiment_seo_reviews import extract_keywords, sentiment_analysis, build_ge
 
 
 from fastapi import FastAPI, HTTPException, Query, Body, Response, Request, BackgroundTasks
+from billing_middleware import check_and_bill_overage
+from webhook_engine import trigger_audit_completed_webhooks
 import uuid
 import os
 from supabase import create_client, Client
@@ -91,7 +93,8 @@ def get_cached_audit(audit_id):
             return res.data["result"]
     return None
 
-def async_audit_task(audit_id, data: AsyncAuditRequest):
+import asyncio
+async def async_audit_task(audit_id, data: AsyncAuditRequest, api_key: str, user_id: str):
     # IA audit
     contexto = {
         "rubro": data.rubro,
@@ -109,18 +112,33 @@ def async_audit_task(audit_id, data: AsyncAuditRequest):
     # Cachear resultado
     result = {"ai": ai_result, "dominance": dom_result}
     cache_audit_result(audit_id, result)
+    # Facturación por exceso (overage)
+    await check_and_bill_overage(api_key)
+    # Disparar webhooks de auditoría completada
+    await trigger_audit_completed_webhooks(user_id, audit_id, result)
+
 
 @app.post("/audit")
-def audit_async(data: AsyncAuditRequest, background_tasks: BackgroundTasks):
+async def audit_async(data: AsyncAuditRequest, background_tasks: BackgroundTasks, request: Request):
     """
     Inicia auditoría asíncrona. Devuelve audit_id inmediato (<500ms).
     El análisis IA y Dominance se procesa en background y se cachea en Supabase.
     """
     audit_id = str(uuid.uuid4())
+    api_key = request.headers.get("x-api-key", "")
+    # Buscar user_id real de la API Key
+    from utils.api_key_utils import hash_api_key
+    key_hash = hash_api_key(api_key)
+    user_id = None
+    if supabase:
+        res = supabase.table("api_keys").select("user_id").eq("key_hash", key_hash).eq("is_active", True).single().execute()
+        if res and res.data and "user_id" in res.data:
+            user_id = res.data["user_id"]
     # Si ya existe en cache, no relanzar
     if get_cached_audit(audit_id):
         return {"audit_id": audit_id}
-    background_tasks.add_task(async_audit_task, audit_id, data)
+    # Ejecutar tarea asíncrona con billing y webhooks
+    background_tasks.add_task(asyncio.create_task, async_audit_task(audit_id, data, api_key, user_id))
     return {"audit_id": audit_id}
 
 @app.get("/audit/result/{audit_id}")

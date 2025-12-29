@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-black text-white;
+}
+
+.neon-green {
+  color: #39FF14;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  background: #181818;
+}
+::-webkit-scrollbar-thumb {
+  background: #39FF14;
+  border-radius: 8px;
+}
+
+/* Syntax highlighting tweaks */
+pre, code {
+  font-family: 'Fira Mono', 'Consolas', monospace;
+  font-size: 0.95em;
+}
+
+/* Minimalist border for cards */
+.bg-gray-900\/80 {
+  border: 1px solid #222;
+}

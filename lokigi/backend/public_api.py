@@ -7,13 +7,20 @@ API Pública de Lokigi: White-Label, integración con Zapier, Make, HubSpot, etc
 - Internacionalización
 - Documentación al final
 """
+
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 import time
 import os
-import supabase_py
+from supabase import create_client, Client
 from typing import Dict
+from utils.api_key_utils import hash_api_key
+
+
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
 
 app = FastAPI()
 
@@ -37,15 +44,30 @@ RATE_LIMITS = {
 }
 rate_usage = {}
 
+
 def get_tier(api_key: str) -> str:
-    # Simulación: consulta a Supabase para obtener el plan
-    if api_key.startswith("ent-"): return "enterprise"
-    if api_key.startswith("t2-"): return "tier2"
+    # Consulta real a Supabase para obtener el tier de la API Key
+    if not supabase:
+        return "tier1"
+    key_hash = hash_api_key(api_key)
+    res = supabase.table("api_keys").select("tier").eq("key_hash", key_hash).eq("is_active", True).single().execute()
+    if res and res.data and "tier" in res.data:
+        return res.data["tier"]
     return "tier1"
 
-class RateLimitMiddleware(BaseHTTPMiddleware):
+def authenticate_api_key(api_key: str) -> bool:
+    if not supabase:
+        return False
+    key_hash = hash_api_key(api_key)
+    res = supabase.table("api_keys").select("id").eq("key_hash", key_hash).eq("is_active", True).single().execute()
+    return bool(res and res.data and "id" in res.data)
+
+
+class RateLimitAndAuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         api_key = request.headers.get("x-api-key", "")
+        if not authenticate_api_key(api_key):
+            raise HTTPException(status_code=401, detail="API Key inválida o inactiva")
         tier = get_tier(api_key)
         limit = RATE_LIMITS[tier]["limit"]
         window = RATE_LIMITS[tier]["window"]
@@ -60,7 +82,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         response.headers["X-RateLimit-Remaining"] = str(limit - rate_usage[key])
         return response
 
-app.add_middleware(RateLimitMiddleware)
+app.add_middleware(RateLimitAndAuthMiddleware)
 
 # --- Usage Analytics & Cache Optimization ---
 # Simulación: predicción de picos y caché en Supabase
@@ -72,9 +94,12 @@ def log_usage(api_key: str):
     # Si se detecta pico, cachear más agresivamente en Supabase
 
 # --- API Endpoint ---
+
 @app.get("/api/v1/audit")
 async def audit_endpoint(request: Request, business_id: str, lang: str = "es", currency: str = "EUR"):
     api_key = request.headers.get("x-api-key", "")
+    if not authenticate_api_key(api_key):
+        raise HTTPException(status_code=401, detail="API Key inválida o inactiva")
     log_usage(api_key)
     # Simulación: fetch datos minificados
     lokigi_score = 87.2
