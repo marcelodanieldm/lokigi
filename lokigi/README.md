@@ -44,9 +44,17 @@ Ver detalles y lógica en `backend/dominance_index.py` y pruebas en `tests/test_
 
 
 
+
 ## Resumen Ejecutivo
 
-Lokigi es una plataforma que integra un backend en Python y un frontend en Next.js/TypeScript para la gestión, análisis y visualización de datos, con integración a servicios como Supabase y Stripe. El sistema está diseñado para ser modular, escalable y fácil de desplegar tanto en entornos locales como en la nube.
+Lokigi es una plataforma SaaS de inteligencia de negocios locales. Ofrece dashboards, alertas, reportes y automatización de marketing para negocios, consultores y agencias. El modelo es freemium con upgrades premium y funcionalidades avanzadas para usuarios de pago. Integra backend en Python (FastAPI), frontend en Next.js/TypeScript, Supabase y Stripe. El sistema es modular, escalable y fácil de desplegar tanto en local como en la nube.
+
++### Documentación de Flujos y Procesos
++- [Documentación de Flujos, Modelo de Negocio y Tipos de Usuario](DOCUMENTACION_FLUJOS_NEGOCIO.md)
++- [Flujos de Negocio y Usuario (Premium, Worker, Admin) + Diagramas](README_FLUJOS_NEGOCIO.md)
++- [Retargeting Engine: Automatización de Mensajería y Colas (FastAPI, Supabase, Stripe, SendGrid, Twilio)](backend/RETARGETING_ENGINE_README.md)
++- [QA: Validador de Flujos de Tiempo y Modales (pytest, Lighthouse)](tests/QA_RETARGETING_TIMEFLOWS_README.md)
+
 
 ---
 
@@ -126,6 +134,7 @@ npm run dev
 
 ## QA Automation
 
+
 ### Validador Global de Inteligencia
 
 La suite de QA automatizada valida el sentido común, localización y performance de la IA en diferentes culturas y escenarios de negocio.
@@ -133,8 +142,24 @@ La suite de QA automatizada valida el sentido común, localización y performanc
 - Pruebas de Consistencia: Lucro Cesante nunca negativo.
 - Pruebas de Localización: Ticket promedio y moneda cambian correctamente entre Brasil y USA.
 - Pruebas de Performance: Lighthouse > 95 en Vercel con el mapa de calor.
+- Pruebas de Flujos de Tiempo y Modales: Garantiza que los mensajes de retargeting se envíen en el momento correcto y que los modales no degraden la UX ni la performance móvil.
 
-Ver detalles y ejecución en [tests/QA_AUTOMATION_README.md](tests/QA_AUTOMATION_README.md).
++Ver detalles y ejecución en:
++- [tests/QA_AUTOMATION_README.md](tests/QA_AUTOMATION_README.md)
++- [tests/QA_RETARGETING_TIMEFLOWS_README.md](tests/QA_RETARGETING_TIMEFLOWS_README.md)
++
++### Integración en CI/CD
++El test de flujos de tiempo y modales se ejecuta automáticamente en cada push/pull request:
++
++```yaml
++# .github/workflows/qa_global_validator.yml (fragmento relevante)
++      - name: Run QA Retargeting Timeflows
++        run: pytest tests/test_retargeting_timeflows.py
++      - name: Show QA Retargeting Timeflows README
++        run: cat tests/QA_RETARGETING_TIMEFLOWS_README.md || true
++```
++
++Esto garantiza que los flujos de retargeting y la UX de modales estén siempre validados en el pipeline.
 
 - Mantener actualizado `.gitignore`.
 - Documentar funciones y módulos con docstrings y comentarios.

@@ -111,6 +111,9 @@ jobs:
           # QA Marketing Conversion
           pytest tests/test_marketing_conversion.py
 
+          # QA Retargeting Timeflows & Modals
+          pytest tests/test_retargeting_timeflows.py
+
       - name: Show QA Automation README
         run: cat tests/QA_AUTOMATION_README.md || true
 
@@ -122,3 +125,6 @@ jobs:
 
       - name: Show QA Marketing Conversion README
         run: cat tests/QA_MARKETING_CONVERSION_README.md || true
+
+      - name: Show QA Retargeting Timeflows README
+        run: cat tests/QA_RETARGETING_TIMEFLOWS_README.md || true
