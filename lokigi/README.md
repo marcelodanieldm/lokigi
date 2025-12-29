@@ -53,7 +53,39 @@ Lokigi es una plataforma SaaS de inteligencia de negocios locales. Ofrece dashbo
 +- [Documentación de Flujos, Modelo de Negocio y Tipos de Usuario](DOCUMENTACION_FLUJOS_NEGOCIO.md)
 +- [Flujos de Negocio y Usuario (Premium, Worker, Admin) + Diagramas](README_FLUJOS_NEGOCIO.md)
 +- [Retargeting Engine: Automatización de Mensajería y Colas (FastAPI, Supabase, Stripe, SendGrid, Twilio)](backend/RETARGETING_ENGINE_README.md)
++- [Atribución y Prevención de Fraude: Algoritmo, lógica de cookies y comisiones multimoneda](backend/ATTRIBUTION_FRAUD_README.md)
++- [Partner Portal: Affiliate Dashboard, métricas y media kit](frontend/src/app/partner/PARTNER_PORTAL_README.md)
 +- [QA: Validador de Flujos de Tiempo y Modales (pytest, Lighthouse)](tests/QA_RETARGETING_TIMEFLOWS_README.md)
+# Ejemplo de integración de datos reales en el Partner Portal
+
+```tsx
+import AffiliateDashboard from 'frontend/src/app/partner/AffiliateDashboard';
+// ...
+<AffiliateDashboard
+	clicks={afiliado.clicks}
+	leads={afiliado.leads}
+	commissions={afiliado.comisiones}
+	affiliateLink={afiliado.link}
+	qrCodeUrl={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(afiliado.link)}`}
+	mediaKitLinks={mediaKit}
+/>
+```
+
+Ver detalles y personalización en [frontend/src/app/partner/PARTNER_PORTAL_README.md](frontend/src/app/partner/PARTNER_PORTAL_README.md)
+# Ejemplo de integración frontend/backend para atribución y fraude
+
+```typescript
+// Frontend: Al hacer click en un link de afiliado
+document.cookie = `lokigi_affiliate_id=${affiliateId}; path=/; max-age=${60*60*24*30}`;
+
+// Backend: Al recibir una venta
+from backend.attribution_fraud import atribuir_venta, detectar_fraude, calcular_comisiones
+afiliado = atribuir_venta(eventos_clicks, fecha_venta)
+alertas = detectar_fraude(afiliado, comprador_id, ip_afiliado, ip_comprador, eventos, fecha_venta)
+comisiones = calcular_comisiones(ventas, moneda_afiliado, tasas_cambio)
+```
+
+Ver detalles y personalización en [backend/ATTRIBUTION_FRAUD_README.md](backend/ATTRIBUTION_FRAUD_README.md)
 
 
 ---
