@@ -3,6 +3,7 @@
 // UX/UI: Verde neón, dark mode, estilo técnico y profesional
 
 import React, { useState } from 'react';
+import AffiliateOnboardingTour from './AffiliateOnboardingTour';
 
 const metrics = [
   { label: 'Clics', value: 0 },
@@ -32,9 +33,10 @@ export default function AffiliateDashboard({
     setTimeout(() => setCopied(false), 1500);
   };
   return (
-    <div className="min-h-screen bg-gray-950 text-white px-4 py-8">
+    <div className="min-h-screen bg-gray-950 text-white px-4 py-8 relative">
+      <AffiliateOnboardingTour />
       <h1 className="text-3xl font-bold text-green-400 mb-6">Partner Portal</h1>
-      <div className="mb-6">
+      <div className="mb-6" id="onboarding-guide">
         <a
           href="/frontend/src/app/partner/ONBOARDING_AFILIADOS_VISUAL.md"
           target="_blank"
@@ -45,13 +47,13 @@ export default function AffiliateDashboard({
         </a>
       </div>
       {/* Métricas */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8" id="metrics">
         <MetricCard label="Clics" value={clicks} />
         <MetricCard label="Leads Generados" value={leads} />
         <MetricCard label="Comisiones Totales" value={`$${commissions.toFixed(2)}`} />
       </div>
       {/* Link Generator */}
-      <div className="bg-gray-900 rounded-xl p-6 mb-8 border border-green-400 shadow-lg">
+      <div className="bg-gray-900 rounded-xl p-6 mb-8 border border-green-400 shadow-lg" id="link-generator">
         <h2 className="text-xl font-semibold text-green-300 mb-2">Tu link de afiliado</h2>
         <div className="flex flex-col sm:flex-row items-center gap-4">
           <input
@@ -72,7 +74,7 @@ export default function AffiliateDashboard({
         <p className="text-xs text-gray-400 mt-2">Comparte tu link o imprime el QR para volantes físicos.</p>
       </div>
       {/* Media Kit */}
-      <div className="bg-gray-900 rounded-xl p-6 border border-green-400 shadow-lg">
+      <div className="bg-gray-900 rounded-xl p-6 border border-green-400 shadow-lg" id="media-kit">
         <h2 className="text-xl font-semibold text-green-300 mb-2">Media Kit</h2>
         <ul className="space-y-2">
           {mediaKitLinks.map((item, i) => (
