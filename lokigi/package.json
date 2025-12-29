@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@react-pdf/renderer": "^4.3.1",
+    "@types/react": "^19.2.7",
+    "chart.js": "^4.5.1",
+    "react-chartjs-2": "^5.3.1"
+  }
+}
