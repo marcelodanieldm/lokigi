@@ -7,18 +7,23 @@ from typing import List, Dict, Any
 
 def detect_competitor_anomalies(snapshots: List[Dict[str, Any]], country: str = "US") -> List[Dict[str, str]]:
     """
-    Compara snapshots mensuales de los 3 principales competidores y genera alertas si hay cambios significativos.
-    snapshots: lista de dicts, cada uno con: {
+    Motor de Detección de Anomalías Competitivas (Radar de Alertas)
+    - Compara snapshots mensuales de los 3 principales competidores y genera alertas si hay cambios significativos.
+    - Umbrales: rating +0.2, >5 fotos/mes, >10 reviews/mes.
+    - Internacionalización: adapta triggers a festividades locales (ej. fotos navideñas en diciembre).
+    snapshots: lista de dicts, cada uno con:
+      {
         'name': str,
         'history': [
-            {'date': '2025-11', 'rating': float, 'reviews': int, 'photos': int},
-            ...
+            {'date': '2025-11-01', 'rating': float, 'reviews': int, 'photos': int, 'photo_tags': str},
+            ... (ordenados por fecha ascendente)
         ]
-    }
-    country: código país para internacionalización de triggers.
+      }
+    country: código país (para adaptar triggers a festividades)
+    Return: lista de alertas detectadas (dicts)
     """
     alerts = []
-    now = datetime.datetime.now()
+    now = datetime.datetime.utcnow()
     month = now.month
     # Festividades por país
     holidays = {
@@ -33,33 +38,56 @@ def detect_competitor_anomalies(snapshots: List[Dict[str, Any]], country: str = 
         if len(hist) < 2:
             continue
         prev, curr = hist[-2], hist[-1]
-        # Trigger: rating sube +0.2
+        # Trigger 1: Rating sube +0.2
         if curr['rating'] - prev['rating'] > 0.2:
             alerts.append({
                 'type': 'rating',
-                'alert': f"Tu rival {name} ha subido su rating a {curr['rating']:.1f}. ¡Reacciona antes de perder ranking!"
+                'competitor': name,
+                'delta': round(curr['rating'] - prev['rating'], 2),
+                'alert': f"Tu rival {name} ha subido su rating a {curr['rating']} (+{curr['rating']-prev['rating']:.2f}). ¡Reacciona antes de perder ranking!"
             })
-        # Trigger: >5 fotos nuevas en un mes
+        # Trigger 2: >5 fotos nuevas en un mes
         if curr['photos'] - prev['photos'] > 5:
             alerts.append({
                 'type': 'photos',
-                'alert': f"Tu rival {name} ha publicado muchas fotos nuevas este mes. ¡Actualiza tu perfil visual!"
+                'competitor': name,
+                'delta': curr['photos'] - prev['photos'],
+                'alert': f"Tu rival {name} ha publicado {curr['photos']-prev['photos']} fotos nuevas este mes. ¡Actualiza tu perfil visual!"
             })
-        # Trigger: reviews suben mucho
-        if curr['reviews'] - prev['reviews'] > 20:
+        # Trigger 3: reviews suben mucho
+        if curr['reviews'] - prev['reviews'] > 10:
             alerts.append({
                 'type': 'reviews',
-                'alert': f"{name} está recibiendo muchas reseñas nuevas. Responde y mejora tu reputación."
+                'competitor': name,
+                'delta': curr['reviews'] - prev['reviews'],
+                'alert': f"{name} está recibiendo {curr['reviews']-prev['reviews']} reseñas nuevas. Responde y mejora tu reputación."
             })
-        # Trigger: fotos navideñas en diciembre
+        # Trigger 4: Festividades (ej. fotos navideñas en diciembre)
         if month == 12 and country in holidays:
             fest = holidays[country][12]
-            if curr['photos'] > prev['photos'] and 'navidad' in curr.get('tags', '').lower():
+            if curr['photos'] > prev['photos'] and fest.lower() in (curr.get('photo_tags','')+prev.get('photo_tags','')).lower():
                 alerts.append({
                     'type': 'holiday',
-                    'alert': f"{name} ha subido fotos de {fest}. ¡No te quedes atrás en la temporada!"
+                    'competitor': name,
+                    'alert': f"{name} ha publicado fotos de {fest}. ¡No te quedes atrás en la temporada!"
                 })
     return alerts
+
+# Generación de insight con Gemini
+def generate_alert_insights(alerts: List[Dict[str, str]], lang: str = 'es', contexto: Dict = None) -> List[str]:
+    """
+    Envía cada alerta a Gemini para redactar un insight breve y urgente.
+    """
+    insights = []
+    for alert in alerts:
+        insight = redactar_alerta_gemini(alert, lang=lang, contexto=contexto)
+        if isinstance(insight, dict) and 'QuickWin' in insight:
+            insights.append(insight['QuickWin'])
+        elif isinstance(insight, dict) and 'text' in insight:
+            insights.append(insight['text'])
+        else:
+            insights.append(str(insight))
+    return insights
 
 
 # --- Integración avanzada con Gemini para auditoría de marketing local ---

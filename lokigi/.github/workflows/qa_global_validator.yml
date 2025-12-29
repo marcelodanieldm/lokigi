@@ -106,9 +106,13 @@ jobs:
           pytest tests/test_response_bot_qa.py
           pytest tests/test_growth_projection.py
           pytest tests/test_impact_report_pdf.py
+          pytest tests/test_dashboard_premium.py
 
       - name: Show QA Automation README
         run: cat tests/QA_AUTOMATION_README.md || true
 
       - name: Show QA Impact Report README
         run: cat tests/QA_IMPACT_REPORT_README.md || true
+
+      - name: Show QA Dashboard Premium README
+        run: cat tests/QA_DASHBOARD_PREMIUM_README.md || true
