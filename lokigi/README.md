@@ -33,7 +33,14 @@ Ver detalles y lógica en `backend/dominance_index.py` y pruebas en `tests/test_
 # Lokigi
 
 
+
 ![QA Automation Status](https://github.com/<USER>/<REPO>/actions/workflows/qa_global_validator.yml/badge.svg)
+
+## Reportes Automáticos
+- [Resultados de CI/CD](https://github.com/<USER>/<REPO>/actions)
+- [Cobertura de tests (pytest-cov)](https://github.com/<USER>/<REPO>/actions?query=workflow%3AQA+Global+Validator)
+	- Para ver cobertura local: `pytest --cov=backend tests/`
+	- Puedes integrar [codecov](https://about.codecov.io/) o [coveralls](https://coveralls.io/) para badges de cobertura.
 
 
 

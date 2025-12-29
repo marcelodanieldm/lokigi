@@ -1,3 +1,38 @@
+# Integración del Review Response Engine
+from review_response_engine import router as review_response_router
+
+app.include_router(review_response_router)
+from fastapi import APIRouter
+
+from pydantic import BaseModel
+from typing import List
+
+# --- Modelo para el endpoint de análisis de sentimiento y SEO ---
+class ReviewAnalysisRequest(BaseModel):
+    reviews: List[str]
+    lang: str = 'es'  # 'es', 'pt', 'en'
+
+class ReviewAnalysisResponse(BaseModel):
+    keywords: List[str]
+    sentiments: dict
+    prompt: str
+
+@app.post("/seo-sentiment-analysis", response_model=ReviewAnalysisResponse)
+def seo_sentiment_analysis(data: ReviewAnalysisRequest):
+    """
+    Analiza un corpus de reseñas: extrae palabras clave, clasifica sentimiento y genera prompt SEO para IA.
+    """
+    keywords = extract_keywords(data.reviews)
+    sentiments = sentiment_analysis(data.reviews, data.lang)
+    prompt = build_gemini_prompt(keywords, data.lang)
+    return ReviewAnalysisResponse(
+        keywords=keywords,
+        sentiments={k: len(v) for k, v in sentiments.items()},
+        prompt=prompt
+    )
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from sentiment_seo_reviews import extract_keywords, sentiment_analysis, build_gemini_prompt
 
 
 from fastapi import FastAPI, HTTPException, Query, Body, Response, Request, BackgroundTasks

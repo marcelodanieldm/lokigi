@@ -1,3 +1,38 @@
+  e2e:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          npm install -g playwright
+          npm install
+          npx playwright install --with-deps
+
+      - name: Start frontend (Next.js)
+        run: |
+          npm run build
+          npm run start &
+        env:
+          BACKEND_URL: http://localhost:8000
+
+      - name: Wait for frontend
+        run: |
+          for i in {1..20}; do
+            if curl -s http://localhost:3000; then exit 0; fi
+            sleep 2
+          done
+          exit 1
+
+      - name: Run Worker Terminal E2E test
+        run: npx playwright test frontend/src/app/dashboard/worker_terminal.e2e.spec.ts
 # .github/workflows/qa_global_validator.yml
 
 name: QA Global Validator
@@ -50,8 +85,10 @@ jobs:
           done
           exit 1
 
-      - name: Run QA Global Validator tests
-        run: pytest tests/test_global_validator.py
+      - name: Run all QA and API tests
+        run: |
+          pytest tests/
+          pytest tests/test_response_bot_qa.py
 
       - name: Show QA Automation README
         run: cat tests/QA_AUTOMATION_README.md
