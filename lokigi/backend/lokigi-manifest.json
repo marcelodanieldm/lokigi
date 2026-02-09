@@ -1,0 +1,9 @@
+{
+  "name": "Menú Digital Generator",
+  "author": "Juan Perez",
+  "widget_url": "https://widget.menudigital.com",
+  "permissions": [],
+  "languages": ["es", "en"],
+  "screenshots": ["https://example.com/screenshot1.png"],
+  "price": 10
+}

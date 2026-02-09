@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-corporate-gray text-corporate-dark font-sans;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  @apply font-semibold text-corporate-dark;
+}
+
+a {
+  @apply text-corporate-blue hover:text-corporate-accent underline transition-colors;
+}
+
+.card {
+  @apply bg-white rounded-xl shadow-md border border-gray-200 p-6;
+}
+
+.btn {
+  @apply bg-corporate-blue text-white font-medium px-4 py-2 rounded-lg shadow hover:bg-corporate-accent transition-colors;
+}
+
+input, select, textarea {
+  @apply border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-corporate-blue;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  background: #e5e7eb;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 8px;
+}
