@@ -15,19 +15,6 @@ Entrada:
 	"locale": "pt"
 }
 ```
-Salida:
-```json
-{
-	"dominance_index": 0.41,
-	"competitor_threat": "Barberia Lisboa",
-	"heatmap": [
-		{"name": "Cliente", "lat": 38.7223, "lon": -9.1393, "attraction": 576.0},
-		{"name": "Barberia Lisboa", "lat": 38.723, "lon": -9.14, "attraction": 1999999.999},
-		...
-	],
-	"unit": "km"
-}
-```
 
 Ver detalles y lógica en `backend/dominance_index.py` y pruebas en `tests/test_dominance_index.py`.
 # Lokigi
@@ -40,6 +27,43 @@ Ver detalles y lógica en `backend/dominance_index.py` y pruebas en `tests/test_
 
 ---
 
+# Lokigi
+
+Plataforma SaaS de inteligencia de negocios locales: dashboards, alertas, reportes, automatización de marketing y marketplace de add-ons.
+
+---
+
+## Tabla de Contenidos
+
+- [Características](#características)
+- [Estructura del Proyecto](#estructura-del-proyecto)
+- [Instalación y Configuración](#instalación-y-configuración)
+- [Uso y Ejecución](#uso-y-ejecución)
+- [Flujos de Negocio y Roles](#flujos-de-negocio-y-roles)
+- [Marketplace y Plugins](#marketplace-y-plugins)
+- [QA Automation](#qa-automation)
+- [Documentación Técnica](#documentación-técnica)
+- [Recursos y Enlaces](#recursos-y-enlaces)
+- [Contacto](#contacto)
+
+---
+
+## Características
+
+- Backend modular en Python (FastAPI)
+- Frontend moderno en Next.js/TypeScript con Tailwind CSS
+- Base de datos en Supabase/PostgreSQL
+- Marketplace de add-ons con ranking, recomendación, split payments (Stripe)
+- Plugin architecture: hooks/slots seguros, sandboxing
+- QA Automation: tests de performance, seguridad, instalación/desinstalación
+- Roles: Premium, Worker, Admin
+- Integración CI/CD y cobertura de tests
+
+---
+
+## Estructura del Proyecto
+
+```
 ## Estructura del Proyecto
 
 ```
@@ -47,6 +71,111 @@ lokigi/
 ├── backend/           # Backend Python (FastAPI)
 │   ├── requirements.txt
 │   ├── .venv/
+```
+
+---
+
+## Instalación y Configuración
+
+### Requisitos
+
+- Node.js >= 18.x
+- Python >= 3.10
+- PostgreSQL (o Supabase)
+- Git
+
+### Variables de Entorno
+
+- Crear `.env` en `backend/` y `frontend/` según ejemplos.
+
+### Instalación Backend
+
+```bash
+cd backend
+python -m venv .venv
+.venv\Scripts\activate  # En Windows
+pip install -r requirements.txt
+```
+
+### Instalación Frontend
+
+```bash
+cd frontend
+npm install
+```
+
+---
+
+## Uso y Ejecución
+
+### Backend
+
+```bash
+cd backend
+.venv\Scripts\activate
+python main.py
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm run dev
+```
+
+---
+
+## Flujos de Negocio y Roles
+
+- **Premium:** Acceso completo a dashboards, reportes, automatización, marketplace.
+- **Worker:** Acceso a tareas asignadas, reportes limitados.
+- **Admin:** Gestión total, configuración, auditoría.
+
+Ver detalles en [README_FLUJOS_NEGOCIO.md](README_FLUJOS_NEGOCIO.md).
+
+---
+
+## Marketplace y Plugins
+
+- Algoritmo de ranking y recomendación de apps.
+- Split payments con Stripe Connect ($8 dev, $2 Lokigi).
+- Plugin architecture: hooks/slots para widgets/IFrames de terceros.
+- App manifest estándar (`lokigi-manifest.json`).
+- Sandboxing: seguridad de datos y tokens.
+
+---
+
+## QA Automation
+
+- Performance: add-ons no deben aumentar el tiempo de carga >200ms.
+- Security: tests de XSS y SQL Injection desde IFrame.
+- Installation loop: instala/desinstala 50 add-ons, verifica restos y memoria.
+- Integración CI/CD: tests automáticos en cada push/pull request.
+
+Ver detalles en [tests/QA_AUTOMATION_README.md](tests/QA_AUTOMATION_README.md).
+
+---
+
+## Documentación Técnica
+
+- [Documentación de Flujos y Procesos](DOCUMENTACION_FLUJOS_NEGOCIO.md)
+- [Backend: Algoritmos, APIs, seguridad](backend/)
+- [Frontend: Componentes, UX/UI, integración](frontend/)
+- [Tests: Automatización y validación](tests/)
+
+---
+
+## Recursos y Enlaces
+
+- [Supabase](https://supabase.com/)
+- [Next.js](https://nextjs.org/)
+- [Stripe](https://stripe.com/)
+
+---
+
+## Contacto
+
+Para soporte o contribuciones, contactar a los administradores del repositorio.
 │   └── ...
 ├── frontend/          # Frontend Next.js
 │   ├── package.json
