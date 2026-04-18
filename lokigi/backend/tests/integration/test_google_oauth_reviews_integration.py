@@ -50,6 +50,57 @@ async def test_callback_oauth_links_single_location(client, test_user, db_sessio
 
 
 @pytest.mark.asyncio
+async def test_starter_onboarding_flow_redirects_to_dashboard(client, test_user, db_session, monkeypatch):
+    async def fake_exchange_code(self, code):
+        assert code == "oauth-code-starter"
+        return {
+            "access_token": "access-token",
+            "refresh_token": "refresh-token",
+            "expires_at": datetime.now(timezone.utc) + timedelta(hours=1),
+        }
+
+    async def fake_list_locations(self, access_token):
+        assert access_token == "access-token"
+        return [
+            {
+                "account_name": "accounts/111",
+                "location_name": "accounts/111/locations/222",
+                "location_id": "222",
+                "title": "My Store",
+            }
+        ]
+
+    monkeypatch.setattr("app.google_client.GoogleBusinessProfileClient.exchange_code", fake_exchange_code)
+    monkeypatch.setattr("app.google_client.GoogleBusinessProfileClient.list_accessible_locations", fake_list_locations)
+
+    onboarding = client.get(f"/starter/onboarding?user_id={test_user.id}&location_id=222")
+    assert onboarding.status_code == 200
+    assert "Conectar Google Maps" in onboarding.text
+
+    connect = client.get(f"/starter/connect-google?user_id={test_user.id}&location_id=222", follow_redirects=False)
+    assert connect.status_code in (302, 307)
+    oauth_url = connect.headers["location"]
+
+    state = parse_qs(urlparse(oauth_url).query)["state"][0]
+    callback = client.get(
+        f"/oauth/google/callback?code=oauth-code-starter&state={state}",
+        follow_redirects=False,
+    )
+    assert callback.status_code in (302, 307)
+    assert callback.headers["location"] == f"/starter/dashboard?user_id={test_user.id}"
+
+    dashboard = client.get(callback.headers["location"])
+    assert dashboard.status_code == 200
+    assert "Starter Dashboard" in dashboard.text
+    assert "Conectado" in dashboard.text
+    assert "My Store" in dashboard.text
+
+    connection = db_session.scalar(select(GoogleConnection).where(GoogleConnection.user_id == test_user.id))
+    assert connection is not None
+    assert connection.location_id == "222"
+
+
+@pytest.mark.asyncio
 async def test_webhook_new_review_is_stored_idempotently(client, test_user, db_session, monkeypatch):
     async def fake_exchange_code(self, code):
         return {
