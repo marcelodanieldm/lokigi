@@ -22,8 +22,13 @@ Lokigi is a backend service for Google Business Profile automation — review in
 ### Starter onboarding UX — Zero-Friction Flow
 - **Location discovery API**: `GET /api/locations?user_id=` detects if user is linked and returns available locations.
 - **Seamless OAuth**: Modified OAuth flow allows auto-selection of the first location (for < 3-minute onboarding).
-- 3-click onboarding: `/starter/onboarding` → Google consent → auto-redirect to `/starter/dashboard`.
-- OAuth `state` signed with `itsdangerous`; `starter_flow` flag ensures dashboard redirect.
+- **Step-by-step UX**: 
+  1. `/starter/onboarding` → welcome page (3-click flow explainer)
+  2. Google OAuth consent screen 
+  3. `/starter/loading` → active loading screen with animated milestones (storytelling: Google connection → review analysis → AI training)
+  4. `/starter/dashboard` → ready to use (auto-redirect after ~7 seconds)
+- Milestones animation increases perceived value during backend initialization (no boring spinner).
+- OAuth `state` signed with `itsdangerous`; `starter_flow` flag ensures proper redirect chain.
 - Dashboard shows connection status, business name, and last 5 reviews received.
 
 ### Human approval workflow (`/starter/approvals`)
@@ -78,6 +83,7 @@ This installs dependencies, runs migrations, creates a local test user, and star
 | `POST` | `/webhooks/google/reviews` | Pub/Sub push for new reviews |
 | `GET` | `/starter/onboarding` | Starter welcome page (Bootstrap) |
 | `GET` | `/starter/connect-google` | Redirect to Google OAuth with starter flag |
+| `GET` | `/starter/loading` | Active loading screen with animated milestones (step 2) |
 | `GET` | `/starter/dashboard` | Connection status + last 5 reviews |
 | `GET` | `/starter/approvals` | Review approval UI (Bootstrap, `?user_id=`) |
 | `GET` | `/starter/report` | Monthly report page (Chart.js, KPI cards, sentiment) (`?user_id=&year=&month=`) |

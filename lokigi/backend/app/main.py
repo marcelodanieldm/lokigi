@@ -47,6 +47,310 @@ app = FastAPI(title=settings.app_name, lifespan=lifespan)
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.parsed_allowed_hosts())
 
 
+def render_starter_loading_html(user_id: UUID) -> str:
+    """Loading screen with animated milestones for step 2 onboarding."""
+    return f"""
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Inicializando... | Lokigi</title>
+    <style>
+        :root {{
+            --accent: #0f766e;
+            --accent-2: #115e59;
+            --bg: #f3f7f6;
+            --card: #ffffff;
+            --text: #1f2937;
+            --muted: #6b7280;
+            --success: #10b981;
+        }}
+        * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+        body {{
+            font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+            background:
+                radial-gradient(circle at 10% 10%, #d1fae5 0%, transparent 35%),
+                radial-gradient(circle at 85% 20%, #cffafe 0%, transparent 30%),
+                var(--bg);
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+        }}
+        .container {{
+            width: min(520px, 100%);
+            background: var(--card);
+            border-radius: 20px;
+            box-shadow: 0 10px 35px rgba(15, 23, 42, 0.08);
+            padding: 40px 28px;
+        }}
+        .header {{
+            text-align: center;
+            margin-bottom: 36px;
+        }}
+        .logo {{
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--accent);
+            margin-bottom: 10px;
+            letter-spacing: -.5px;
+        }}
+        .header-text {{
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 6px;
+        }}
+        .header-subtext {{
+            font-size: 14px;
+            color: var(--muted);
+        }}
+        /* ── Milestones ─────────────────────────────────────── */
+        .milestones {{
+            margin: 32px 0;
+        }}
+        .milestone {{
+            display: flex;
+            gap: 14px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+            transition: all 0.4s ease;
+        }}
+        .milestone.active {{
+            opacity: 1;
+        }}
+        .milestone.completed {{
+            opacity: 0.6;
+        }}
+        .milestone-icon {{
+            flex: 0 0 40px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e5e7eb;
+            display: grid;
+            place-items: center;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--muted);
+            position: relative;
+            transition: all 0.4s ease;
+        }}
+        .milestone.active .milestone-icon {{
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            color: #fff;
+            box-shadow: 0 0 20px rgba(15, 118, 110, 0.4);
+            animation: pulse-icon 1.5s ease-in-out infinite;
+        }}
+        .milestone.completed .milestone-icon {{
+            background: var(--success);
+            color: #fff;
+            animation: none;
+        }}
+        @keyframes pulse-icon {{
+            0%, 100% {{ transform: scale(1); }}
+            50% {{ transform: scale(1.08); }}
+        }}
+        .milestone-content {{
+            flex: 1;
+            padding-top: 4px;
+        }}
+        .milestone-title {{
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 2px;
+        }}
+        .milestone.active .milestone-title {{
+            color: var(--accent);
+        }}
+        .milestone-desc {{
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.4;
+        }}
+        .milestone-loader {{
+            margin-top: 6px;
+            display: flex;
+            gap: 3px;
+        }}
+        .dot {{
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--accent);
+            opacity: 0.3;
+            animation: bounce 1.4s infinite;
+        }}
+        .dot:nth-child(2) {{ animation-delay: 0.2s; }}
+        .dot:nth-child(3) {{ animation-delay: 0.4s; }}
+        @keyframes bounce {{
+            0%, 80%, 100% {{ opacity: 0.3; transform: translateY(0); }}
+            40% {{ opacity: 1; transform: translateY(-6px); }}
+        }}
+        .milestone.completed .milestone-loader {{
+            display: none;
+        }}
+        /* ── Progress bar ───────────────────────────────────── */
+        .progress-wrap {{
+            margin: 32px 0;
+        }}
+        .progress-label {{
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 8px;
+            letter-spacing: 0.05em;
+        }}
+        .progress-bar {{
+            width: 100%;
+            height: 6px;
+            background: #e5e7eb;
+            border-radius: 3px;
+            overflow: hidden;
+        }}
+        .progress-fill {{
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--success));
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.6s ease;
+        }}
+        /* ── Footer message ─────────────────────────────────── */
+        .footer {{
+            text-align: center;
+            font-size: 12px;
+            color: var(--muted);
+        }}
+        .footer-icon {{
+            font-size: 24px;
+            margin-bottom: 8px;
+        }}
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div class="logo">🚀 Lokigi</div>
+        <div class="header-text">Inicializando tu cuenta</div>
+        <div class="header-subtext">Estamos preparando todo para ti</div>
+    </div>
+
+    <div class="milestones">
+        <div class="milestone active" data-milestone="1">
+            <div class="milestone-icon">🔐</div>
+            <div class="milestone-content">
+                <div class="milestone-title">Conectando con Google</div>
+                <div class="milestone-desc">Autenticando y verificando acceso</div>
+                <div class="milestone-loader">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="milestone" data-milestone="2">
+            <div class="milestone-icon">📚</div>
+            <div class="milestone-content">
+                <div class="milestone-title">Analizando historial de reseñas</div>
+                <div class="milestone-desc">Extrayendo datos y patrones</div>
+                <div class="milestone-loader">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="milestone" data-milestone="3">
+            <div class="milestone-icon">🧠</div>
+            <div class="milestone-content">
+                <div class="milestone-title">Entrenando IA con tu tono</div>
+                <div class="milestone-desc">Adaptando respuestas a tu voz</div>
+                <div class="milestone-loader">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="progress-wrap">
+        <div class="progress-label">Progreso</div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div class="footer-icon">✨</div>
+        <div>¡Casi listo! Redirigiendo en unos momentos…</div>
+    </div>
+</div>
+
+<script>
+(function() {{
+    const USER_ID = "{user_id}";
+    const DURATIONS = [2000, 2500, 2000]; // ms per milestone
+    const TOTAL_DURATION = DURATIONS.reduce((a, b) => a + b, 0);
+
+    let currentMilestone = 1;
+    let elapsedTime = 0;
+
+    function updateMilestones() {{
+        let timeAccum = 0;
+        for (let i = 1; i <= 3; i++) {{
+            const el = document.querySelector(`[data-milestone="${{i}}"]`);
+            const nextTime = timeAccum + DURATIONS[i - 1];
+
+            if (elapsedTime >= nextTime) {{
+                // Completed
+                el.classList.remove('active');
+                el.classList.add('completed');
+            }} else if (elapsedTime >= timeAccum) {{
+                // Currently active
+                el.classList.add('active');
+                el.classList.remove('completed');
+            }} else {{
+                // Not reached yet
+                el.classList.remove('active', 'completed');
+            }}
+
+            timeAccum = nextTime;
+        }}
+    }}
+
+    function updateProgress() {{
+        const percent = Math.min((elapsedTime / TOTAL_DURATION) * 100, 100);
+        document.getElementById('progressFill').style.width = percent + '%';
+    }}
+
+    function animate() {{
+        updateMilestones();
+        updateProgress();
+
+        if (elapsedTime >= TOTAL_DURATION) {{
+            // All done - redirect to dashboard
+            window.location.href = `/starter/dashboard?user_id=${{USER_ID}}`;
+            return;
+        }}
+
+        elapsedTime += 50;
+        setTimeout(animate, 50);
+    }}
+
+    animate();
+}})();
+</script>
+</body>
+</html>
+"""
+
+
 def render_starter_onboarding_html(user_id: UUID, location_id: str, connect_url: str) -> str:
     return f"""
 <!doctype html>
@@ -241,6 +545,16 @@ def starter_connect_google(user_id: UUID, location_id: str) -> RedirectResponse:
     return RedirectResponse(url=oauth_url)
 
 
+@app.get("/starter/loading", response_class=HTMLResponse)
+def starter_loading(user_id: UUID) -> HTMLResponse:
+    """Active loading screen with animated milestones for step 2 onboarding.
+    
+    Shown after OAuth callback to display progress while backend initializes user data.
+    Automatically redirects to dashboard after ~7 seconds.
+    """
+    return HTMLResponse(render_starter_loading_html(user_id=user_id))
+
+
 @app.get("/starter/dashboard", response_class=HTMLResponse)
 def starter_dashboard(user_id: UUID, db: Session = Depends(get_db)) -> HTMLResponse:
     connection = db.scalar(select(GoogleConnection).where(GoogleConnection.user_id == user_id))
@@ -269,7 +583,8 @@ async def oauth_google_callback(code: str, state: str, db: Session = Depends(get
     connection = await upsert_google_connection(db=db, code=code, state=state)
     state_payload = OAuthStateManager(settings.oauth_state_secret).verify(state)
     if state_payload.get("starter_flow") and state_payload.get("user_id"):
-        return RedirectResponse(url=f"/starter/dashboard?user_id={state_payload['user_id']}")
+        # Redirect to loading screen instead of dashboard for better UX
+        return RedirectResponse(url=f"/starter/loading?user_id={state_payload['user_id']}")
 
     return {
         "status": "linked",
