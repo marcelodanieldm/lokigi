@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS google_connections (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     google_account_name VARCHAR(255) NOT NULL,
+    business_name VARCHAR(255),
     location_id VARCHAR(128) NOT NULL,
     encrypted_access_token TEXT NOT NULL,
     encrypted_refresh_token TEXT NOT NULL,
@@ -36,6 +37,15 @@ CREATE TABLE IF NOT EXISTS reviews (
     author_metadata_hash CHAR(64) NOT NULL,
     raw_payload JSONB NOT NULL,
     raw_payload_hash CHAR(64) NOT NULL,
+    reply_action VARCHAR(32),
+    reply_detected_language VARCHAR(16),
+    reply_reason TEXT,
+    reply_public_text TEXT,
+    reply_alert_priority VARCHAR(16),
+    reply_alert_category VARCHAR(32),
+    reply_alert_summary TEXT,
+    reply_alert_next_step TEXT,
+    reply_decided_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uq_reviews_review_id UNIQUE (review_id)
 );

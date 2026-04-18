@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import logging
 from datetime import datetime, timezone
 from typing import Any
 from urllib.parse import urlencode
@@ -18,6 +19,10 @@ from sqlalchemy.orm import Session
 from .config import settings
 from .google_client import GoogleBusinessProfileClient, GoogleOAuthError
 from .models import GoogleConnection, Review, User
+from .review_reply_engine import generate_review_reply_decision
+
+
+logger = logging.getLogger(__name__)
 
 
 class OAuthStateManager:
@@ -52,9 +57,12 @@ def sha256_json(data: dict[str, Any]) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
-def build_google_oauth_url(user_id: str, location_id: str) -> str:
+def build_google_oauth_url(user_id: str, location_id: str, extra_state: dict[str, Any] | None = None) -> str:
     state_manager = OAuthStateManager(settings.oauth_state_secret)
-    state = state_manager.sign({"user_id": user_id, "location_id": location_id})
+    state_payload: dict[str, Any] = {"user_id": user_id, "location_id": location_id}
+    if extra_state:
+        state_payload.update(extra_state)
+    state = state_manager.sign(state_payload)
 
     query = urlencode(
         {
@@ -123,6 +131,7 @@ async def upsert_google_connection(db: Session, code: str, state: str) -> Google
         db.add(connection)
 
     connection.google_account_name = selected["account_name"]
+    connection.business_name = selected.get("title") or selected["account_name"]
     connection.location_id = location_id
     connection.encrypted_access_token = cipher.encrypt(token_data["access_token"])
     connection.encrypted_refresh_token = cipher.encrypt(refresh_token)
@@ -216,6 +225,30 @@ def parse_google_time(value: str | None) -> datetime | None:
         return None
 
 
+def apply_review_reply_decision(review: Review, decision: dict[str, Any]) -> None:
+    alert = decision.get("internal_alert", {})
+    review.reply_action = decision.get("action")
+    review.reply_detected_language = decision.get("detected_language")
+    review.reply_reason = decision.get("reason")
+    review.reply_public_text = decision.get("public_reply")
+    review.reply_alert_priority = alert.get("priority")
+    review.reply_alert_category = alert.get("category")
+    review.reply_alert_summary = alert.get("summary")
+    review.reply_alert_next_step = alert.get("recommended_next_step")
+    review.reply_decided_at = datetime.now(timezone.utc)
+
+
+def emit_review_alert(review: Review) -> None:
+    logger.warning(
+        "REVIEW_ALERT location_id=%s review_id=%s priority=%s category=%s summary=%s",
+        review.location_id,
+        review.review_id,
+        review.reply_alert_priority,
+        review.reply_alert_category,
+        review.reply_alert_summary,
+    )
+
+
 async def store_new_review_from_webhook(db: Session, webhook_payload: dict[str, Any]) -> Review:
     notification_type = webhook_payload.get("notificationType") or webhook_payload.get("notification_type")
     if notification_type and notification_type.upper() != "NEW_REVIEW":
@@ -249,6 +282,19 @@ async def store_new_review_from_webhook(db: Session, webhook_payload: dict[str, 
     if existing:
         if existing.raw_payload_hash != payload_hash:
             raise HTTPException(status_code=409, detail="reviewId collision with different payload")
+
+        if not existing.reply_action:
+            decision = generate_review_reply_decision(
+                review_text=existing.comment or "",
+                stars=existing.rating,
+                business_name=connection.business_name or connection.google_account_name,
+                author_name=existing.author_display_name or "there",
+            )
+            apply_review_reply_decision(existing, decision)
+            if existing.reply_action == "ALERT":
+                emit_review_alert(existing)
+            db.commit()
+            db.refresh(existing)
         return existing
 
     reviewer = review_data.get("reviewer", {})
@@ -275,7 +321,19 @@ async def store_new_review_from_webhook(db: Session, webhook_payload: dict[str, 
         raw_payload_hash=payload_hash,
     )
 
+    decision = generate_review_reply_decision(
+        review_text=review.comment or "",
+        stars=review.rating,
+        business_name=connection.business_name or connection.google_account_name,
+        author_name=review.author_display_name or "there",
+    )
+    apply_review_reply_decision(review, decision)
+
     db.add(review)
     db.commit()
     db.refresh(review)
+
+    if review.reply_action == "ALERT":
+        emit_review_alert(review)
+
     return review
