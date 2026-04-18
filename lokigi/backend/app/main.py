@@ -365,7 +365,7 @@ def api_monthly_sentiment(
 
     stmt = (
         select(ReviewModel)
-        .join(GoogleConnection, ReviewModel.google_connection_id == GoogleConnection.id)
+        .join(GoogleConnection, ReviewModel.connection_id == GoogleConnection.id)
         .where(
             GoogleConnection.user_id == user_id,
             extract("year", ReviewModel.create_time) == year,
@@ -389,6 +389,548 @@ def api_monthly_sentiment(
         location_id=location_id,
     )
     return report.to_dict()
+
+
+# ── Monthly report: stored JSON payload ──────────────────────────────────────
+
+@app.get("/api/reports/monthly")
+def api_monthly_report(
+    user_id: UUID,
+    year: int,
+    month: int,
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    """Return the stored MonthlyReport payload for a given user/year/month."""
+    from .models import MonthlyReport as MonthlyReportModel
+
+    row = db.scalars(
+        select(MonthlyReportModel).where(
+            MonthlyReportModel.user_id == user_id,
+            MonthlyReportModel.year == year,
+            MonthlyReportModel.month == month,
+        )
+    ).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Report not found for this period")
+    return row.payload
+
+
+@app.get("/api/reports/history")
+def api_reports_history(
+    user_id: UUID,
+    db: Session = Depends(get_db),
+) -> list[dict[str, Any]]:
+    """Return avg_rating and total_reviews per month, ordered oldest→newest.
+    Used by the rating-evolution chart.
+    """
+    from .models import MonthlyReport as MonthlyReportModel
+
+    rows = db.scalars(
+        select(MonthlyReportModel)
+        .where(MonthlyReportModel.user_id == user_id)
+        .order_by(MonthlyReportModel.year, MonthlyReportModel.month)
+    ).all()
+    return [
+        {
+            "year": r.year,
+            "month": r.month,
+            "avg_rating": r.payload.get("kpis", {}).get("avg_rating"),
+            "total_reviews": r.payload.get("kpis", {}).get("total_reviews", 0),
+        }
+        for r in rows
+    ]
+
+
+# ── Monthly report HTML page ──────────────────────────────────────────────────
+
+@app.get("/starter/report", response_class=HTMLResponse)
+def starter_monthly_report_page(
+    user_id: UUID,
+    year: int,
+    month: int,
+) -> HTMLResponse:
+    """Starter monthly report — single page, print/PDF-ready, mobile-friendly."""
+    _MONTHS_ES = {
+        1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
+        5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
+        9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre",
+    }
+    period_label = f"{_MONTHS_ES.get(month, month)} {year}"
+
+    html = f"""\
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Reporte Mensual {period_label} | Lokigi</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <style>
+    /* ── Reset / base ─────────────────────────────────────── */
+    *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
+    body {{
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #f0f4f8;
+      color: #1a202c;
+      padding: 24px 16px 48px;
+    }}
+    /* ── Layout ───────────────────────────────────────────── */
+    .page {{
+      max-width: 720px;
+      margin: 0 auto;
+    }}
+    /* ── Header ───────────────────────────────────────────── */
+    .header {{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 28px;
+    }}
+    .logo {{ font-size: 22px; font-weight: 800; color: #1a56db; letter-spacing: -.5px; }}
+    .header-meta {{ text-align: right; }}
+    .header-meta .period {{ font-size: 18px; font-weight: 700; color: #1a202c; }}
+    .header-meta .biz  {{ font-size: 13px; color: #6b7280; margin-top: 2px; }}
+    /* ── Section title ────────────────────────────────────── */
+    .section-title {{
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: #6b7280;
+      margin-bottom: 12px;
+    }}
+    /* ── KPI cards ────────────────────────────────────────── */
+    .kpi-grid {{
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 14px;
+      margin-bottom: 28px;
+    }}
+    .kpi-card {{
+      background: #fff;
+      border-radius: 14px;
+      padding: 20px 18px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }}
+    .kpi-card .kpi-icon {{
+      font-size: 24px;
+      margin-bottom: 8px;
+      display: block;
+    }}
+    .kpi-card .kpi-value {{
+      font-size: 30px;
+      font-weight: 800;
+      line-height: 1;
+      color: #1a56db;
+    }}
+    .kpi-card .kpi-label {{
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 4px;
+    }}
+    .kpi-card.green  .kpi-value {{ color: #059669; }}
+    .kpi-card.orange .kpi-value {{ color: #d97706; }}
+    /* ── Chart cards ─────────────────────────────────────── */
+    .chart-card {{
+      background: #fff;
+      border-radius: 14px;
+      padding: 22px 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+      margin-bottom: 20px;
+    }}
+    .chart-card canvas {{ display: block; width: 100% !important; }}
+    /* ── Word cloud ──────────────────────────────────────── */
+    .word-cloud {{
+      background: #fff;
+      border-radius: 14px;
+      padding: 22px 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+      margin-bottom: 20px;
+    }}
+    .cloud-area {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 10px;
+      margin-top: 10px;
+    }}
+    .cloud-word {{
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-weight: 700;
+      white-space: nowrap;
+      transition: transform .15s;
+    }}
+    .cloud-word:hover {{ transform: scale(1.06); cursor: default; }}
+    .cloud-pos {{ background: #dbeafe; color: #1e40af; }}
+    .cloud-neg {{ background: #fee2e2; color: #991b1b; }}
+    /* ── Divider ─────────────────────────────────────────── */
+    hr.section-sep {{
+      border: none;
+      border-top: 1px solid #e5e7eb;
+      margin: 24px 0;
+    }}
+    /* ── Footer ──────────────────────────────────────────── */
+    .report-footer {{
+      text-align: center;
+      font-size: 11px;
+      color: #9ca3af;
+      margin-top: 36px;
+    }}
+    /* ── Loading / error states ──────────────────────────── */
+    .state-box {{
+      text-align: center;
+      padding: 48px 16px;
+      color: #6b7280;
+      font-size: 15px;
+    }}
+    .state-box .state-icon {{ font-size: 40px; margin-bottom: 12px; display: block; }}
+    /* ── Print overrides ─────────────────────────────────── */
+    @media print {{
+      body {{ background: #fff; padding: 0; }}
+      .page {{ max-width: 100%; }}
+      .no-print {{ display: none !important; }}
+    }}
+    @media (max-width: 480px) {{
+      .kpi-card .kpi-value {{ font-size: 26px; }}
+    }}
+  </style>
+</head>
+<body>
+<div class="page" id="page">
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">Lokigi</div>
+    <div class="header-meta">
+      <div class="period" id="hdr-period">Cargando…</div>
+      <div class="biz"   id="hdr-biz"></div>
+    </div>
+  </div>
+
+  <!-- Loading state -->
+  <div class="state-box" id="loading-state">
+    <span class="state-icon">⏳</span>
+    Cargando tu reporte…
+  </div>
+
+  <!-- Error state (hidden by default) -->
+  <div class="state-box" id="error-state" style="display:none;color:#b91c1c">
+    <span class="state-icon">⚠️</span>
+    <span id="error-msg">No se encontró el reporte para este período.</span>
+  </div>
+
+  <!-- Report body (hidden until data loads) -->
+  <div id="report-body" style="display:none">
+
+    <!-- KPI row -->
+    <p class="section-title">Resumen del mes</p>
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <span class="kpi-icon">⭐</span>
+        <div class="kpi-value" id="kpi-rating">—</div>
+        <div class="kpi-label">Nota media</div>
+      </div>
+      <div class="kpi-card green">
+        <span class="kpi-icon">💬</span>
+        <div class="kpi-value" id="kpi-total">—</div>
+        <div class="kpi-label">Reseñas recibidas</div>
+      </div>
+      <div class="kpi-card orange">
+        <span class="kpi-icon">🤖</span>
+        <div class="kpi-value" id="kpi-ai">—</div>
+        <div class="kpi-label">Respondidas por IA</div>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-icon">⚡</span>
+        <div class="kpi-value" id="kpi-speed">—</div>
+        <div class="kpi-label">Tiempo de respuesta</div>
+      </div>
+    </div>
+
+    <hr class="section-sep" />
+
+    <!-- Rating evolution chart -->
+    <div class="chart-card">
+      <p class="section-title">Evolución de la nota media</p>
+      <canvas id="ratingChart" height="180"></canvas>
+    </div>
+
+    <!-- AI responses chart -->
+    <div class="chart-card">
+      <p class="section-title">Reseñas respondidas por la IA</p>
+      <canvas id="responseChart" height="160"></canvas>
+    </div>
+
+    <hr class="section-sep" />
+
+    <!-- Word cloud — sentiment -->
+    <div class="word-cloud">
+      <p class="section-title">Qué dicen tus clientes</p>
+      <div class="cloud-area" id="cloud-area">
+        <span style="color:#9ca3af;font-size:13px">Sin datos de sentimiento</span>
+      </div>
+    </div>
+
+    <!-- Sentiment bar chart -->
+    <div class="chart-card" id="sentiment-chart-card" style="display:none">
+      <p class="section-title">Temas más mencionados este mes</p>
+      <canvas id="sentimentChart" height="220"></canvas>
+    </div>
+
+  </div><!-- /report-body -->
+
+  <div class="report-footer" id="report-footer" style="display:none">
+    Generado por Lokigi · {period_label} · <a href="javascript:window.print()" class="no-print" style="color:#6b7280">Imprimir / Guardar PDF</a>
+  </div>
+</div>
+
+<script>
+(function () {{
+  const USER_ID = "{user_id}";
+  const YEAR    = {year};
+  const MONTH   = {month};
+
+  const MONTHS_ES = ["","Enero","Febrero","Marzo","Abril","Mayo","Junio",
+                     "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
+  // ── UI helpers ────────────────────────────────────────────────────────────
+  function show(id)  {{ document.getElementById(id).style.display = ""; }}
+  function hide(id)  {{ document.getElementById(id).style.display = "none"; }}
+  function text(id, v) {{ document.getElementById(id).textContent = v; }}
+
+  function showError(msg) {{
+    hide("loading-state");
+    text("error-msg", msg || "No se encontró el reporte para este período.");
+    show("error-state");
+  }}
+
+  // ── Fetch helpers ─────────────────────────────────────────────────────────
+  async function fetchJSON(url) {{
+    const r = await fetch(url);
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return r.json();
+  }}
+
+  // ── Star rendering ────────────────────────────────────────────────────────
+  function stars(v) {{
+    if (v == null) return "—";
+    const full = Math.round(v);
+    return "★".repeat(full) + "☆".repeat(5 - full) + " " + v.toFixed(1);
+  }}
+
+  // ── Rating evolution chart ────────────────────────────────────────────────
+  function drawRatingChart(history) {{
+    const labels = history.map(h => MONTHS_ES[h.month].slice(0,3) + " " + String(h.year).slice(2));
+    const data   = history.map(h => h.avg_rating);
+
+    // Mark the current period
+    const pointColors = history.map(h =>
+      h.year === YEAR && h.month === MONTH ? "#1a56db" : "rgba(26,86,219,.35)"
+    );
+    const pointR = history.map(h =>
+      h.year === YEAR && h.month === MONTH ? 7 : 4
+    );
+
+    new Chart(document.getElementById("ratingChart"), {{
+      type: "line",
+      data: {{
+        labels,
+        datasets: [{{
+          label: "Nota media",
+          data,
+          fill: true,
+          tension: 0.4,
+          borderColor: "#1a56db",
+          backgroundColor: "rgba(26,86,219,.08)",
+          pointBackgroundColor: pointColors,
+          pointRadius: pointR,
+          pointHoverRadius: 8,
+        }}]
+      }},
+      options: {{
+        plugins: {{ legend: {{ display: false }} }},
+        scales: {{
+          y: {{
+            min: 1, max: 5,
+            grid: {{ color: "#f3f4f6" }},
+            ticks: {{ stepSize: 1, callback: v => v + "★" }}
+          }},
+          x: {{ grid: {{ display: false }} }}
+        }},
+        responsive: true,
+        maintainAspectRatio: true,
+      }}
+    }});
+  }}
+
+  // ── AI response chart ─────────────────────────────────────────────────────
+  function drawResponseChart(history) {{
+    const labels = history.map(h => MONTHS_ES[h.month].slice(0,3) + " " + String(h.year).slice(2));
+    const data   = history.map(h => h.total_reviews);
+
+    new Chart(document.getElementById("responseChart"), {{
+      type: "bar",
+      data: {{
+        labels,
+        datasets: [{{
+          label: "Reseñas recibidas",
+          data,
+          backgroundColor: history.map(h =>
+            h.year === YEAR && h.month === MONTH ? "#1a56db" : "rgba(26,86,219,.25)"
+          ),
+          borderRadius: 6,
+          borderSkipped: false,
+        }}]
+      }},
+      options: {{
+        plugins: {{ legend: {{ display: false }} }},
+        scales: {{
+          y: {{
+            beginAtZero: true,
+            grid: {{ color: "#f3f4f6" }},
+            ticks: {{ precision: 0 }}
+          }},
+          x: {{ grid: {{ display: false }} }}
+        }},
+        responsive: true,
+        maintainAspectRatio: true,
+      }}
+    }});
+  }}
+
+  // ── Word cloud ────────────────────────────────────────────────────────────
+  function drawWordCloud(sentiment) {{
+    const area = document.getElementById("cloud-area");
+    const pos  = sentiment.positive_concepts || [];
+    const neg  = sentiment.negative_concepts || [];
+
+    if (!pos.length && !neg.length) return;
+
+    // Combine and normalise sizes relative to max count
+    const all = [
+      ...pos.map(c => ({{ ...c, polarity: "pos" }})),
+      ...neg.map(c => ({{ ...c, polarity: "neg" }})),
+    ];
+    const maxCount = Math.max(...all.map(c => c.count), 1);
+
+    area.innerHTML = "";
+    // Shuffle for variety
+    all.sort(() => Math.random() - 0.5);
+
+    all.forEach(c => {{
+      const size  = 12 + Math.round((c.count / maxCount) * 16); // 12px – 28px
+      const span  = document.createElement("span");
+      span.className = "cloud-word " + (c.polarity === "pos" ? "cloud-pos" : "cloud-neg");
+      span.style.fontSize = size + "px";
+      span.title = c.count + " mención" + (c.count !== 1 ? "es" : "") + " · " + c.pct + "%";
+      span.textContent = c.concept;
+      area.appendChild(span);
+    }});
+  }}
+
+  // ── Sentiment bar chart ───────────────────────────────────────────────────
+  function drawSentimentChart(sentiment) {{
+    const cd = (sentiment || {{}}).chart_data;
+    if (!cd || !cd.labels || !cd.labels.length) return;
+
+    show("sentiment-chart-card");
+    new Chart(document.getElementById("sentimentChart"), {{
+      type: "bar",
+      data: {{
+        labels: cd.labels,
+        datasets: [
+          {{
+            label: "Positivo",
+            data: cd.positive,
+            backgroundColor: "#93c5fd",
+            borderRadius: 5,
+          }},
+          {{
+            label: "Negativo",
+            data: cd.negative,
+            backgroundColor: "#fca5a5",
+            borderRadius: 5,
+          }},
+        ]
+      }},
+      options: {{
+        indexAxis: "y",
+        plugins: {{
+          legend: {{ position: "top", labels: {{ boxWidth: 12 }} }}
+        }},
+        scales: {{
+          x: {{
+            beginAtZero: true,
+            grid: {{ color: "#f3f4f6" }},
+            ticks: {{ precision: 0 }}
+          }},
+          y: {{ grid: {{ display: false }} }}
+        }},
+        responsive: true,
+        maintainAspectRatio: true,
+      }}
+    }});
+  }}
+
+  // ── Main loader ───────────────────────────────────────────────────────────
+  async function load() {{
+    try {{
+      const [report, history] = await Promise.all([
+        fetchJSON(`/api/reports/monthly?user_id=${{USER_ID}}&year=${{YEAR}}&month=${{MONTH}}`),
+        fetchJSON(`/api/reports/history?user_id=${{USER_ID}}`),
+      ]);
+
+      // Header
+      text("hdr-period", MONTHS_ES[MONTH] + " " + YEAR);
+      text("hdr-biz", report.business_name || "");
+
+      // KPIs
+      const kpis = report.kpis || {{}};
+      text("kpi-rating", kpis.avg_rating != null ? kpis.avg_rating.toFixed(1) + "★" : "—");
+      text("kpi-total",  kpis.total_reviews ?? "—");
+
+      const aiCount = kpis.response_rate_pct != null
+        ? Math.round((kpis.response_rate_pct / 100) * (kpis.total_reviews || 0))
+        : null;
+      text("kpi-ai",    aiCount != null ? aiCount : "—");
+
+      const speed = kpis.avg_response_time_minutes;
+      if (speed != null) {{
+        text("kpi-speed", speed < 60
+          ? Math.round(speed) + " min"
+          : (speed / 60).toFixed(1) + " h");
+      }}
+
+      // Charts
+      if (history.length > 0) {{
+        drawRatingChart(history);
+        drawResponseChart(history);
+      }}
+
+      // Sentiment
+      const sentiment = report.sentiment || {{}};
+      drawWordCloud(sentiment);
+      drawSentimentChart(sentiment);
+
+      hide("loading-state");
+      show("report-body");
+      show("report-footer");
+
+    }} catch (err) {{
+      showError(err.message.includes("404")
+        ? "No se encontró el reporte para este período. El reporte se genera automáticamente el día 1 de cada mes."
+        : "Error al cargar el reporte. Intenta de nuevo más tarde."
+      );
+    }}
+  }}
+
+  load();
+}})();
+</script>
+</body>
+</html>"""
+    return HTMLResponse(html)
 
 
 @app.get("/starter/approvals", response_class=HTMLResponse)
