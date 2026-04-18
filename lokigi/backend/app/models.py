@@ -29,6 +29,9 @@ class User(Base):
     growth_benchmark_comparisons: Mapped[list["GrowthBenchmarkComparison"]] = relationship(back_populates="user")
     growth_sentiment_benchmark_runs: Mapped[list["GrowthSentimentBenchmarkRun"]] = relationship(back_populates="user")
     growth_sentiment_benchmark_topic_gaps: Mapped[list["GrowthSentimentBenchmarkTopicGap"]] = relationship(back_populates="user")
+    growth_seo_suggestions: Mapped[list["GrowthSeoSuggestion"]] = relationship(back_populates="user")
+    growth_seo_suggestion_actions: Mapped[list["GrowthSeoSuggestionAction"]] = relationship(back_populates="user")
+    growth_seo_alerts: Mapped[list["GrowthSeoAlert"]] = relationship(back_populates="user")
 
 
 
@@ -647,3 +650,100 @@ class GrowthSentimentBenchmarkTopicGap(Base):
 
     run: Mapped[GrowthSentimentBenchmarkRun] = relationship(back_populates="topic_gaps")
     user: Mapped[User] = relationship(back_populates="growth_sentiment_benchmark_topic_gaps")
+
+
+class GrowthSeoSuggestion(Base):
+    __tablename__ = "growth_seo_suggestions"
+    __table_args__ = (
+        Index("ix_growth_seo_suggestions_user_status", "user_id", "status", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    suggestion_type: Mapped[str] = mapped_column(String(30), nullable=False)
+    keyword: Mapped[str] = mapped_column(String(120), nullable=False)
+    current_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    suggested_text: Mapped[str] = mapped_column(Text, nullable=False)
+    keywords_payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    justification_payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    risk_level: Mapped[str] = mapped_column(String(10), nullable=False, default="medio")
+    priority_score: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    source_period_start: Mapped[date | None] = mapped_column(Date, nullable=True)
+    source_period_end: Mapped[date | None] = mapped_column(Date, nullable=True)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="active")
+    applied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    dismissed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
+
+    user: Mapped[User] = relationship(back_populates="growth_seo_suggestions")
+    actions: Mapped[list["GrowthSeoSuggestionAction"]] = relationship(
+        back_populates="suggestion",
+        cascade="all, delete-orphan",
+    )
+    alerts: Mapped[list["GrowthSeoAlert"]] = relationship(back_populates="suggestion")
+
+
+class GrowthSeoSuggestionAction(Base):
+    __tablename__ = "growth_seo_suggestion_actions"
+    __table_args__ = (
+        Index("ix_growth_seo_suggestion_actions_suggestion_created", "suggestion_id", "created_at"),
+        Index("ix_growth_seo_suggestion_actions_user_action", "user_id", "action_type", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    suggestion_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("growth_seo_suggestions.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    action_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="ok")
+    request_payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    response_payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+
+    suggestion: Mapped[GrowthSeoSuggestion] = relationship(back_populates="actions")
+    user: Mapped[User] = relationship(back_populates="growth_seo_suggestion_actions")
+
+
+class GrowthSeoAlert(Base):
+    __tablename__ = "growth_seo_alerts"
+    __table_args__ = (
+        Index("ix_growth_seo_alerts_user_seen_created", "user_id", "is_seen", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    suggestion_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("growth_seo_suggestions.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    title: Mapped[str] = mapped_column(String(140), nullable=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    severity: Mapped[str] = mapped_column(String(12), nullable=False, default="medium")
+    is_seen: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    user: Mapped[User] = relationship(back_populates="growth_seo_alerts")
+    suggestion: Mapped[GrowthSeoSuggestion | None] = relationship(back_populates="alerts")
