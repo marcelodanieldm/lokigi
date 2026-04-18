@@ -20,6 +20,13 @@ class Settings(BaseSettings):
     allowed_hosts: str = "*"
     webhook_shared_secret: str = ""
 
+    # SendGrid — leave empty to disable email sending
+    sendgrid_api_key: str = ""
+    sendgrid_from_email: str = "noreply@lokigi.com"
+
+    # Public domain used in email links (no scheme, no trailing slash)
+    app_domain: str = "localhost:8000"
+
     def parsed_allowed_hosts(self) -> list[str]:
         value = self.allowed_hosts.strip()
         if not value:

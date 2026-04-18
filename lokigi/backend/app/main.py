@@ -26,6 +26,7 @@ from .services import (
     verify_pubsub_jwt,
 )
 from .sentiment_analysis import analyze_monthly_sentiment
+from .monthly_report_worker import build_scheduler
 
 
 class ApproveReplyRequest(BaseModel):
@@ -35,7 +36,10 @@ class ApproveReplyRequest(BaseModel):
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     Base.metadata.create_all(bind=database.engine)
+    scheduler = build_scheduler()
+    scheduler.start()
     yield
+    scheduler.shutdown(wait=False)
 
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
@@ -373,7 +377,7 @@ def api_monthly_sentiment(
     review_dicts = [
         {
             "comment": r.comment or "",
-            "rating": r.star_rating,
+            "rating": r.rating,
         }
         for r in reviews_orm
     ]

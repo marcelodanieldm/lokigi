@@ -131,3 +131,31 @@ class StarterMonthlyMetrics(Base):
     computed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
+
+
+class MonthlyReport(Base):
+    """Full monthly report JSON stored after the cron job runs on day 1.
+
+    ``payload`` contains the complete structured report (KPIs + sentiment
+    + chart_data) as returned by ``_build_report_payload``.  One row per
+    user per calendar month; idempotent upsert used by the worker.
+    """
+
+    __tablename__ = "monthly_reports"
+    __table_args__ = (
+        UniqueConstraint("user_id", "year", "month", name="uq_monthly_reports_user_year_month"),
+        Index("ix_monthly_reports_user_id", "user_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    year: Mapped[int] = mapped_column(Integer, nullable=False)
+    month: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    generated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
