@@ -49,6 +49,10 @@ Lokigi centraliza automatización de reseñas de Google Business Profile para el
 - Reportes persistidos en `monthly_reports`.
 - Scheduler APScheduler con job mensual de reportes y job por minuto de autoenvío.
 - Reporte HTML en `/starter/report`.
+- Historial de reportes en dashboard con lista cronológica mensual y acciones `Ver Online` / `Descargar PDF`.
+- Endpoint de estado/URL PDF por periodo en `/api/reports/monthly-pdf`.
+- Integración con worker asíncrono (`backend/pdf-worker`) para generar PDF, subir a S3 y guardar signed URL.
+- Envío automático de email mensual (día 1) con CTA a reporte online y botón directo al PDF cuando está disponible.
 - Análisis de sentimiento con:
   - conceptos positivos y negativos
   - conceptos top globales
@@ -58,6 +62,17 @@ Lokigi centraliza automatización de reseñas de Google Business Profile para el
   - velocidad de respuesta actual vs baseline histórico
   - snapshot de sentimiento
   - keyword cloud
+
+### Reporte PDF Premium (4 páginas)
+- Página 1: resumen ejecutivo y métricas estrella (nota media y tiempo ahorrado).
+- Página 2: análisis de sentimiento (qué aman tus clientes y qué les molesta).
+- Página 3: selección de mejores interacciones (reseñas destacadas + respuesta Lokigi).
+- Página 4: consejos estratégicos de Lokigi para el siguiente mes.
+
+### Insights IA en dashboard
+- Servicio `starter_tip_service.py` con fallback heurístico y opción LLM compatible OpenAI.
+- Endpoint `GET /api/nlp/starter-tip-of-day` para consumo de Tip del Día.
+- Tip del Día integrado en dashboard con foco, confianza, evidencia y señales de soporte.
 
 ### Cancelación, retención y churn
 - Flujo de cancelación con Impact Modal y oferta `Plan Pausa`.
@@ -130,7 +145,9 @@ Esto instala dependencias, ejecuta migraciones, crea un usuario local de prueba 
 | `GET` | `/starter/report` | Reporte mensual renderizado |
 | `GET` | `/api/reports/monthly-sentiment` | Sentimiento mensual |
 | `GET` | `/api/reports/monthly` | Payload persistido del reporte |
+| `GET` | `/api/reports/monthly-pdf` | Estado y signed URL del PDF mensual |
 | `GET` | `/api/reports/history` | Histórico mensual |
+| `GET` | `/api/nlp/starter-tip-of-day` | Tip del Día para dashboard Starter |
 | `GET` | `/api/cancellation/impact-data` | Impacto previo a cancelación |
 | `POST` | `/api/cancellation/initiate` | Inicia flujo de cancelación |
 | `POST` | `/api/cancellation/plan-pausa` | Activa Plan Pausa |
@@ -152,6 +169,7 @@ Esto instala dependencias, ejecuta migraciones, crea un usuario local de prueba 
 | `0006` | `preferred_tone` en `google_connections` |
 | `20260418_0007` | Lifecycle + churn tracking |
 | `20260418_0008` | Flags de activación Starter |
+| `20260418_0009` | Campos PDF y resumen ejecutivo en `monthly_reports` |
 
 ## Tests
 
@@ -200,6 +218,7 @@ pytest backend/tests/test_churn_system.py -v
 ### Backend y despliegue
 - `backend/LOCAL_DEV.md`
 - `backend/deploy/DEPLOYMENT.md`
+- `backend/pdf-worker/README.md`
 
 ## Notas operativas
 
