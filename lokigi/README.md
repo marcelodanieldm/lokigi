@@ -189,6 +189,11 @@ Esto instala dependencias, ejecuta migraciones, crea un usuario local de prueba 
 | `POST` | `/internal/growth/events/publish` | Publica evento Retention/Upsell para cola multi-canal |
 | `GET` | `/api/growth/events` | Lista eventos Growth para bandeja in-app |
 | `POST` | `/api/growth/events/{event_id}/seen` | Marca evento in-app como visto |
+| `POST` | `/internal/growth/competitor-scrape/run/start` | Inicia corrida liviana de scraping de competencia |
+| `POST` | `/internal/growth/competitor-scrape/ingest` | Ingesta snapshot liviano de un competidor |
+| `POST` | `/internal/growth/competitor-scrape/run/finish` | Cierra corrida de scraping y congela contadores |
+| `GET` | `/api/growth/competitor-scrape/runs` | Lista corridas recientes del scraper liviano |
+| `GET` | `/api/growth/competitor-scrape/snapshots` | Lista snapshots recientes para comparación |
 
 ## Migraciones Alembic
 
@@ -208,6 +213,7 @@ Esto instala dependencias, ejecuta migraciones, crea un usuario local de prueba 
 | `20260418_0012` | Tablas de sugerencias/acciones/alertas SEO Growth |
 | `20260418_0013` | KPI Premium Growth: SERP observations, conquest events, columnas de fotos y vista de correlación |
 | `20260418_0014` | Cola de eventos Growth (retention/upsell) con dedupe y estado de dispatch |
+| `20260418_0015` | Modelo ultra-ligero de scraping competencia (`competitor`, `scrape_run`, `competitor_snapshot`, `service_catalog`, `competitor_service_map`) |
 
 ## Ejemplos API Growth
 

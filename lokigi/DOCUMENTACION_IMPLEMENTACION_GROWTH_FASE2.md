@@ -138,6 +138,35 @@ Criterio de aceptacion:
 - Publicar un evento crea filas `pending` por canal permitido y evita duplicados en ventana de 24h.
 - El scheduler procesa la cola y deja eventos en `sent` o `failed` con trazabilidad de intentos.
 
+## Ticket 11 - Motor de Scraping Guerrilla (Google Maps)
+Estado: Implementado
+
+Objetivo:
+- Ejecutar scraping de 5 competidores en GitHub Actions con costo minimo, anti-bloqueo basico y persistencia ligera en Postgres local.
+
+Entregables:
+- Script `backend/scripts/competitor_scraper.py` (Playwright headless + espera aleatoria + retries + backoff).
+- Workflow `.github/workflows/competitor_scraper.yml` con `workflow_dispatch` y `schedule`.
+- Modelo ultra-ligero en Postgres:
+	- `competitor`
+	- `scrape_run`
+	- `competitor_snapshot`
+	- `service_catalog`
+	- `competitor_service_map`
+- Endpoint internos de ingesta:
+	- `POST /internal/growth/competitor-scrape/run/start`
+	- `POST /internal/growth/competitor-scrape/ingest`
+	- `POST /internal/growth/competitor-scrape/run/finish`
+- Endpoints de consulta:
+	- `GET /api/growth/competitor-scrape/runs`
+	- `GET /api/growth/competitor-scrape/snapshots`
+- SQL de analitica liviana en `backend/sql/competitor_ultralight_queries.sql`.
+
+Criterio de aceptacion:
+- El workflow procesa hasta 5 URLs y reporta resultados por POST al backend local.
+- La ingesta persiste rating/reviews/precio/servicios con estructura compacta (enums + enteros + catalogos).
+- Se puede comparar cobertura de servicios y evolucion de precio/rating con consultas SQL del paquete.
+
 ## Endpoints nuevos
 - `POST /api/growth/serp-observations`
 - `POST /api/growth/keyword-conquests`
@@ -145,6 +174,11 @@ Criterio de aceptacion:
 - `POST /internal/growth/events/publish`
 - `GET /api/growth/events?user_id=<uuid>&include_seen=false&limit=30`
 - `POST /api/growth/events/{event_id}/seen?user_id=<uuid>`
+- `POST /internal/growth/competitor-scrape/run/start`
+- `POST /internal/growth/competitor-scrape/ingest`
+- `POST /internal/growth/competitor-scrape/run/finish`
+- `GET /api/growth/competitor-scrape/runs?user_id=<uuid>&limit=10`
+- `GET /api/growth/competitor-scrape/snapshots?user_id=<uuid>&run_id=<uuid>&limit=30`
 
 ## Prompts operativos parametrizados (A-D)
 - Prompt A (Data Analyst): define vista SQL de correlacion `frecuencia_posteos_competencia` vs `posicion_ranking_cliente`, con deltas 7d/14d y regla de negocio para `Cambio de Guardia`.

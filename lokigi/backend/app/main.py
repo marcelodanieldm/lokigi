@@ -42,7 +42,15 @@ from .sentiment_analysis import analyze_monthly_sentiment
 from .review_reply_engine import generate_reply_by_tone
 from .starter_tip_service import generate_starter_tip
 from .monthly_report_worker import _build_response_velocity, build_scheduler
-from .routes import cancellation_routes, grace_period_routes, growth_event_routes, growth_routes, growth_seo_routes, nlp_analysis_routes
+from .routes import (
+  cancellation_routes,
+  competitor_scrape_routes,
+  grace_period_routes,
+  growth_event_routes,
+  growth_routes,
+  growth_seo_routes,
+  nlp_analysis_routes,
+)
 
 
 class ApproveReplyRequest(BaseModel):
@@ -88,6 +96,7 @@ app.include_router(cancellation_routes.router)
 app.include_router(grace_period_routes.router)
 app.include_router(growth_routes.router)
 app.include_router(growth_event_routes.router)
+app.include_router(competitor_scrape_routes.router)
 app.include_router(growth_seo_routes.router)
 app.include_router(nlp_analysis_routes.router)
 

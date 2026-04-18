@@ -35,6 +35,8 @@ class User(Base):
     growth_serp_observations: Mapped[list["GrowthSerpObservation"]] = relationship(back_populates="user")
     growth_keyword_conquest_events: Mapped[list["GrowthKeywordConquestEvent"]] = relationship(back_populates="user")
     growth_event_notifications: Mapped[list["GrowthEventNotification"]] = relationship(back_populates="user")
+    competitor_entities: Mapped[list["CompetitorEntity"]] = relationship(back_populates="user")
+    competitor_scrape_runs: Mapped[list["ScrapeRun"]] = relationship(back_populates="user")
 
 
 
@@ -808,6 +810,154 @@ class GrowthKeywordConquestEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
 
     user: Mapped[User] = relationship(back_populates="growth_keyword_conquest_events")
+
+
+# ────────────────────────────────────────────────────────────────────────────────
+# GUERRILLA SCRAPER - ULTRA-LIGHT STORAGE MODELS
+# ────────────────────────────────────────────────────────────────────────────────
+
+
+class CompetitorEntity(Base):
+    __tablename__ = "competitor"
+    __table_args__ = (
+        UniqueConstraint("user_id", "url_hash", name="uq_competitor_user_url_hash"),
+        Index("ix_competitor_user_zone", "user_id", "zone_code"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    url_hash: Mapped[str] = mapped_column(String(40), nullable=False)
+    maps_url: Mapped[str] = mapped_column(Text, nullable=False)
+    name_short: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    zone_code: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    status: Mapped[str] = mapped_column(
+        Enum("active", "inactive", name="competitor_status_enum", create_type=False),
+        nullable=False,
+        default="active",
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
+
+    user: Mapped[User] = relationship(back_populates="competitor_entities")
+    snapshots: Mapped[list["CompetitorSnapshot"]] = relationship(back_populates="competitor")
+
+
+class ScrapeRun(Base):
+    __tablename__ = "scrape_run"
+    __table_args__ = (
+        Index("ix_scrape_run_user_started", "user_id", "started_at"),
+        Index("ix_scrape_run_status", "status", "started_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    run_date: Mapped[date] = mapped_column(Date, nullable=False)
+    status: Mapped[str] = mapped_column(
+        Enum("running", "ok", "partial", "error", "blocked", name="scrape_status_enum", create_type=False),
+        nullable=False,
+        default="running",
+    )
+    total_targets: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_processed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_success: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_failed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    user: Mapped[User] = relationship(back_populates="competitor_scrape_runs")
+    snapshots: Mapped[list["CompetitorSnapshot"]] = relationship(back_populates="scrape_run")
+
+
+class CompetitorSnapshot(Base):
+    __tablename__ = "competitor_snapshot"
+    __table_args__ = (
+        UniqueConstraint("scrape_run_id", "competitor_id", name="uq_comp_snapshot_run_competitor"),
+        Index("ix_comp_snapshot_competitor_date", "competitor_id", "observed_on"),
+        Index("ix_comp_snapshot_status", "source_status", "observed_on"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    scrape_run_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("scrape_run.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    competitor_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("competitor.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    observed_on: Mapped[date] = mapped_column(Date, nullable=False)
+    rating_x100: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    total_reviews: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    price_bucket: Mapped[str] = mapped_column(
+        Enum("unknown", "budget", "mid", "premium", "luxury", name="price_bucket_enum", create_type=False),
+        nullable=False,
+        default="unknown",
+    )
+    category_code: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    address_hash: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    posts_30d: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    source_status: Mapped[str] = mapped_column(
+        Enum("ok", "partial", "error", "blocked", name="scrape_status_enum", create_type=False),
+        nullable=False,
+        default="ok",
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+
+    scrape_run: Mapped[ScrapeRun] = relationship(back_populates="snapshots")
+    competitor: Mapped[CompetitorEntity] = relationship(back_populates="snapshots")
+    services: Mapped[list["CompetitorServiceMap"]] = relationship(back_populates="snapshot")
+
+
+class ServiceCatalog(Base):
+    __tablename__ = "service_catalog"
+    __table_args__ = (
+        UniqueConstraint("code", name="uq_service_catalog_code"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    code: Mapped[str] = mapped_column(String(40), nullable=False)
+    label_short: Mapped[str] = mapped_column(String(80), nullable=False)
+
+    snapshot_links: Mapped[list["CompetitorServiceMap"]] = relationship(back_populates="service")
+
+
+class CompetitorServiceMap(Base):
+    __tablename__ = "competitor_service_map"
+    __table_args__ = (
+        UniqueConstraint("snapshot_id", "service_id", name="uq_comp_service_map_snapshot_service"),
+        Index("ix_comp_service_map_service", "service_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    snapshot_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("competitor_snapshot.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    service_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("service_catalog.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    present: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+    snapshot: Mapped[CompetitorSnapshot] = relationship(back_populates="services")
+    service: Mapped[ServiceCatalog] = relationship(back_populates="snapshot_links")
 
 
 class GrowthEventNotification(Base):

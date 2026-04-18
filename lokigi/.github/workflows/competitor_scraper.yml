@@ -1,0 +1,64 @@
+name: Competitor Scraper
+
+on:
+  # Run every day at 03:00 UTC (off-peak, less chance of throttle)
+  schedule:
+    - cron: "0 3 * * *"
+  # Allow manual trigger with optional override of the competitor list
+  workflow_dispatch:
+    inputs:
+      competitor_urls:
+        description: "JSON array of competitor objects (overrides secret)"
+        required: false
+        default: ""
+
+jobs:
+  scrape:
+    name: Scrape Google Maps competitors
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      # ── 1. Checkout (only needs the scraper script) ──────────────────────
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            backend/scripts/competitor_scraper.py
+          sparse-checkout-cone-mode: false
+
+      # ── 2. Python setup ───────────────────────────────────────────────────
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      # ── 3. Install minimal dependencies ──────────────────────────────────
+      - name: Install dependencies
+        run: |
+          pip install --quiet playwright httpx
+          playwright install chromium --with-deps
+
+      # ── 4. Run the scraper ────────────────────────────────────────────────
+      - name: Run competitor scraper
+        env:
+          LOKIGI_API_URL: ${{ secrets.LOKIGI_API_URL }}
+          LOKIGI_WEBHOOK_SECRET: ${{ secrets.LOKIGI_WEBHOOK_SECRET }}
+          LOKIGI_USER_ID: ${{ secrets.LOKIGI_USER_ID }}
+          # Use workflow_dispatch override if provided, otherwise use the repo secret
+          COMPETITOR_URLS: ${{ inputs.competitor_urls || secrets.COMPETITOR_URLS }}
+          SCRAPE_WAIT_MIN: "2.5"
+          SCRAPE_WAIT_MAX: "7.0"
+          PLAYWRIGHT_TIMEOUT_MS: "45000"
+        run: |
+          python backend/scripts/competitor_scraper.py | tee /tmp/scraper-run.log
+
+      # ── 5. Upload log as artifact on failure ─────────────────────────────
+      - name: Upload scraper log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scraper-failure-log
+          path: /tmp/scraper*.log
+          retention-days: 7
