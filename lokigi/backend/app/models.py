@@ -78,6 +78,10 @@ class Review(Base):
     reply_alert_next_step: Mapped[str | None] = mapped_column(Text, nullable=True)
     reply_decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # ── Human approval & send tracking ───────────────────────────────────────
+    reply_approved_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    reply_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
 
     connection: Mapped[GoogleConnection] = relationship(back_populates="reviews")

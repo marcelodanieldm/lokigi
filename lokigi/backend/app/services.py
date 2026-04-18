@@ -337,3 +337,84 @@ async def store_new_review_from_webhook(db: Session, webhook_payload: dict[str, 
         emit_review_alert(review)
 
     return review
+
+
+# ── Review Approval helpers ───────────────────────────────────────────────────
+
+def get_pending_approvals(db: Session, user_id: str) -> list[Review]:
+    """Return reviews with an AUTO_REPLY suggestion not yet sent, for a user."""
+    return list(
+        db.scalars(
+            select(Review)
+            .join(GoogleConnection, Review.connection_id == GoogleConnection.id)
+            .where(
+                GoogleConnection.user_id == user_id,
+                Review.reply_action == "AUTO_REPLY",
+                Review.reply_sent_at.is_(None),
+                Review.reply_public_text.is_not(None),
+            )
+            .order_by(Review.created_at.desc())
+        ).all()
+    )
+
+
+async def send_review_reply(db: Session, review: Review, reply_text: str) -> Review:
+    """Post an approved reply to Google and persist the result.
+
+    Raises HTTPException:
+      - 409 when Google returns a duplicate-reply error
+      - 502 on any other Google API failure
+      - 404 when the parent connection is missing
+    """
+    connection = db.get(GoogleConnection, review.connection_id)
+    if not connection:
+        raise HTTPException(status_code=404, detail="Connection not found for review")
+
+    access_token = await ensure_valid_access_token(db, connection)
+    client = GoogleBusinessProfileClient(
+        settings.google_client_id,
+        settings.google_client_secret,
+        settings.google_redirect_uri,
+    )
+
+    # review_name format expected by GBP: accounts/{acct}/locations/{loc}/reviews/{id}
+    review_name = (
+        f"{connection.google_account_name}/locations/{review.location_id}/reviews/{review.review_id}"
+    )
+
+    try:
+        await client.post_reply(access_token, review_name, reply_text)
+    except GoogleOAuthError as exc:
+        if "duplicate_reply" in str(exc):
+            raise HTTPException(
+                status_code=409,
+                detail="Esta reseña ya tiene una respuesta publicada en Google.",
+            ) from exc
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    review.reply_approved_text = reply_text
+    review.reply_sent_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(review)
+    return review
+
+
+async def regenerate_review_reply(db: Session, review: Review) -> Review:
+    """Re-run the NLP engine and overwrite the suggested reply (does not send)."""
+    connection = db.get(GoogleConnection, review.connection_id)
+    business_name = (
+        connection.business_name or connection.google_account_name if connection else "our business"
+    )
+    decision = generate_review_reply_decision(
+        review_text=review.comment or "",
+        stars=review.rating,
+        business_name=business_name,
+        author_name=review.author_display_name or "there",
+    )
+    apply_review_reply_decision(review, decision)
+    # Reset sent state so the new suggestion goes back to pending
+    review.reply_sent_at = None
+    review.reply_approved_text = None
+    db.commit()
+    db.refresh(review)
+    return review

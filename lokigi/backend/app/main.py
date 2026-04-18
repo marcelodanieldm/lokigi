@@ -12,14 +12,23 @@ from . import database
 from .config import settings
 from .database import Base, get_db
 from .models import GoogleConnection, Review
+from pydantic import BaseModel
+
 from .services import (
     OAuthStateManager,
     build_google_oauth_url,
+    get_pending_approvals,
     parse_pubsub_push,
+    regenerate_review_reply,
+    send_review_reply,
     store_new_review_from_webhook,
     upsert_google_connection,
     verify_pubsub_jwt,
 )
+
+
+class ApproveReplyRequest(BaseModel):
+    reply_text: str
 
 
 @asynccontextmanager
@@ -261,6 +270,262 @@ async def oauth_google_callback(code: str, state: str, db: Session = Depends(get
         "user_id": str(connection.user_id),
         "location_id": connection.location_id,
     }
+
+
+# ── Review Approval API ──────────────────────────────────────────────────────
+
+@app.get("/api/reviews/pending")
+def api_reviews_pending(user_id: UUID, db: Session = Depends(get_db)) -> list[dict[str, Any]]:
+    """List AUTO_REPLY reviews pending human approval for the given user."""
+    reviews = get_pending_approvals(db, str(user_id))
+    return [
+        {
+            "id": str(r.id),
+            "review_id": r.review_id,
+            "location_id": r.location_id,
+            "rating": r.rating,
+            "author": r.author_display_name or "Cliente",
+            "comment": r.comment or "",
+            "suggested_reply": r.reply_public_text or "",
+            "detected_language": r.reply_detected_language,
+            "decided_at": r.reply_decided_at.isoformat() if r.reply_decided_at else None,
+        }
+        for r in reviews
+    ]
+
+
+@app.post("/api/reviews/{review_id}/approve")
+async def api_review_approve(
+    review_id: UUID,
+    body: ApproveReplyRequest,
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    """Approve and send a reply to Google for the given review."""
+    review = db.get(Review, review_id)
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+    if not body.reply_text.strip():
+        raise HTTPException(status_code=422, detail="reply_text must not be empty")
+    sent = await send_review_reply(db=db, review=review, reply_text=body.reply_text)
+    return {
+        "status": "sent",
+        "review_id": sent.review_id,
+        "sent_at": sent.reply_sent_at.isoformat() if sent.reply_sent_at else None,
+    }
+
+
+@app.post("/api/reviews/{review_id}/regenerate")
+async def api_review_regenerate(
+    review_id: UUID,
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    """Re-run NLP engine for the review and return the new suggestion."""
+    review = db.get(Review, review_id)
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+    updated = await regenerate_review_reply(db=db, review=review)
+    return {
+        "status": "regenerated",
+        "review_id": updated.review_id,
+        "suggested_reply": updated.reply_public_text or "",
+    }
+
+
+@app.get("/starter/approvals", response_class=HTMLResponse)
+def starter_approvals_page(user_id: UUID) -> HTMLResponse:
+    """Bootstrap 5 interface for human review of AI-suggested replies."""
+    html = f"""\
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Aprobación de Respuestas | Lokigi</title>
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        crossorigin="anonymous" />
+  <style>
+    body {{ background: #f5f7fa; }}
+    .review-card {{ border-left: 4px solid #0d6efd; }}
+    .badge-stars {{ font-size: .75rem; }}
+    .reply-textarea {{ font-size: .9rem; resize: vertical; min-height: 90px; }}
+    .spinner-border {{ width: 1rem; height: 1rem; border-width: .15em; }}
+    .sent-badge {{ display: none; }}
+    .toast-container {{ position: fixed; bottom: 1rem; right: 1rem; z-index: 9999; }}
+  </style>
+</head>
+<body>
+<div class="container py-4">
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+      <h1 class="h4 mb-0">Aprobación de Respuestas</h1>
+      <small class="text-muted">Solo respuestas sugeridas por IA pendientes de envío</small>
+    </div>
+    <a href="/starter/dashboard?user_id={user_id}" class="btn btn-sm btn-outline-secondary">&larr; Dashboard</a>
+  </div>
+
+  <div id="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="mt-2 text-muted">Cargando reseñas pendientes…</p>
+  </div>
+  <div id="empty-state" class="text-center py-5 d-none">
+    <p class="fs-5">&#10003; No hay respuestas pendientes de aprobación.</p>
+  </div>
+  <div id="cards-container" class="d-none"></div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- Card template (hidden) -->
+<template id="review-tpl">
+  <div class="card review-card shadow-sm mb-4" data-id="">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-start mb-2">
+        <div>
+          <strong class="js-author"></strong>
+          <span class="badge bg-warning text-dark ms-2 badge-stars js-stars"></span>
+        </div>
+        <span class="badge bg-success sent-badge">Enviado &#10003;</span>
+      </div>
+      <p class="text-secondary js-comment mb-3" style="font-size:.9rem"></p>
+      <label class="form-label fw-semibold">Respuesta sugerida por IA</label>
+      <textarea class="form-control reply-textarea js-textarea" rows="4"></textarea>
+      <div class="d-flex gap-2 mt-3 flex-wrap">
+        <button class="btn btn-primary btn-sm js-approve">
+          <span class="spinner-border d-none me-1 js-spin"></span>
+          Aprobar y Enviar
+        </button>
+        <button class="btn btn-outline-secondary btn-sm js-regenerate">
+          <span class="spinner-border d-none me-1 js-regen-spin"></span>
+          Regenerar
+        </button>
+      </div>
+      <div class="alert alert-danger mt-2 d-none js-error" role="alert"></div>
+    </div>
+  </div>
+</template>
+
+<script>
+const USER_ID = "{user_id}";
+
+function stars(n) {{
+  return "★".repeat(n || 0) + "☆".repeat(Math.max(0, 5 - (n || 0)));
+}}
+
+function toast(msg, type = "success") {{
+  const t = document.createElement("div");
+  t.className = `toast align-items-center text-bg-${{type}} border-0 show`;
+  t.setAttribute("role", "alert");
+  t.innerHTML = `<div class="d-flex"><div class="toast-body">${{msg}}</div>
+    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>`;
+  document.getElementById("toast-container").appendChild(t);
+  setTimeout(() => t.remove(), 5000);
+}}
+
+async function loadPending() {{
+  try {{
+    const res = await fetch(`/api/reviews/pending?user_id=${{USER_ID}}`);
+    if (!res.ok) throw new Error(`HTTP ${{res.status}}`);
+    const reviews = await res.json();
+    renderCards(reviews);
+  }} catch (e) {{
+    document.getElementById("loading").innerHTML =
+      `<div class="alert alert-danger">Error cargando reseñas: ${{e.message}}</div>`;
+  }}
+}}
+
+function renderCards(reviews) {{
+  document.getElementById("loading").classList.add("d-none");
+  if (!reviews.length) {{
+    document.getElementById("empty-state").classList.remove("d-none");
+    return;
+  }}
+  const container = document.getElementById("cards-container");
+  container.classList.remove("d-none");
+  const tpl = document.getElementById("review-tpl");
+  reviews.forEach(r => {{
+    const node = tpl.content.cloneNode(true);
+    const card = node.querySelector(".card");
+    card.dataset.id = r.id;
+    card.querySelector(".js-author").textContent = r.author;
+    card.querySelector(".js-stars").textContent = stars(r.rating);
+    card.querySelector(".js-comment").textContent = r.comment || "(sin comentario)";
+    card.querySelector(".js-textarea").value = r.suggested_reply;
+    card.querySelector(".js-approve").addEventListener("click", () => handleApprove(card));
+    card.querySelector(".js-regenerate").addEventListener("click", () => handleRegenerate(card));
+    container.appendChild(node);
+  }});
+}}
+
+async function handleApprove(card) {{
+  const id = card.dataset.id;
+  const text = card.querySelector(".js-textarea").value.trim();
+  if (!text) {{ toast("La respuesta no puede estar vacía.", "warning"); return; }}
+  const btn = card.querySelector(".js-approve");
+  const spin = card.querySelector(".js-spin");
+  const errEl = card.querySelector(".js-error");
+  btn.disabled = true; spin.classList.remove("d-none");
+  errEl.classList.add("d-none");
+  try {{
+    const res = await fetch(`/api/reviews/${{id}}/approve`, {{
+      method: "POST",
+      headers: {{ "Content-Type": "application/json" }},
+      body: JSON.stringify({{ reply_text: text }}),
+    }});
+    if (res.status === 409) {{
+      throw new Error("Esta reseña ya tiene una respuesta publicada en Google.");
+    }}
+    if (!res.ok) {{
+      const err = await res.json().catch(() => ({{}}));
+      throw new Error(err.detail || `Error ${{res.status}}`);
+    }}
+    card.querySelector(".sent-badge").style.display = "inline-block";
+    card.querySelector(".js-textarea").disabled = true;
+    btn.disabled = true;
+    card.querySelector(".js-regenerate").disabled = true;
+    toast("Respuesta enviada correctamente ✓");
+  }} catch (e) {{
+    errEl.textContent = e.message;
+    errEl.classList.remove("d-none");
+    btn.disabled = false;
+  }} finally {{
+    spin.classList.add("d-none");
+  }}
+}}
+
+async function handleRegenerate(card) {{
+  const id = card.dataset.id;
+  const btn = card.querySelector(".js-regenerate");
+  const spin = card.querySelector(".js-regen-spin");
+  const errEl = card.querySelector(".js-error");
+  btn.disabled = true; spin.classList.remove("d-none");
+  errEl.classList.add("d-none");
+  try {{
+    const res = await fetch(`/api/reviews/${{id}}/regenerate`, {{ method: "POST" }});
+    if (!res.ok) {{
+      const err = await res.json().catch(() => ({{}}));
+      throw new Error(err.detail || `Error ${{res.status}}`);
+    }}
+    const data = await res.json();
+    card.querySelector(".js-textarea").value = data.suggested_reply;
+    toast("Respuesta regenerada.", "info");
+  }} catch (e) {{
+    errEl.textContent = e.message;
+    errEl.classList.remove("d-none");
+  }} finally {{
+    btn.disabled = false; spin.classList.add("d-none");
+  }}
+}}
+
+loadPending();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        crossorigin="anonymous"></script>
+</body>
+</html>
+"""
+    return HTMLResponse(html)
 
 
 @app.post("/webhooks/google/reviews")
