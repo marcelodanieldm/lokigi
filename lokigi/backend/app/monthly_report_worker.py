@@ -39,6 +39,7 @@ from sqlalchemy.orm import Session
 from .auto_reply_worker import run_auto_reply_dispatch
 from .config import settings
 from .database import engine
+from .growth_event_notification_service import GrowthEventNotificationService
 from .growth_premium_report_service import GrowthPremiumReportService, PremiumConfig
 from .growth_sentiment_benchmark_service import BenchmarkConfig, GrowthSentimentBenchmarkService
 from .models import GoogleConnection, GrowthCompetitor, MonthlyReport, Review, StarterMonthlyMetrics, User
@@ -81,6 +82,16 @@ def build_scheduler() -> AsyncIOScheduler:
         max_instances=1,
         coalesce=True,
         misfire_grace_time=1800,
+    )
+    scheduler.add_job(
+        run_growth_event_notifications_dispatch,
+        trigger=IntervalTrigger(minutes=1),
+        id="growth_event_notifications_dispatch_job",
+        name="Dispatch pending Growth event notifications",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=60,
     )
     return scheduler
 
@@ -134,6 +145,20 @@ async def run_growth_sentiment_benchmark_daily() -> None:
                 logger.exception("Growth sentiment benchmark failed for user %s", user_id)
 
     logger.info("Growth sentiment benchmark daily job finished")
+
+
+async def run_growth_event_notifications_dispatch() -> None:
+    """Dispatch pending Growth retention/upsell events from queue table."""
+    with Session(engine) as db:
+        service = GrowthEventNotificationService(db)
+        result = await service.dispatch_pending(batch_size=100)
+        if result["processed"] > 0:
+            logger.info(
+                "Growth event notifications dispatched: processed=%s sent=%s failed=%s",
+                result["processed"],
+                result["sent"],
+                result["failed"],
+            )
 
 
 # ─────────────────────────────────────────────────────────────────────────────

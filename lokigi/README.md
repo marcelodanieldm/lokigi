@@ -186,6 +186,9 @@ Esto instala dependencias, ejecuta migraciones, crea un usuario local de prueba 
 | `POST` | `/api/growth/serp-observations` | Ingesta observaciones SERP para KPIs premium |
 | `POST` | `/api/growth/keyword-conquests` | Ingesta eventos de conquista de keyword |
 | `GET` | `/api/growth/premium-report` | Reporte estratégico premium (MSP, Conquest, Delta, AVI, ROI, alertas) |
+| `POST` | `/internal/growth/events/publish` | Publica evento Retention/Upsell para cola multi-canal |
+| `GET` | `/api/growth/events` | Lista eventos Growth para bandeja in-app |
+| `POST` | `/api/growth/events/{event_id}/seen` | Marca evento in-app como visto |
 
 ## Migraciones Alembic
 
@@ -204,6 +207,7 @@ Esto instala dependencias, ejecuta migraciones, crea un usuario local de prueba 
 | `20260418_0011` | Tablas de benchmark de sentimiento Growth |
 | `20260418_0012` | Tablas de sugerencias/acciones/alertas SEO Growth |
 | `20260418_0013` | KPI Premium Growth: SERP observations, conquest events, columnas de fotos y vista de correlación |
+| `20260418_0014` | Cola de eventos Growth (retention/upsell) con dedupe y estado de dispatch |
 
 ## Ejemplos API Growth
 

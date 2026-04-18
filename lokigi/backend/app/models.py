@@ -34,6 +34,7 @@ class User(Base):
     growth_seo_alerts: Mapped[list["GrowthSeoAlert"]] = relationship(back_populates="user")
     growth_serp_observations: Mapped[list["GrowthSerpObservation"]] = relationship(back_populates="user")
     growth_keyword_conquest_events: Mapped[list["GrowthKeywordConquestEvent"]] = relationship(back_populates="user")
+    growth_event_notifications: Mapped[list["GrowthEventNotification"]] = relationship(back_populates="user")
 
 
 
@@ -807,3 +808,36 @@ class GrowthKeywordConquestEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
 
     user: Mapped[User] = relationship(back_populates="growth_keyword_conquest_events")
+
+
+class GrowthEventNotification(Base):
+    __tablename__ = "growth_event_notifications"
+    __table_args__ = (
+        Index("ix_growth_event_notifications_user_created", "user_id", "created_at"),
+        Index("ix_growth_event_notifications_status_created", "status", "created_at"),
+        Index("ix_growth_event_notifications_dedupe_created", "dedupe_key", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    event_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    channel: Mapped[str] = mapped_column(String(20), nullable=False)
+    severity: Mapped[str] = mapped_column(String(12), nullable=False, default="medium")
+    title: Mapped[str] = mapped_column(String(180), nullable=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    context_payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    report_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    dedupe_key: Mapped[str] = mapped_column(String(255), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
+    send_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_seen: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    user: Mapped[User] = relationship(back_populates="growth_event_notifications")

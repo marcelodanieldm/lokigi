@@ -118,10 +118,33 @@ Entregables:
 Criterio de aceptacion:
 - Si hay historial >=2 reportes, se retorna before/today/delta.
 
+## Ticket 10 - Estrategia de Entrega (Retention & Upsell)
+Estado: Implementado
+
+Objetivo:
+- Convertir eventos Growth en notificaciones accionables con deduplicacion, cooldown y despacho asincrono.
+
+Entregables:
+- Tabla `growth_event_notifications` para cola/registro de eventos multi-canal (`push`, `email`, `in_app`).
+- Endpoint interno `POST /internal/growth/events/publish` para publicar eventos `guard_change`, `threat_detected`, `roi_snapshot`.
+- Endpoints de lectura UX: `GET /api/growth/events` y `POST /api/growth/events/{event_id}/seen`.
+- Servicio `GrowthEventNotificationService` con:
+	- dedupe 24h por `dedupe_key`
+	- cooldown para push critico/alto (max 2 por 24h)
+	- enrutamiento por evento y dispatch asincrono por scheduler
+- Job programado cada minuto: `run_growth_event_notifications_dispatch`.
+
+Criterio de aceptacion:
+- Publicar un evento crea filas `pending` por canal permitido y evita duplicados en ventana de 24h.
+- El scheduler procesa la cola y deja eventos en `sent` o `failed` con trazabilidad de intentos.
+
 ## Endpoints nuevos
 - `POST /api/growth/serp-observations`
 - `POST /api/growth/keyword-conquests`
 - `GET /api/growth/premium-report?user_id=<uuid>&window_days=30&max_locations=5`
+- `POST /internal/growth/events/publish`
+- `GET /api/growth/events?user_id=<uuid>&include_seen=false&limit=30`
+- `POST /api/growth/events/{event_id}/seen?user_id=<uuid>`
 
 ## Prompts operativos parametrizados (A-D)
 - Prompt A (Data Analyst): define vista SQL de correlacion `frecuencia_posteos_competencia` vs `posicion_ranking_cliente`, con deltas 7d/14d y regla de negocio para `Cambio de Guardia`.
