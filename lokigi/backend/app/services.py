@@ -57,9 +57,12 @@ def sha256_json(data: dict[str, Any]) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
-def build_google_oauth_url(user_id: str, location_id: str) -> str:
+def build_google_oauth_url(user_id: str, location_id: str, extra_state: dict[str, Any] | None = None) -> str:
     state_manager = OAuthStateManager(settings.oauth_state_secret)
-    state = state_manager.sign({"user_id": user_id, "location_id": location_id})
+    state_payload: dict[str, Any] = {"user_id": user_id, "location_id": location_id}
+    if extra_state:
+        state_payload.update(extra_state)
+    state = state_manager.sign(state_payload)
 
     query = urlencode(
         {
