@@ -31,9 +31,11 @@ from typing import Any
 import httpx
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.interval import IntervalTrigger
 from sqlalchemy import extract, select
 from sqlalchemy.orm import Session
 
+from .auto_reply_worker import run_auto_reply_dispatch
 from .config import settings
 from .database import engine
 from .models import GoogleConnection, MonthlyReport, Review, StarterMonthlyMetrics, User
@@ -49,6 +51,16 @@ logger = logging.getLogger(__name__)
 def build_scheduler() -> AsyncIOScheduler:
     """Return an ``AsyncIOScheduler`` with the monthly-report job registered."""
     scheduler = AsyncIOScheduler(timezone="UTC")
+    scheduler.add_job(
+        run_auto_reply_dispatch,
+        trigger=IntervalTrigger(minutes=1),
+        id="auto_reply_dispatch_job",
+        name="Dispatch pending auto replies",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=60,
+    )
     scheduler.add_job(
         run_monthly_reports,
         trigger=CronTrigger(day=1, hour=6, minute=0),
@@ -101,6 +113,7 @@ async def _process_user(
 ) -> None:
     kpis = _fetch_kpis(db, user.id, conn.location_id, year, month)
     sentiment = _fetch_sentiment(db, conn, year, month)
+    value_metrics = _build_value_metrics(db, user.id, conn, year, month, sentiment)
     payload = _build_report_payload(
         user_id=user.id,
         location_id=conn.location_id,
@@ -109,6 +122,7 @@ async def _process_user(
         month=month,
         kpis=kpis,
         sentiment=sentiment,
+        value_metrics=value_metrics,
     )
     _upsert_report(db, user.id, year, month, payload)
     db.commit()
@@ -201,6 +215,118 @@ def _get_month_reviews(
     )
 
 
+def _normalize_dt(value: datetime | str | None) -> datetime | None:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    if isinstance(value, str):
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+        except ValueError:
+            return None
+    return None
+
+
+def _minutes_between(start: datetime | None, end: datetime | None) -> float | None:
+    start_dt = _normalize_dt(start)
+    end_dt = _normalize_dt(end)
+    if start_dt is None or end_dt is None:
+        return None
+    delta = (end_dt - start_dt).total_seconds() / 60
+    return round(delta, 2) if delta >= 0 else None
+
+
+def _extract_pre_lokigi_reply_timestamp(review: Review) -> datetime | None:
+    raw = review.raw_payload or {}
+    reply_payload = raw.get("reviewReply") or raw.get("ownerReply") or {}
+    if not isinstance(reply_payload, dict):
+        return None
+    return _normalize_dt(
+        reply_payload.get("updateTime")
+        or reply_payload.get("createTime")
+        or reply_payload.get("lastModifiedTime")
+    )
+
+
+def _average_minutes(values: list[float]) -> float | None:
+    return round(sum(values) / len(values), 2) if values else None
+
+
+def _build_response_velocity(db: Session, user_id: uuid.UUID, conn: GoogleConnection, year: int, month: int) -> dict[str, Any]:
+    current_reviews = _get_month_reviews(db, user_id, year, month)
+    current_deltas = [
+        minutes
+        for review in current_reviews
+        for minutes in [_minutes_between(review.create_time, review.reply_sent_at or review.reply_decided_at)]
+        if minutes is not None
+    ]
+    current_avg = _average_minutes(current_deltas)
+
+    historical_reviews = list(
+        db.scalars(
+            select(Review)
+            .join(GoogleConnection, Review.connection_id == GoogleConnection.id)
+            .where(
+                GoogleConnection.user_id == user_id,
+                Review.create_time.is_not(None),
+                Review.create_time < conn.created_at,
+            )
+            .order_by(Review.create_time.desc())
+            .limit(500)
+        ).all()
+    )
+
+    baseline_deltas = [
+        minutes
+        for review in historical_reviews
+        for minutes in [_minutes_between(review.create_time, _extract_pre_lokigi_reply_timestamp(review))]
+        if minutes is not None
+    ]
+
+    baseline_source = "google_history"
+    baseline_avg = _average_minutes(baseline_deltas)
+    if baseline_avg is None:
+        baseline_avg = 1440.0
+        baseline_source = "reference_24h"
+
+    improvement_pct = None
+    delta_minutes = None
+    if current_avg is not None and baseline_avg:
+        delta_minutes = round(baseline_avg - current_avg, 2)
+        improvement_pct = round(((baseline_avg - current_avg) / baseline_avg) * 100, 1)
+
+    return {
+        "current_avg_minutes": current_avg,
+        "baseline_avg_minutes": baseline_avg,
+        "delta_minutes": delta_minutes,
+        "improvement_pct": improvement_pct,
+        "current_sample_size": len(current_deltas),
+        "baseline_sample_size": len(baseline_deltas),
+        "baseline_source": baseline_source,
+        "current_label": "Promedio de Lokigi",
+        "baseline_label": "Antes de Lokigi" if baseline_source == "google_history" else "Referencia manual previa",
+    }
+
+
+def _build_value_metrics(
+    db: Session,
+    user_id: uuid.UUID,
+    conn: GoogleConnection,
+    year: int,
+    month: int,
+    sentiment: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "response_velocity": _build_response_velocity(db, user_id, conn, year, month),
+        "sentiment_snapshot": sentiment.get("sentiment_snapshot", {}),
+        "keyword_cloud": {
+            "top_concepts": sentiment.get("top_concepts", [])[:5],
+        },
+    }
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Sentiment
 # ─────────────────────────────────────────────────────────────────────────────
@@ -235,6 +361,7 @@ def _build_report_payload(
     month: int,
     kpis: dict[str, Any],
     sentiment: dict[str, Any],
+    value_metrics: dict[str, Any],
 ) -> dict[str, Any]:
     return {
         "report_id": str(uuid.uuid4()),
@@ -244,9 +371,16 @@ def _build_report_payload(
         "period": {"year": year, "month": month},
         "generated_at": datetime.now(tz=timezone.utc).isoformat(),
         "kpis": kpis,
+        "value_metrics": value_metrics,
         "sentiment": {
+            "total_reviews_analyzed": sentiment.get("total_reviews_analyzed", 0),
+            "positive_reviews": sentiment.get("positive_reviews", 0),
             "positive_concepts": sentiment.get("positive_concepts", []),
+            "neutral_reviews": sentiment.get("neutral_reviews", 0),
+            "negative_reviews": sentiment.get("negative_reviews", 0),
             "negative_concepts": sentiment.get("negative_concepts", []),
+            "top_concepts": sentiment.get("top_concepts", []),
+            "sentiment_snapshot": sentiment.get("sentiment_snapshot", {}),
             "chart_data": sentiment.get("chart_data", {}),
         },
     }

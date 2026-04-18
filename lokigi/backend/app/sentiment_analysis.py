@@ -131,15 +131,19 @@ class SentimentReport:
     location_id: str
     total_reviews_analyzed: int
     positive_reviews: int
+    neutral_reviews: int
     negative_reviews: int
     positive_concepts: list[ConceptHit] = field(default_factory=list)
     negative_concepts: list[ConceptHit] = field(default_factory=list)
+    top_concepts: list[ConceptHit] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         pos = [{"concept": h.concept, "count": h.count, "pct": h.pct}
                for h in self.positive_concepts]
         neg = [{"concept": h.concept, "count": h.count, "pct": h.pct}
                for h in self.negative_concepts]
+        top = [{"concept": h.concept, "count": h.count, "pct": h.pct}
+               for h in self.top_concepts]
 
         # Merge labels for bar chart (positives first, then negatives)
         pos_labels = [h["concept"] for h in pos]
@@ -156,9 +160,20 @@ class SentimentReport:
             "location_id": self.location_id,
             "total_reviews_analyzed": self.total_reviews_analyzed,
             "positive_reviews": self.positive_reviews,
+            "neutral_reviews": self.neutral_reviews,
             "negative_reviews": self.negative_reviews,
             "positive_concepts": pos,
             "negative_concepts": neg,
+            "top_concepts": top,
+            "sentiment_snapshot": {
+                "labels": ["Positivas", "Neutrales", "Negativas"],
+                "counts": [self.positive_reviews, self.neutral_reviews, self.negative_reviews],
+                "percentages": [
+                    round(self.positive_reviews / self.total_reviews_analyzed * 100, 1) if self.total_reviews_analyzed else 0.0,
+                    round(self.neutral_reviews / self.total_reviews_analyzed * 100, 1) if self.total_reviews_analyzed else 0.0,
+                    round(self.negative_reviews / self.total_reviews_analyzed * 100, 1) if self.total_reviews_analyzed else 0.0,
+                ],
+            },
             "chart_data": {
                 "labels": all_labels,
                 "positive": pos_values,
@@ -193,7 +208,7 @@ def analyze_monthly_sentiment(
     year: int,
     month: int,
     location_id: str,
-    top_n: int = 3,
+    top_n: int = 5,
 ) -> SentimentReport:
     """Compute concept-level sentiment for a list of review dicts.
 
@@ -207,24 +222,32 @@ def analyze_monthly_sentiment(
     """
     positive_counter: Counter[str] = Counter()
     negative_counter: Counter[str] = Counter()
+    overall_counter: Counter[str] = Counter()
     positive_reviews = 0
+    neutral_reviews = 0
     negative_reviews = 0
 
     for review in reviews:
         stars = int(review.get("rating") or 0)
         text = (review.get("comment") or "").strip()
+        concepts = _extract_concepts(text)
+
+        for concept in concepts:
+            overall_counter[concept] += 1
 
         if stars >= 4:
             positive_reviews += 1
-            for concept in _extract_concepts(text):
+            for concept in concepts:
                 positive_counter[concept] += 1
+        elif stars == 3:
+            neutral_reviews += 1
         elif stars <= 2 and stars > 0:
             negative_reviews += 1
-            for concept in _extract_concepts(text):
+            for concept in concepts:
                 negative_counter[concept] += 1
-        # stars == 3 or stars == 0 → skip
+        # stars == 0 → skip classification but still allow concept extraction if present
 
-    total = positive_reviews + negative_reviews
+    total = positive_reviews + neutral_reviews + negative_reviews
 
     def _build_hits(counter: Counter[str], base: int) -> list[ConceptHit]:
         return [
@@ -242,7 +265,9 @@ def analyze_monthly_sentiment(
         location_id=location_id,
         total_reviews_analyzed=total,
         positive_reviews=positive_reviews,
+        neutral_reviews=neutral_reviews,
         negative_reviews=negative_reviews,
         positive_concepts=_build_hits(positive_counter, positive_reviews),
         negative_concepts=_build_hits(negative_counter, negative_reviews),
+        top_concepts=_build_hits(overall_counter, total),
     )

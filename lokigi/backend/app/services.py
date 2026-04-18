@@ -4,7 +4,8 @@ import base64
 import hashlib
 import json
 import logging
-from datetime import datetime, timezone
+import re
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from urllib.parse import urlencode
 
@@ -18,7 +19,7 @@ from sqlalchemy.orm import Session
 
 from .config import settings
 from .google_client import GoogleBusinessProfileClient, GoogleOAuthError
-from .models import GoogleConnection, Review, User
+from .models import GoogleConnection, Review, StarterProfileSettings, SubscriptionProfile, User
 from .review_reply_engine import generate_review_reply_decision
 
 
@@ -117,6 +118,21 @@ async def upsert_google_connection(db: Session, code: str, state: str) -> Google
 
     existing_for_user = db.scalar(select(GoogleConnection).where(GoogleConnection.user_id == user.id))
     if existing_for_user and existing_for_user.location_id != selected["location_id"]:
+        subscription_profile = db.scalar(select(SubscriptionProfile).where(SubscriptionProfile.user_id == user.id))
+        current_plan = (subscription_profile.subscription_plan if subscription_profile else "starter").lower()
+        if current_plan == "starter":
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "growth_upgrade_required",
+                    "message": "El Plan Starter incluye una sola ubicación. Para conectar una segunda ubicación debes actualizar a Growth.",
+                    "upgrade_required": True,
+                    "target_plan": "growth",
+                    "current_location_id": existing_for_user.location_id,
+                    "requested_location_id": selected["location_id"],
+                    "upsell_url": f"/starter/subscription?user_id={user.id}&upsell=growth&requested_location_id={selected['location_id']}",
+                },
+            )
         raise HTTPException(
             status_code=409,
             detail="User already linked to a different location. Only one location is allowed.",
@@ -247,6 +263,60 @@ def apply_review_reply_decision(review: Review, decision: dict[str, Any]) -> Non
     review.reply_decided_at = datetime.now(timezone.utc)
 
 
+def apply_forbidden_words_filter(text: str | None, forbidden_words_raw: str | None) -> str | None:
+    if not text:
+        return text
+    if not forbidden_words_raw:
+        return text
+
+    tokens = [
+        chunk.strip().lower()
+        for chunk in re.split(r"[\n,;]+", forbidden_words_raw)
+        if chunk.strip()
+    ]
+    if not tokens:
+        return text
+
+    filtered = text
+    for token in tokens:
+        pattern = re.compile(re.escape(token), re.IGNORECASE)
+        filtered = pattern.sub("***", filtered)
+    return filtered
+
+
+def should_auto_send_now(
+    *,
+    manual_approval_enabled: bool,
+    response_schedule: str,
+    decided_at: datetime | None,
+    now_utc: datetime | None = None,
+) -> bool:
+    """Return True when an AUTO_REPLY can be published immediately.
+
+    - manual approval ON  => never auto-send
+    - schedule instant    => send now
+    - schedule delay_1h   => send only after 1 hour from decided_at
+    """
+    if manual_approval_enabled:
+        return False
+
+    schedule = (response_schedule or "instant").strip().lower()
+    if schedule == "instant":
+        return True
+
+    if schedule == "delay_1h":
+        if decided_at is None:
+            return False
+        if decided_at.tzinfo is None:
+            decided_at = decided_at.replace(tzinfo=timezone.utc)
+        now = now_utc or datetime.now(timezone.utc)
+        if now.tzinfo is None:
+            now = now.replace(tzinfo=timezone.utc)
+        return now >= decided_at + timedelta(hours=1)
+
+    return True
+
+
 def emit_review_alert(review: Review) -> None:
     logger.warning(
         "REVIEW_ALERT location_id=%s review_id=%s priority=%s category=%s summary=%s",
@@ -288,6 +358,9 @@ async def store_new_review_from_webhook(db: Session, webhook_payload: dict[str, 
 
     payload_hash = sha256_json(review_data)
     existing = db.scalar(select(Review).where(Review.review_id == review_id))
+    profile_settings = db.scalar(
+        select(StarterProfileSettings).where(StarterProfileSettings.user_id == connection.user_id)
+    )
     if existing:
         if existing.raw_payload_hash != payload_hash:
             raise HTTPException(status_code=409, detail="reviewId collision with different payload")
@@ -299,11 +372,30 @@ async def store_new_review_from_webhook(db: Session, webhook_payload: dict[str, 
                 business_name=connection.business_name or connection.google_account_name,
                 author_name=existing.author_display_name or "there",
             )
+            decision["public_reply"] = apply_forbidden_words_filter(
+                decision.get("public_reply"),
+                profile_settings.forbidden_words if profile_settings else "",
+            )
             apply_review_reply_decision(existing, decision)
             if existing.reply_action == "ALERT":
                 emit_review_alert(existing)
             db.commit()
             db.refresh(existing)
+
+            if (
+                existing.reply_action == "AUTO_REPLY"
+                and existing.reply_sent_at is None
+                and existing.reply_public_text
+                and should_auto_send_now(
+                    manual_approval_enabled=connection.manual_approval_enabled,
+                    response_schedule=profile_settings.response_schedule if profile_settings else "instant",
+                    decided_at=existing.reply_decided_at,
+                )
+            ):
+                try:
+                    await send_review_reply(db=db, review=existing, reply_text=existing.reply_public_text)
+                except HTTPException:
+                    logger.exception("Immediate auto-send failed for existing review %s", existing.review_id)
         return existing
 
     reviewer = review_data.get("reviewer", {})
@@ -336,6 +428,12 @@ async def store_new_review_from_webhook(db: Session, webhook_payload: dict[str, 
         business_name=connection.business_name or connection.google_account_name,
         author_name=review.author_display_name or "there",
     )
+
+    decision["public_reply"] = apply_forbidden_words_filter(
+        decision.get("public_reply"),
+        profile_settings.forbidden_words if profile_settings else "",
+    )
+
     apply_review_reply_decision(review, decision)
 
     db.add(review)
@@ -344,6 +442,20 @@ async def store_new_review_from_webhook(db: Session, webhook_payload: dict[str, 
 
     if review.reply_action == "ALERT":
         emit_review_alert(review)
+    elif (
+        review.reply_action == "AUTO_REPLY"
+        and review.reply_sent_at is None
+        and review.reply_public_text
+        and should_auto_send_now(
+            manual_approval_enabled=connection.manual_approval_enabled,
+            response_schedule=profile_settings.response_schedule if profile_settings else "instant",
+            decided_at=review.reply_decided_at,
+        )
+    ):
+        try:
+            await send_review_reply(db=db, review=review, reply_text=review.reply_public_text)
+        except HTTPException:
+            logger.exception("Immediate auto-send failed for review %s", review.review_id)
 
     return review
 
@@ -465,6 +577,14 @@ async def regenerate_review_reply(db: Session, review: Review) -> Review:
         business_name=business_name,
         author_name=review.author_display_name or "there",
     )
+    if connection:
+        profile_settings = db.scalar(
+            select(StarterProfileSettings).where(StarterProfileSettings.user_id == connection.user_id)
+        )
+        decision["public_reply"] = apply_forbidden_words_filter(
+            decision.get("public_reply"),
+            profile_settings.forbidden_words if profile_settings else "",
+        )
     apply_review_reply_decision(review, decision)
     # Reset sent state so the new suggestion goes back to pending
     review.reply_sent_at = None

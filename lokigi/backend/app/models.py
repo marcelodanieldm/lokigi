@@ -1,7 +1,7 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, date
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Index, Integer, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Boolean, DateTime, Date, ForeignKey, Index, Integer, Numeric, String, Text, UniqueConstraint, Float, Enum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -16,6 +16,13 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
 
     connection: Mapped["GoogleConnection"] = relationship(back_populates="user", uselist=False)
+    lifecycle_events: Mapped[list["LifecycleEvent"]] = relationship(back_populates="user")
+    churn_surveys: Mapped[list["ChurnSurvey"]] = relationship(back_populates="user")
+    churn_telemetry_snapshot: Mapped["ChurnTelemetrySnapshot | None"] = relationship(back_populates="user", uselist=False)
+    acknowledged_alerts: Mapped[list["ChurnAlert"]] = relationship(back_populates="acknowledged_by")
+    starter_profile_settings: Mapped["StarterProfileSettings | None"] = relationship(back_populates="user", uselist=False)
+    subscription_profile: Mapped["SubscriptionProfile | None"] = relationship(back_populates="user", uselist=False)
+
 
 
 class GoogleConnection(Base):
@@ -31,6 +38,8 @@ class GoogleConnection(Base):
     business_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     location_id: Mapped[str] = mapped_column(String(128), nullable=False)
     preferred_tone: Mapped[str] = mapped_column(String(50), nullable=False, default="cercano")
+    manual_approval_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    negative_review_whatsapp_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     encrypted_access_token: Mapped[str] = mapped_column(Text, nullable=False)
     encrypted_refresh_token: Mapped[str] = mapped_column(Text, nullable=False)
@@ -86,6 +95,48 @@ class Review(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
 
     connection: Mapped[GoogleConnection] = relationship(back_populates="reviews")
+
+
+class StarterProfileSettings(Base):
+    __tablename__ = "starter_profile_settings"
+    __table_args__ = (
+        UniqueConstraint("user_id", name="uq_starter_profile_settings_user_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+
+    # CSV list entered by user. We keep raw text to preserve user intent and separators.
+    forbidden_words: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    # Allowed values: instant | delay_1h
+    response_schedule: Mapped[str] = mapped_column(String(32), nullable=False, default="instant")
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    user: Mapped[User] = relationship(back_populates="starter_profile_settings")
+
+
+class SubscriptionProfile(Base):
+    __tablename__ = "subscription_profiles"
+    __table_args__ = (
+        UniqueConstraint("user_id", name="uq_subscription_profiles_user_id"),
+        Index("ix_subscription_profiles_status", "subscription_status"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+
+    subscription_plan: Mapped[str] = mapped_column(String(50), nullable=False, default="starter")
+    subscription_status: Mapped[str] = mapped_column(String(32), nullable=False, default="active")
+    stripe_customer_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    stripe_subscription_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    current_period_end: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    user: Mapped[User] = relationship(back_populates="subscription_profile")
 
 
 class StarterMonthlyMetrics(Base):
@@ -160,3 +211,125 @@ class MonthlyReport(Base):
 
     payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     generated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+# ────────────────────────────────────────────────────────────────────────────────
+# CHURN & LIFECYCLE MODELS
+# ────────────────────────────────────────────────────────────────────────────────
+
+
+class LifecycleEvent(Base):
+    """Track user journey milestones (signup, first_connection, churn_initiated, etc.)."""
+    
+    __tablename__ = "lifecycle_events"
+    __table_args__ = (
+        Index("ix_lifecycle_user_type", "user_id", "event_type"),
+        Index("ix_lifecycle_created_at", "created_at"),
+    )
+    
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    event_type: Mapped[str] = mapped_column(String(50), nullable=False)  # Uses lifecycle_event_type enum
+    # "metadata" is reserved by SQLAlchemy Declarative API, so map it via a safe attribute name.
+    event_metadata: Mapped[dict | None] = mapped_column("metadata", JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    
+    user: Mapped[User] = relationship(back_populates="lifecycle_events")
+
+
+class ChurnSurvey(Base):
+    """Qualitative churn feedback - submitted by user when canceling."""
+    
+    __tablename__ = "churn_surveys"
+    __table_args__ = (
+        Index("ix_churn_survey_reason", "primary_reason"),
+        Index("ix_churn_survey_date", "cancellation_date"),
+        Index("ix_churn_survey_score", "satisfaction_score"),
+    )
+    
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    cancellation_date: Mapped[date] = mapped_column(Date, nullable=False)
+    primary_reason: Mapped[str] = mapped_column(String(50), nullable=False)  # Uses churn_reason enum
+    secondary_reasons: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    satisfaction_score: Mapped[int] = mapped_column(Integer, nullable=False)
+    free_text_feedback: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    would_return_if_feature: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    would_return_if_price_reduction: Mapped[bool] = mapped_column(Boolean, default=False)
+    reduction_amount_percent: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    
+    user: Mapped[User] = relationship(back_populates="churn_surveys")
+
+
+class ChurnTelemetrySnapshot(Base):
+    """Engagement metrics snapshot captured at churn time."""
+    
+    __tablename__ = "churn_telemetry_snapshot"
+    __table_args__ = (
+        UniqueConstraint("user_id", name="uq_telemetry_one_per_user"),
+        Index("ix_telemetry_approval_rate", "approval_rate"),
+        Index("ix_telemetry_active_days", "active_days_before_cancel"),
+    )
+    
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    active_days_before_cancel: Mapped[int] = mapped_column(Integer, nullable=False)
+    last_activity_days_ago: Mapped[int] = mapped_column(Integer, nullable=False)
+    total_reviews_processed: Mapped[int] = mapped_column(Integer, default=0)
+    total_ai_responses_generated: Mapped[int] = mapped_column(Integer, default=0)
+    total_ai_responses_approved: Mapped[int] = mapped_column(Integer, default=0)
+    approval_rate: Mapped[float] = mapped_column(Float, nullable=False)
+    used_tone_selector: Mapped[bool] = mapped_column(Boolean, default=False)
+    used_sentiment_reports: Mapped[bool] = mapped_column(Boolean, default=False)
+    used_manual_approval: Mapped[bool] = mapped_column(Boolean, default=False)
+    locations_connected: Mapped[int] = mapped_column(Integer, default=0)
+    days_subscribed: Mapped[int] = mapped_column(Integer, default=0)
+    subscription_plan: Mapped[str] = mapped_column(String(50), default="starter")
+    captured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    
+    user: Mapped[User] = relationship(back_populates="churn_telemetry_snapshot")
+
+
+class ChurnAlert(Base):
+    """Automated alerts triggered by churn monitoring system."""
+    
+    __tablename__ = "churn_alerts"
+    __table_args__ = (
+        Index("ix_alert_severity", "severity"),
+        Index("ix_alert_triggered_at", "triggered_at"),
+        Index("ix_alert_type", "alert_type"),
+        Index("ix_alert_acknowledged", "acknowledged_at"),
+    )
+    
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    alert_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    severity: Mapped[str] = mapped_column(String(20), nullable=False)  # LOW, MEDIUM, HIGH, CRITICAL
+    triggered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    acknowledged_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    time_window_days: Mapped[int] = mapped_column(Integer, nullable=False)
+    metric_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    metric_value: Mapped[float | None] = mapped_column(Float, nullable=True)
+    threshold_value: Mapped[float | None] = mapped_column(Float, nullable=True)
+    alert_message: Mapped[str] = mapped_column(Text, nullable=False)
+    details: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    
+    acknowledged_by: Mapped[User | None] = relationship(back_populates="acknowledged_alerts")

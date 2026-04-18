@@ -61,12 +61,40 @@ SAMPLE_KPIS = {
 }
 
 SAMPLE_SENTIMENT = {
+    "total_reviews_analyzed": 12,
+    "positive_reviews": 7,
+    "neutral_reviews": 2,
+    "negative_reviews": 3,
     "positive_concepts": [{"concept": "rapidez", "count": 10, "pct": 50.0}],
     "negative_concepts": [{"concept": "precio / costo", "count": 5, "pct": 25.0}],
+    "top_concepts": [{"concept": "atención al cliente", "count": 11, "pct": 91.7}],
+    "sentiment_snapshot": {
+        "labels": ["Positivas", "Neutrales", "Negativas"],
+        "counts": [7, 2, 3],
+        "percentages": [58.3, 16.7, 25.0],
+    },
     "chart_data": {
         "labels": ["rapidez", "precio / costo"],
         "positive": [10, 0],
         "negative": [0, 5],
+    },
+}
+
+SAMPLE_VALUE_METRICS = {
+    "response_velocity": {
+        "current_avg_minutes": 12.0,
+        "baseline_avg_minutes": 180.0,
+        "delta_minutes": 168.0,
+        "improvement_pct": 93.3,
+        "current_sample_size": 10,
+        "baseline_sample_size": 4,
+        "baseline_source": "google_history",
+        "current_label": "Promedio de Lokigi",
+        "baseline_label": "Antes de Lokigi",
+    },
+    "sentiment_snapshot": SAMPLE_SENTIMENT["sentiment_snapshot"],
+    "keyword_cloud": {
+        "top_concepts": SAMPLE_SENTIMENT["top_concepts"],
     },
 }
 
@@ -82,11 +110,12 @@ class TestBuildReportPayload:
             month=3,
             kpis=SAMPLE_KPIS,
             sentiment=SAMPLE_SENTIMENT,
+            value_metrics=SAMPLE_VALUE_METRICS,
         )
 
     def test_top_level_keys(self):
         for key in ("report_id", "user_id", "location_id", "business_name",
-                    "period", "generated_at", "kpis", "sentiment"):
+                "period", "generated_at", "kpis", "value_metrics", "sentiment"):
             assert key in self.payload, f"Missing key: {key}"
 
     def test_period(self):
@@ -100,9 +129,14 @@ class TestBuildReportPayload:
 
     def test_sentiment_keys(self):
         s = self.payload["sentiment"]
+        assert "sentiment_snapshot" in s
+        assert "top_concepts" in s
         assert "positive_concepts" in s
         assert "negative_concepts" in s
         assert "chart_data" in s
+
+    def test_value_metrics_passed_through(self):
+        assert self.payload["value_metrics"] == SAMPLE_VALUE_METRICS
 
     def test_report_id_is_valid_uuid(self):
         uuid.UUID(self.payload["report_id"])  # raises if invalid
@@ -120,6 +154,7 @@ class TestBuildReportPayload:
             month=3,
             kpis=SAMPLE_KPIS,
             sentiment=SAMPLE_SENTIMENT,
+            value_metrics=SAMPLE_VALUE_METRICS,
         )
         assert p2["report_id"] != self.payload["report_id"]
 
@@ -225,5 +260,7 @@ class TestBuildScheduler:
         from app.monthly_report_worker import build_scheduler
         scheduler = build_scheduler()
         jobs = scheduler.get_jobs()
-        assert len(jobs) == 1
-        assert jobs[0].id == "monthly_report_job"
+        assert len(jobs) == 2
+        job_ids = {job.id for job in jobs}
+        assert "monthly_report_job" in job_ids
+        assert "auto_reply_dispatch_job" in job_ids

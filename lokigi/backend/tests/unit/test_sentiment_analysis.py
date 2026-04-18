@@ -91,12 +91,14 @@ class TestAnalyzeMonthlySentiment:
 
     def test_basic_counts(self):
         assert self.report.positive_reviews == 4
+        assert self.report.neutral_reviews == 1
         assert self.report.negative_reviews == 3
-        assert self.report.total_reviews_analyzed == 7  # 3★ is excluded
+        assert self.report.total_reviews_analyzed == 8
 
     def test_top_n_limit(self):
-        assert len(self.report.positive_concepts) <= 3
-        assert len(self.report.negative_concepts) <= 3
+        assert len(self.report.positive_concepts) <= 5
+        assert len(self.report.negative_concepts) <= 5
+        assert len(self.report.top_concepts) <= 5
 
     def test_positive_concepts_are_present(self):
         pos_labels = [h.concept for h in self.report.positive_concepts]
@@ -122,7 +124,19 @@ class TestAnalyzeMonthlySentiment:
         assert d["location_id"] == "loc-test-001"
         assert isinstance(d["positive_concepts"], list)
         assert isinstance(d["negative_concepts"], list)
+        assert isinstance(d["top_concepts"], list)
+        assert "sentiment_snapshot" in d
         assert "chart_data" in d
+
+    def test_sentiment_snapshot_structure(self):
+        snapshot = self.report.to_dict()["sentiment_snapshot"]
+        assert snapshot["labels"] == ["Positivas", "Neutrales", "Negativas"]
+        assert snapshot["counts"] == [4, 1, 3]
+        assert len(snapshot["percentages"]) == 3
+
+    def test_top_concepts_include_cross_sentiment_mentions(self):
+        labels = [h["concept"] for h in self.report.to_dict()["top_concepts"]]
+        assert "atención al cliente" in labels or "tiempo de espera" in labels
 
     def test_chart_data_structure(self):
         cd = self.report.to_dict()["chart_data"]
@@ -155,7 +169,8 @@ class TestAnalyzeMonthlySentiment:
         report = analyze_monthly_sentiment(
             neutral, year=2026, month=1, location_id="loc-neutral"
         )
-        assert report.total_reviews_analyzed == 0
+        assert report.total_reviews_analyzed == 5
+        assert report.neutral_reviews == 5
 
     def test_custom_top_n(self):
         report = analyze_monthly_sentiment(

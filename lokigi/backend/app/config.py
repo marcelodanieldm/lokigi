@@ -24,6 +24,12 @@ class Settings(BaseSettings):
     sendgrid_api_key: str = ""
     sendgrid_from_email: str = "noreply@lokigi.com"
 
+    # Stripe billing
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
+    stripe_growth_price_id: str = ""
+    stripe_growth_checkout_url: str = ""
+
     # Public domain used in email links (no scheme, no trailing slash)
     app_domain: str = "localhost:8000"
 

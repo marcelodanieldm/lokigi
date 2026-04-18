@@ -15,7 +15,6 @@ from sqlalchemy.orm import Session
 from app.main import app
 from app.models import GoogleConnection, User
 from app.config import settings
-from tests.conftest import get_test_db
 
 
 client = TestClient(app)
@@ -246,6 +245,46 @@ class TestToneCurrentEndpoint:
         fake_user_id = uuid4()
         res = client.get(f"/api/tone/current?user_id={fake_user_id}")
         assert res.status_code == 404
+
+
+class TestStarterActivationEndpoint:
+    """Tests for POST /api/starter/activate."""
+
+    def test_activate_starter_persists_flags(self, test_user: User, test_connection: GoogleConnection, db: Session):
+        res = client.post(
+            "/api/starter/activate",
+            json={
+                "user_id": str(test_user.id),
+                "tone": "moderno",
+                "manual_approval": True,
+                "whatsapp_negative_alerts": True,
+            },
+        )
+
+        assert res.status_code == 200
+        body = res.json()
+        assert body["status"] == "activated"
+        assert body["preferred_tone"] == "moderno"
+        assert body["manual_approval_enabled"] is True
+        assert body["negative_review_whatsapp_enabled"] is True
+
+        db.refresh(test_connection)
+        assert test_connection.preferred_tone == "moderno"
+        assert test_connection.manual_approval_enabled is True
+        assert test_connection.negative_review_whatsapp_enabled is True
+
+    def test_activate_starter_invalid_tone(self, test_user: User):
+        res = client.post(
+            "/api/starter/activate",
+            json={
+                "user_id": str(test_user.id),
+                "tone": "serio-premium",
+                "manual_approval": True,
+                "whatsapp_negative_alerts": False,
+            },
+        )
+        assert res.status_code == 400
+        assert "Invalid tone" in res.json()["detail"]
 
 
 class TestToneSelectorPage:

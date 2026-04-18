@@ -1,137 +1,174 @@
 # Lokigi
 
-Lokigi is a backend service for Google Business Profile automation — review ingestion, AI-assisted reply management, Starter onboarding UX, monthly KPI analytics and sentiment reporting.
+Lokigi centraliza automatización de reseñas de Google Business Profile para el Plan Starter: onboarding guiado, generación y aprobación de respuestas, autoenvío programable, perfil operativo, suscripción/facturación, reportes mensuales, análisis de sentimiento, churn/cancelación y análisis NLP de respuestas editadas.
 
-## What is implemented
+## Estado actual
 
-### Core platform
-- Google OAuth2 flow for Business Profile linking.
-- One-location-per-user and one-user-per-location constraints.
-- Pub/Sub webhook processing for `NEW_REVIEW` notifications.
-- Review storage with collision protection by `review_id` and payload hash.
-- Symmetric encryption (Fernet) for stored OAuth tokens.
+### Plataforma base
+- OAuth2 con Google Business Profile.
+- Restricción de una ubicación por usuario en Starter y validación de upgrade a Growth si intentan conectar una segunda.
+- Ingesta de `NEW_REVIEW` vía Pub/Sub.
+- Persistencia de reseñas con protección ante colisiones por `review_id` y hash de payload.
+- Tokens OAuth cifrados con Fernet.
 
-### NLP reply engine (`review_reply_engine.py`)
-- Language detection (ES / EN / PT / FR) via `langdetect`.
-- `stars ≤ 2` → `ALERT` (high priority).
-- Sensitive content detected → `ALERT` (escalate to legal/ops).
-- `stars 4-5` → `AUTO_REPLY` with personalised gratitude template.
-- `stars 3` → `AUTO_REPLY` with professional improvement template.
-- Decision persisted in DB for full auditability.
+### Motor de respuestas y operación Starter
+- Motor NLP con detección de idioma y clasificación `ALERT` / `AUTO_REPLY`.
+- Selector de tono `cercano`, `formal`, `moderno` con preview en tiempo real.
+- Activación Starter con flags `manual_approval_enabled` y `negative_review_whatsapp_enabled`.
+- Configuración de perfil Starter con palabras prohibidas y `response_schedule` (`instant` o `delay_1h`).
+- Filtro de palabras prohibidas aplicado antes de mostrar o enviar respuestas.
+- Autoenvío inmediato o diferido 1 hora según configuración del usuario.
+- Worker `auto_reply_worker.py` ejecutado por scheduler cada minuto para despachar respuestas pendientes.
 
-### Starter onboarding UX — Zero-Friction Flow
-- **Location discovery API**: `GET /api/locations?user_id=` detects if user is linked and returns available locations.
-- **Seamless OAuth**: Modified OAuth flow allows auto-selection of the first location (for < 3-minute onboarding).
-- **Step-by-step UX**: 
-  1. `/starter/onboarding` → welcome page (3-click flow explainer)
-  2. Google OAuth consent screen 
-  3. `/starter/loading` → active loading screen with animated milestones (storytelling: Google connection → review analysis → AI training)
-  4. `/starter/dashboard` → ready to use (auto-redirect after ~7 seconds)
-- Milestones animation increases perceived value during backend initialization (no boring spinner).
-- OAuth `state` signed with `itsdangerous`; `starter_flow` flag ensures proper redirect chain.
-- Dashboard shows connection status, business name, and last 5 reviews received.
+### Flujo UX de onboarding
+- `/starter/onboarding` como pantalla de entrada.
+- `/starter/connect-google` para iniciar OAuth con contexto Starter.
+- `/starter/loading` como pantalla intermedia de inicialización.
+- `/starter/tone-selector` para tono y activación final.
+- `/starter/dashboard` con negocio conectado, tono, flags y últimas reseñas.
 
-### Human approval workflow (`/starter/approvals`)
-- Bootstrap 5 page (no npm, no build step) served directly by FastAPI.
-- Lists all pending `AUTO_REPLY` reviews for a user.
-- Per-review card: original review, editable AI suggestion, **Aprobar y Enviar** / **Regenerar** buttons.
-- Handles 409 duplicate-reply from Google gracefully; shows inline error messages.
-- API: `GET /api/reviews/pending`, `POST /api/reviews/{id}/approve`, `POST /api/reviews/{id}/regenerate`.
+### Aprobación humana de respuestas
+- `/starter/approvals` como UI server-rendered sin build frontend.
+- `GET /api/reviews/pending` para pendientes.
+- `POST /api/reviews/{id}/approve` para aprobar y enviar.
+- `POST /api/reviews/{id}/regenerate` para regenerar sugerencia.
 
-### Monthly KPI analytics
-- `StarterMonthlyMetrics` table: `total_reviews`, `avg_rating`, `response_rate_pct`, `avg_response_time_minutes` grouped by month.
-- SQL upsert query in `backend/sql/starter_monthly_metrics_query.sql` — ready for a daily background job.
-- Tenant-isolated: all queries scoped to `user_id` via `INNER JOIN google_connections`.
+### Perfil, suscripción y billing
+- Página de perfil Starter en `/starter/profile`.
+- Página de suscripción y facturas en `/starter/subscription`.
+- Modelo `SubscriptionProfile` para estado y referencias Stripe.
+- APIs:
+  - `GET /api/subscription/status`
+  - `GET /api/subscription/invoices`
+  - `GET /api/subscription/upgrade-check`
+  - `POST /api/subscription/upgrade/growth`
+- Upsell automático a Growth cuando Starter intenta añadir una segunda ubicación.
 
-### Voice tone personalization
-- **Three tone variants**: 
-  - `cercano` (friendly/warm) — for personal, human-centric brands
-  - `formal` (professional/corporate) — for B2B, legal, enterprise services
-  - `moderno` (contemporary/dynamic) — for tech-forward, disruptive brands
-- **Tone selector UI** (`/starter/tone-selector`): 3 interactive cards with real-time preview of how Lokigi would respond to the user's first positive review.
-- **Stateless preview engine**: `POST /api/tone-preview` generates sample reply on-demand (no DB hit).
-- **Persistent preference**: User choice saved to `preferred_tone` column on `google_connections`.
-- **Multilingual support**: All tones work in ES, PT, EN with language-aware phrasing.
-- **Rating-aware responses**: High ratings (5★) vs mid ratings (3★) receive different celebratory vs improvement messages.
+### Métricas mensuales, valor y sentimiento
+- Tabla `StarterMonthlyMetrics` para KPIs mensuales.
+- Reportes persistidos en `monthly_reports`.
+- Scheduler APScheduler con job mensual de reportes y job por minuto de autoenvío.
+- Reporte HTML en `/starter/report`.
+- Análisis de sentimiento con:
+  - conceptos positivos y negativos
+  - conceptos top globales
+  - snapshot de positivas / neutrales / negativas
+  - `chart_data` listo para visualización
+- Métricas de valor añadidas al reporte:
+  - velocidad de respuesta actual vs baseline histórico
+  - snapshot de sentimiento
+  - keyword cloud
 
-### Sentiment analysis — concept extraction (`sentiment_analysis.py`)
-- Lexicon-based (bilingual ES/EN), no external ML dependency.
-- Polarity derived from star rating: 4-5★ → positive, 1-2★ → negative, 3★ skipped.
-- 12 concept categories tracked (atención, rapidez, precio, limpieza, ambiente, etc.).
-- Returns top-N positive + top-N negative concepts with counts and percentages.
-- Includes `chart_data` key with aligned `labels / positive / negative` arrays for direct use in any bar chart library.
-- API: `GET /api/reports/monthly-sentiment?user_id=&year=&month=`.
+### Cancelación, retención y churn
+- Flujo de cancelación con Impact Modal y oferta `Plan Pausa`.
+- Servicio `cancellation_service.py` para:
+  - horas ahorradas del mes
+  - inicio de cancelación con ofertas
+  - activación de `Plan Pausa`
+  - confirmación de cancelación
+  - email de despedida con enlace a PDF de métricas
+- Rutas incluidas en FastAPI:
+  - `GET /api/cancellation/impact-data`
+  - `POST /api/cancellation/initiate`
+  - `POST /api/cancellation/plan-pausa`
+  - `POST /api/cancellation/confirm`
+  - `GET /api/cancellation/grace-period-status`
+- Modelos de churn y lifecycle en `backend/app/models.py`.
+- Alert engine y análisis correlacional en:
+  - `backend/app/churn_alert_engine.py`
+  - `backend/app/churn_correlation_analysis.py`
+- Migración Alembic de churn en `20260418_0007_add_churn_tracking.py`.
 
-### Monthly report — KPI analytics & sentiment reporting (`monthly_report_worker.py`)
-- **APScheduler-based cron**: Runs day 1 of each month at 06:00 UTC to generate reports for all users.
-- **Report payload** includes: KPIs (avg_rating, total_reviews, response_rate_pct, avg_response_time_minutes), business_name, sentiment analysis (top 3 positive + negative concepts).
-- **Auto-email**: SendGrid integration notifies users via email when their report is ready (if `SENDGRID_API_KEY` configured).
-- **HTML report page** (`/starter/report`): Single-page, print-ready, mobile-responsive report with Chart.js visualizations.
-  - KPI cards: rating, review count, AI response rate, avg response time.
-  - Rating evolution chart (line).
-  - Reviews per month (bar chart with current month highlighted).
-  - Word cloud of sentiment concepts (size proportional to mention count).
-  - Sentiment concepts bar chart (positive vs negative).
+### Análisis NLP de respuestas editadas
+- Motor `backend/app/nlp_edit_analysis.py` para comparar `reply_public_text` vs `reply_approved_text`.
+- Detección de errores recurrentes de tono, personalización, gramática y sesgos.
+- APIs:
+  - `GET /api/nlp/user-edit-analysis`
+  - `GET /api/nlp/systemic-analysis`
+  - `POST /api/nlp/export-training-dataset`
+- CLI de análisis en `backend/scripts/analyze_edited_responses.py`.
 
-## Quick start (local)
+## Quick start local
 
-From `backend/`:
+Desde `backend/`:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\run_local.ps1
 ```
 
-This installs dependencies, runs migrations, creates a local test user, and starts the API.
+Esto instala dependencias, ejecuta migraciones, crea un usuario local de prueba y levanta la API.
 
-## Main endpoints
+## Endpoints principales
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/health` | Liveness check |
-| `GET` | `/api/locations` | List available locations for user (`?user_id=`) — supports zero-friction onboarding |
-| `GET` | `/oauth/google/start` | Begin OAuth flow (`user_id`, optional `location_id`) |
-| `GET` | `/oauth/google/callback` | OAuth callback — returns JSON or redirects |
-| `POST` | `/webhooks/google/reviews` | Pub/Sub push for new reviews |
-| `GET` | `/starter/onboarding` | Starter welcome page (Bootstrap) |
-| `GET` | `/starter/connect-google` | Redirect to Google OAuth with starter flag |
-| `GET` | `/starter/loading` | Active loading screen with animated milestones (step 2) |
-| `GET` | `/starter/dashboard` | Connection status + last 5 reviews |
-| `GET` | `/starter/tone-selector` | Interactive voice tone selector (3 cards: cercano, formal, moderno) |
-| `GET` | `/starter/approvals` | Review approval UI (Bootstrap, `?user_id=`) |
-| `GET` | `/starter/report` | Monthly report page (Chart.js, KPI cards, sentiment) (`?user_id=&year=&month=`) |
-| `GET` | `/api/reviews/pending` | List pending AUTO_REPLY reviews (`?user_id=`) |
-| `POST` | `/api/reviews/{id}/approve` | Send reply to Google + mark as sent |
-| `POST` | `/api/reviews/{id}/regenerate` | Re-run NLP, return new suggestion |
-| `POST` | `/api/tone-preview` | Generate preview reply based on tone (cercano, formal, moderno) |
-| `POST` | `/api/tone/set` | Save user's preferred tone (`user_id`, `tone`) |
-| `GET` | `/api/tone/current` | Get current tone preference (`?user_id=`) |
-| `GET` | `/api/reports/monthly-sentiment` | Top-3 positive/negative concepts (`?user_id=&year=&month=`) |
-| `GET` | `/api/reports/monthly` | Stored monthly report payload (`?user_id=&year=&month=`) |
-| `GET` | `/api/reports/history` | Historical KPI data for rating evolution (`?user_id=`) |
+| `GET` | `/health` | Health check |
+| `GET` | `/api/locations` | Lista ubicaciones disponibles para onboarding (`user_id`) |
+| `GET` | `/oauth/google/start` | Inicia OAuth (`user_id`, opcional `location_id`) |
+| `GET` | `/oauth/google/callback` | Callback OAuth |
+| `POST` | `/webhooks/google/reviews` | Webhook Pub/Sub para nuevas reseñas |
+| `GET` | `/starter/onboarding` | Pantalla inicial Starter |
+| `GET` | `/starter/connect-google` | Redirección a OAuth con contexto Starter |
+| `GET` | `/starter/loading` | Pantalla de carga del onboarding |
+| `GET` | `/starter/tone-selector` | Selector de tono + activación Starter |
+| `GET` | `/starter/dashboard` | Dashboard Starter |
+| `GET` | `/starter/profile` | Configuración de perfil Starter |
+| `POST` | `/api/starter/profile` | Guarda tono, palabras prohibidas y schedule |
+| `GET` | `/starter/subscription` | Vista de suscripción y facturación |
+| `GET` | `/api/subscription/status` | Resumen de suscripción |
+| `GET` | `/api/subscription/invoices` | Facturas Stripe |
+| `GET` | `/api/subscription/upgrade-check` | Verifica si requiere upgrade |
+| `POST` | `/api/subscription/upgrade/growth` | Crea checkout Growth |
+| `GET` | `/starter/approvals` | UI de aprobación manual |
+| `GET` | `/api/reviews/pending` | Reseñas pendientes de aprobación |
+| `POST` | `/api/reviews/{id}/approve` | Aprueba y envía respuesta |
+| `POST` | `/api/reviews/{id}/regenerate` | Regenera respuesta sugerida |
+| `POST` | `/api/tone-preview` | Preview del tono |
+| `POST` | `/api/tone/set` | Guarda tono preferido |
+| `POST` | `/api/starter/activate` | Activa Starter con flags operativos |
+| `GET` | `/api/tone/current` | Lee tono preferido actual |
+| `GET` | `/starter/report` | Reporte mensual renderizado |
+| `GET` | `/api/reports/monthly-sentiment` | Sentimiento mensual |
+| `GET` | `/api/reports/monthly` | Payload persistido del reporte |
+| `GET` | `/api/reports/history` | Histórico mensual |
+| `GET` | `/api/cancellation/impact-data` | Impacto previo a cancelación |
+| `POST` | `/api/cancellation/initiate` | Inicia flujo de cancelación |
+| `POST` | `/api/cancellation/plan-pausa` | Activa Plan Pausa |
+| `POST` | `/api/cancellation/confirm` | Confirma cancelación |
+| `GET` | `/api/cancellation/grace-period-status` | Estado del grace period |
+| `GET` | `/api/nlp/user-edit-analysis` | Análisis NLP por usuario |
+| `GET` | `/api/nlp/systemic-analysis` | Análisis NLP sistémico |
+| `POST` | `/api/nlp/export-training-dataset` | Exporta dataset de entrenamiento |
 
-## Database migrations (Alembic)
+## Migraciones Alembic
 
 | Version | Description |
 |---------|-------------|
-| `0001` | Initial schema: users, google_connections, reviews |
-| `0002` | NLP decision columns on reviews + business_name on connections |
-| `0003` | `starter_monthly_metrics` table |
-| `0004` | `reply_approved_text` + `reply_sent_at` on reviews |
-| `0005` | `monthly_reports` table for persisted monthly KPI reports |
-| `0006` | `preferred_tone` column on google_connections (cercano, formal, moderno) |
+| `0001` | Esquema inicial: `users`, `google_connections`, `reviews` |
+| `0002` | Columnas NLP en reviews + `business_name` |
+| `0003` | Tabla `starter_monthly_metrics` |
+| `0004` | `reply_approved_text` + `reply_sent_at` |
+| `0005` | Tabla `monthly_reports` |
+| `0006` | `preferred_tone` en `google_connections` |
+| `20260418_0007` | Lifecycle + churn tracking |
+| `20260418_0008` | Flags de activación Starter |
 
-## Running tests
+## Tests
 
 ```powershell
-# Unit tests (no Docker required)
+# Unit tests
 pytest tests/unit -q
 
-# Integration tests (requires Docker for Postgres)
+# Integration tests
 pytest tests/integration -q
+
+# Suite específica de churn
+pytest backend/tests/test_churn_system.py -v
 ```
 
-## Full project documentation
+## Documentación del proyecto
 
+### Núcleo del proyecto
 - `docs/README.md`
 - `docs/ARCHITECTURE.md`
 - `docs/API.md`
@@ -139,8 +176,34 @@ pytest tests/integration -q
 - `docs/OPERATIONS.md`
 - `docs/NLP_REPLY_AUTOMATION.md`
 
-## Existing backend guides
+### Churn y cancelación
+- `IMPLEMENTATION_CHURN_SYSTEM.md`
+- `NEXT_STEPS_CHURN_IMPLEMENTATION.md`
+- `CHURN_SYSTEM_ARCHITECTURE.md`
+- `EXECUTIVE_SUMMARY_CHURN_SESSION5.md`
+- `PRE_MIGRATION_CHECKLIST.md`
+- `IMPLEMENTATION_CANCELLATION_FULLSTACK.md`
+- `QUICKSTART_CANCELLATION.md`
+- `GOOGLE_API_GRACE_PERIOD.md`
+- `SESSION_6_COMPLETE.md`
+- `DELIVERY_SUMMARY_SESSION_6.md`
+- `FILES_INDEX_SESSION_6.md`
 
+### NLP model improvement
+- `backend/START_HERE.md`
+- `backend/IMPLEMENTATION_COMPLETE.md`
+- `backend/NLP_INITIATIVE_EXECUTIVE_SUMMARY.md`
+- `backend/NLP_MODEL_IMPROVEMENT_ANALYSIS.md`
+- `backend/NLP_ANALYSIS_INTEGRATION_GUIDE.md`
+- `backend/NLP_ANALYSIS_SYSTEM_OVERVIEW.md`
+
+### Backend y despliegue
 - `backend/LOCAL_DEV.md`
 - `backend/deploy/DEPLOYMENT.md`
+
+## Notas operativas
+
+- La UI principal sigue siendo server-rendered desde FastAPI; el árbol `frontend/src` contiene componentes y hooks de referencia para el flujo de cancelación, pero no existe un build frontend separado en este workspace.
+- El scheduler de `monthly_report_worker.py` ahora registra tanto el job mensual de reportes como el job de auto-reply por minuto.
+- Las rutas de cancelación están montadas desde `backend/app/routes/` y requieren la instancia única de FastAPI definida en `backend/app/main.py`.
 
