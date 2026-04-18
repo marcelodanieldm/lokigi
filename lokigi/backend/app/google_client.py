@@ -90,3 +90,45 @@ class GoogleBusinessProfileClient:
         if response.status_code >= 400:
             raise GoogleOAuthError(f"Cannot fetch review detail: {response.text}")
         return response.json()
+
+    async def get_location_metadata(self, access_token: str, location_name: str) -> dict[str, Any]:
+        """Fetch GBP location profile metadata for read-only UI sections.
+
+        Includes title, storefrontAddress and regularHours.weekdayDescriptions.
+        """
+        headers = {"Authorization": f"Bearer {access_token}"}
+        params = {
+            "readMask": "title,storefrontAddress,regularHours.weekdayDescriptions",
+        }
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.get(
+                f"https://mybusinessbusinessinformation.googleapis.com/v1/{location_name}",
+                headers=headers,
+                params=params,
+            )
+        if response.status_code >= 400:
+            raise GoogleOAuthError(f"Cannot fetch location metadata: {response.text}")
+        return response.json()
+
+    async def post_reply(self, access_token: str, review_name: str, comment: str) -> dict[str, Any]:
+        """Post or overwrite the owner reply for a review.
+
+        Google API: PUT https://mybusiness.googleapis.com/v4/{name}/reply
+        Returns the reply resource on success.
+        Raises GoogleOAuthError with a ``duplicate`` hint when status is 409.
+        """
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+        }
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.put(
+                f"https://mybusiness.googleapis.com/v4/{review_name}/reply",
+                headers=headers,
+                json={"comment": comment},
+            )
+        if response.status_code == 409:
+            raise GoogleOAuthError("duplicate_reply")
+        if response.status_code >= 400:
+            raise GoogleOAuthError(f"Cannot post reply: {response.text}")
+        return response.json()

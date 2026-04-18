@@ -75,7 +75,7 @@ async def test_starter_onboarding_flow_redirects_to_dashboard(client, test_user,
 
     onboarding = client.get(f"/starter/onboarding?user_id={test_user.id}&location_id=222")
     assert onboarding.status_code == 200
-    assert "Conectar Google Maps" in onboarding.text
+    assert "Entrar con Google y continuar" in onboarding.text
 
     connect = client.get(f"/starter/connect-google?user_id={test_user.id}&location_id=222", follow_redirects=False)
     assert connect.status_code in (302, 307)
@@ -87,13 +87,16 @@ async def test_starter_onboarding_flow_redirects_to_dashboard(client, test_user,
         follow_redirects=False,
     )
     assert callback.status_code in (302, 307)
-    assert callback.headers["location"] == f"/starter/dashboard?user_id={test_user.id}"
+    assert callback.headers["location"] == f"/starter/loading?user_id={test_user.id}"
 
-    dashboard = client.get(callback.headers["location"])
-    assert dashboard.status_code == 200
-    assert "Starter Dashboard" in dashboard.text
-    assert "Conectado" in dashboard.text
-    assert "My Store" in dashboard.text
+    loading = client.get(callback.headers["location"])
+    assert loading.status_code == 200
+    assert "Escaneando tu perfil" in loading.text
+
+    tone_selector = client.get(f"/starter/tone-selector?user_id={test_user.id}")
+    assert tone_selector.status_code == 200
+    assert "Activar mi cuenta Starter" in tone_selector.text
+    assert "My Store" in tone_selector.text
 
     connection = db_session.scalar(select(GoogleConnection).where(GoogleConnection.user_id == test_user.id))
     assert connection is not None

@@ -4,7 +4,8 @@ import base64
 import hashlib
 import json
 import logging
-from datetime import datetime, timezone
+import re
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from urllib.parse import urlencode
 
@@ -18,7 +19,7 @@ from sqlalchemy.orm import Session
 
 from .config import settings
 from .google_client import GoogleBusinessProfileClient, GoogleOAuthError
-from .models import GoogleConnection, Review, User
+from .models import GoogleConnection, Review, StarterProfileSettings, SubscriptionProfile, User
 from .review_reply_engine import generate_review_reply_decision
 
 
@@ -57,9 +58,11 @@ def sha256_json(data: dict[str, Any]) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
-def build_google_oauth_url(user_id: str, location_id: str, extra_state: dict[str, Any] | None = None) -> str:
+def build_google_oauth_url(user_id: str, location_id: str | None = None, extra_state: dict[str, Any] | None = None) -> str:
     state_manager = OAuthStateManager(settings.oauth_state_secret)
-    state_payload: dict[str, Any] = {"user_id": user_id, "location_id": location_id}
+    state_payload: dict[str, Any] = {"user_id": user_id}
+    if location_id:
+        state_payload["location_id"] = location_id
     if extra_state:
         state_payload.update(extra_state)
     state = state_manager.sign(state_payload)
@@ -83,8 +86,8 @@ async def upsert_google_connection(db: Session, code: str, state: str) -> Google
     user_id = state_payload.get("user_id")
     location_id = state_payload.get("location_id")
 
-    if not user_id or not location_id:
-        raise HTTPException(status_code=400, detail="Missing user_id or location_id in state")
+    if not user_id:
+        raise HTTPException(status_code=400, detail="Missing user_id in state")
 
     user = db.get(User, user_id)
     if not user:
@@ -102,18 +105,40 @@ async def upsert_google_connection(db: Session, code: str, state: str) -> Google
     except GoogleOAuthError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
-    selected = next((loc for loc in locations if loc["location_id"] == location_id), None)
-    if not selected:
-        raise HTTPException(status_code=403, detail="Selected location is not accessible by this Google account")
+    if not locations:
+        raise HTTPException(status_code=403, detail="No accessible locations found in your Google Business Profile")
+
+    # If location_id is provided, use it; otherwise auto-select the first (for zero-friction flow)
+    if location_id:
+        selected = next((loc for loc in locations if loc["location_id"] == location_id), None)
+        if not selected:
+            raise HTTPException(status_code=403, detail="Selected location is not accessible by this Google account")
+    else:
+        selected = locations[0]
 
     existing_for_user = db.scalar(select(GoogleConnection).where(GoogleConnection.user_id == user.id))
-    if existing_for_user and existing_for_user.location_id != location_id:
+    if existing_for_user and existing_for_user.location_id != selected["location_id"]:
+        subscription_profile = db.scalar(select(SubscriptionProfile).where(SubscriptionProfile.user_id == user.id))
+        current_plan = (subscription_profile.subscription_plan if subscription_profile else "starter").lower()
+        if current_plan == "starter":
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "growth_upgrade_required",
+                    "message": "El Plan Starter incluye una sola ubicación. Para conectar una segunda ubicación debes actualizar a Growth.",
+                    "upgrade_required": True,
+                    "target_plan": "growth",
+                    "current_location_id": existing_for_user.location_id,
+                    "requested_location_id": selected["location_id"],
+                    "upsell_url": f"/starter/subscription?user_id={user.id}&upsell=growth&requested_location_id={selected['location_id']}",
+                },
+            )
         raise HTTPException(
             status_code=409,
             detail="User already linked to a different location. Only one location is allowed.",
         )
 
-    existing_for_location = db.scalar(select(GoogleConnection).where(GoogleConnection.location_id == location_id))
+    existing_for_location = db.scalar(select(GoogleConnection).where(GoogleConnection.location_id == selected["location_id"]))
     if existing_for_location and existing_for_location.user_id != user.id:
         raise HTTPException(status_code=409, detail="Location already linked to another user")
 
@@ -127,12 +152,12 @@ async def upsert_google_connection(db: Session, code: str, state: str) -> Google
     if existing_for_user:
         connection = existing_for_user
     else:
-        connection = GoogleConnection(user_id=user.id, location_id=location_id, google_account_name=selected["account_name"])
+        connection = GoogleConnection(user_id=user.id, location_id=selected["location_id"], google_account_name=selected["account_name"])
         db.add(connection)
 
     connection.google_account_name = selected["account_name"]
     connection.business_name = selected.get("title") or selected["account_name"]
-    connection.location_id = location_id
+    connection.location_id = selected["location_id"]
     connection.encrypted_access_token = cipher.encrypt(token_data["access_token"])
     connection.encrypted_refresh_token = cipher.encrypt(refresh_token)
     connection.token_expiry = token_data["expires_at"]
@@ -238,6 +263,60 @@ def apply_review_reply_decision(review: Review, decision: dict[str, Any]) -> Non
     review.reply_decided_at = datetime.now(timezone.utc)
 
 
+def apply_forbidden_words_filter(text: str | None, forbidden_words_raw: str | None) -> str | None:
+    if not text:
+        return text
+    if not forbidden_words_raw:
+        return text
+
+    tokens = [
+        chunk.strip().lower()
+        for chunk in re.split(r"[\n,;]+", forbidden_words_raw)
+        if chunk.strip()
+    ]
+    if not tokens:
+        return text
+
+    filtered = text
+    for token in tokens:
+        pattern = re.compile(re.escape(token), re.IGNORECASE)
+        filtered = pattern.sub("***", filtered)
+    return filtered
+
+
+def should_auto_send_now(
+    *,
+    manual_approval_enabled: bool,
+    response_schedule: str,
+    decided_at: datetime | None,
+    now_utc: datetime | None = None,
+) -> bool:
+    """Return True when an AUTO_REPLY can be published immediately.
+
+    - manual approval ON  => never auto-send
+    - schedule instant    => send now
+    - schedule delay_1h   => send only after 1 hour from decided_at
+    """
+    if manual_approval_enabled:
+        return False
+
+    schedule = (response_schedule or "instant").strip().lower()
+    if schedule == "instant":
+        return True
+
+    if schedule == "delay_1h":
+        if decided_at is None:
+            return False
+        if decided_at.tzinfo is None:
+            decided_at = decided_at.replace(tzinfo=timezone.utc)
+        now = now_utc or datetime.now(timezone.utc)
+        if now.tzinfo is None:
+            now = now.replace(tzinfo=timezone.utc)
+        return now >= decided_at + timedelta(hours=1)
+
+    return True
+
+
 def emit_review_alert(review: Review) -> None:
     logger.warning(
         "REVIEW_ALERT location_id=%s review_id=%s priority=%s category=%s summary=%s",
@@ -279,6 +358,9 @@ async def store_new_review_from_webhook(db: Session, webhook_payload: dict[str, 
 
     payload_hash = sha256_json(review_data)
     existing = db.scalar(select(Review).where(Review.review_id == review_id))
+    profile_settings = db.scalar(
+        select(StarterProfileSettings).where(StarterProfileSettings.user_id == connection.user_id)
+    )
     if existing:
         if existing.raw_payload_hash != payload_hash:
             raise HTTPException(status_code=409, detail="reviewId collision with different payload")
@@ -290,11 +372,30 @@ async def store_new_review_from_webhook(db: Session, webhook_payload: dict[str, 
                 business_name=connection.business_name or connection.google_account_name,
                 author_name=existing.author_display_name or "there",
             )
+            decision["public_reply"] = apply_forbidden_words_filter(
+                decision.get("public_reply"),
+                profile_settings.forbidden_words if profile_settings else "",
+            )
             apply_review_reply_decision(existing, decision)
             if existing.reply_action == "ALERT":
                 emit_review_alert(existing)
             db.commit()
             db.refresh(existing)
+
+            if (
+                existing.reply_action == "AUTO_REPLY"
+                and existing.reply_sent_at is None
+                and existing.reply_public_text
+                and should_auto_send_now(
+                    manual_approval_enabled=connection.manual_approval_enabled,
+                    response_schedule=profile_settings.response_schedule if profile_settings else "instant",
+                    decided_at=existing.reply_decided_at,
+                )
+            ):
+                try:
+                    await send_review_reply(db=db, review=existing, reply_text=existing.reply_public_text)
+                except HTTPException:
+                    logger.exception("Immediate auto-send failed for existing review %s", existing.review_id)
         return existing
 
     reviewer = review_data.get("reviewer", {})
@@ -327,6 +428,12 @@ async def store_new_review_from_webhook(db: Session, webhook_payload: dict[str, 
         business_name=connection.business_name or connection.google_account_name,
         author_name=review.author_display_name or "there",
     )
+
+    decision["public_reply"] = apply_forbidden_words_filter(
+        decision.get("public_reply"),
+        profile_settings.forbidden_words if profile_settings else "",
+    )
+
     apply_review_reply_decision(review, decision)
 
     db.add(review)
@@ -335,5 +442,153 @@ async def store_new_review_from_webhook(db: Session, webhook_payload: dict[str, 
 
     if review.reply_action == "ALERT":
         emit_review_alert(review)
+    elif (
+        review.reply_action == "AUTO_REPLY"
+        and review.reply_sent_at is None
+        and review.reply_public_text
+        and should_auto_send_now(
+            manual_approval_enabled=connection.manual_approval_enabled,
+            response_schedule=profile_settings.response_schedule if profile_settings else "instant",
+            decided_at=review.reply_decided_at,
+        )
+    ):
+        try:
+            await send_review_reply(db=db, review=review, reply_text=review.reply_public_text)
+        except HTTPException:
+            logger.exception("Immediate auto-send failed for review %s", review.review_id)
 
+    return review
+
+
+# ── Review Approval helpers ───────────────────────────────────────────────────
+
+def get_pending_approvals(db: Session, user_id: str) -> list[Review]:
+    """Return reviews with an AUTO_REPLY suggestion not yet sent, for a user."""
+    return list(
+        db.scalars(
+            select(Review)
+            .join(GoogleConnection, Review.connection_id == GoogleConnection.id)
+            .where(
+                GoogleConnection.user_id == user_id,
+                Review.reply_action == "AUTO_REPLY",
+                Review.reply_sent_at.is_(None),
+                Review.reply_public_text.is_not(None),
+            )
+            .order_by(Review.created_at.desc())
+        ).all()
+    )
+
+
+async def send_review_reply(db: Session, review: Review, reply_text: str) -> Review:
+    """Post an approved reply to Google and persist the result.
+
+    Raises HTTPException:
+      - 409 when Google returns a duplicate-reply error
+      - 502 on any other Google API failure
+      - 404 when the parent connection is missing
+    """
+    connection = db.get(GoogleConnection, review.connection_id)
+    if not connection:
+        raise HTTPException(status_code=404, detail="Connection not found for review")
+
+    access_token = await ensure_valid_access_token(db, connection)
+    client = GoogleBusinessProfileClient(
+        settings.google_client_id,
+        settings.google_client_secret,
+        settings.google_redirect_uri,
+    )
+
+    # review_name format expected by GBP: accounts/{acct}/locations/{loc}/reviews/{id}
+    review_name = (
+        f"{connection.google_account_name}/locations/{review.location_id}/reviews/{review.review_id}"
+    )
+
+    try:
+        await client.post_reply(access_token, review_name, reply_text)
+    except GoogleOAuthError as exc:
+        if "duplicate_reply" in str(exc):
+            raise HTTPException(
+                status_code=409,
+                detail="Esta reseña ya tiene una respuesta publicada en Google.",
+            ) from exc
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    review.reply_approved_text = reply_text
+    review.reply_sent_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(review)
+    return review
+
+
+async def list_locations_for_user(db: Session, user_id: str) -> dict[str, Any]:
+    """List available Google Business Profile locations for a user.
+
+    Returns:
+        - status='not-found': User does not exist
+        - status='need-oauth': User exists but has no connection. Includes oauth_url to initiate flow
+        - status='connected': User has a connection. Includes the linked location details
+    """
+    try:
+        from uuid import UUID
+        user_uuid = UUID(user_id)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=400, detail="Invalid user_id format")
+
+    user = db.get(User, user_uuid)
+    if not user:
+        return {"status": "not-found", "message": "User not found"}
+
+    connection = db.scalar(select(GoogleConnection).where(GoogleConnection.user_id == user_uuid))
+    if not connection:
+        # User exists but has no connection. Provide OAuth URL to start the flow.
+        oauth_url = build_google_oauth_url(
+            user_id=str(user_uuid),
+            location_id="",  # No location selected yet
+            extra_state={"starter_flow": True, "location_selection": True},
+        )
+        return {
+            "status": "need-oauth",
+            "message": "Connect your Google Business Profile to link locations",
+            "oauth_url": oauth_url,
+        }
+
+    # User has a connection. Return the linked location.
+    return {
+        "status": "connected",
+        "locations": [
+            {
+                "location_id": connection.location_id,
+                "title": connection.business_name or connection.google_account_name,
+                "account_name": connection.google_account_name,
+            }
+        ],
+    }
+
+
+async def regenerate_review_reply(db: Session, review: Review) -> Review:
+    """Re-run the NLP engine and overwrite the suggested reply (does not send)."""
+    connection = db.get(GoogleConnection, review.connection_id)
+    business_name = (
+        connection.business_name or connection.google_account_name if connection else "our business"
+    )
+    decision = generate_review_reply_decision(
+        review_text=review.comment or "",
+        stars=review.rating,
+        business_name=business_name,
+        author_name=review.author_display_name or "there",
+    )
+    if connection:
+        profile_settings = db.scalar(
+            select(StarterProfileSettings).where(StarterProfileSettings.user_id == connection.user_id)
+        )
+        decision["public_reply"] = apply_forbidden_words_filter(
+            decision.get("public_reply"),
+            profile_settings.forbidden_words if profile_settings else "",
+        )
+    apply_review_reply_decision(review, decision)
+    # Reset sent state so the new suggestion goes back to pending
+    review.reply_sent_at = None
+    review.reply_approved_text = None
+    db.commit()
+    db.refresh(review)
     return review
