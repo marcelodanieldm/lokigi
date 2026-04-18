@@ -5,22 +5,35 @@ API Endpoints for NLP Model Analysis
 Exposes analysis of edited responses to identify model improvement opportunities.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, status, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 from typing import Optional
 from uuid import UUID
 
 from app.database import get_db
-from app.models import User
-from app.auth import get_current_user
+from app.models import User, Review, GoogleConnection
 from app.nlp_edit_analysis import (
     analyze_user_edits,
     analyze_all_users_edits,
 )
+from app.starter_tip_service import generate_starter_tip
 
 
 router = APIRouter(prefix="/api/nlp", tags=["nlp-analysis"])
+
+
+def _require_user_by_header(db: Session, x_user_id: str) -> User:
+    try:
+        user_id = UUID(str(x_user_id))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid X-User-Id header") from exc
+
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -59,6 +72,22 @@ class SystemicAnalysisResponse(BaseModel):
     recommended_prompt_overhaul: str
 
 
+class StarterTipResponse(BaseModel):
+    tip_del_dia: str
+    focus: str
+    confidence: float
+    evidence_count: int
+    supporting_signals: list[str] = Field(default_factory=list)
+    tone: str
+    is_fallback: bool
+    fallback_reason: Optional[str] = None
+    source: str
+    reviews_analyzed: int
+    generated_at: str
+    model_provider: Optional[str] = None
+    model_name: Optional[str] = None
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # ENDPOINTS
 # ─────────────────────────────────────────────────────────────────────────────
@@ -72,7 +101,7 @@ class SystemicAnalysisResponse(BaseModel):
 )
 async def get_user_edit_analysis(
     days: int = Query(90, ge=1, le=365),
-    user: User = Depends(get_current_user),
+    x_user_id: str = Header(..., alias="X-User-Id"),
     db: Session = Depends(get_db),
 ):
     """
@@ -98,6 +127,7 @@ async def get_user_edit_analysis(
     - "missing_business_name": Model didn't reference business name
     """
     try:
+        user = _require_user_by_header(db, x_user_id)
         result = analyze_user_edits(db, str(user.id), days=days)
         
         return UserEditAnalysisResponse(
@@ -128,7 +158,7 @@ async def get_user_edit_analysis(
 )
 async def get_systemic_analysis(
     days: int = Query(30, ge=1, le=365),
-    user: User = Depends(get_current_user),
+    x_user_id: str = Header(..., alias="X-User-Id"),
     db: Session = Depends(get_db),
 ):
     """
@@ -169,6 +199,7 @@ async def get_systemic_analysis(
     #     raise HTTPException(status_code=403, detail="Admin access required")
     
     try:
+        _ = _require_user_by_header(db, x_user_id)
         result = analyze_all_users_edits(db, days=days)
         
         return SystemicAnalysisResponse(
@@ -192,7 +223,7 @@ async def get_systemic_analysis(
 )
 async def export_training_dataset(
     days: int = Query(90, ge=1, le=365),
-    user: User = Depends(get_current_user),
+    x_user_id: str = Header(..., alias="X-User-Id"),
     db: Session = Depends(get_db),
 ):
     """
@@ -224,6 +255,7 @@ async def export_training_dataset(
     from pathlib import Path
     
     try:
+        _ = _require_user_by_header(db, x_user_id)
         cutoff_date = datetime.utcnow() - timedelta(days=days)
         
         # Get all edits
@@ -282,4 +314,43 @@ async def export_training_dataset(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error exporting dataset: {str(e)}",
+        )
+
+
+@router.get(
+    "/starter-tip-of-day",
+    response_model=StarterTipResponse,
+    summary="Generate Starter dashboard Tip of the Day",
+    description="Builds a context-aware tip from the latest 10 reviews with automatic fallback when signal is weak.",
+)
+async def get_starter_tip_of_day(
+    business_type: str = Query("negocio local", min_length=2, max_length=80),
+    location: str = Query("tu zona", min_length=2, max_length=80),
+    x_user_id: str = Header(..., alias="X-User-Id"),
+    db: Session = Depends(get_db),
+):
+    try:
+        user = _require_user_by_header(db, x_user_id)
+        rows = db.execute(
+            select(Review.comment, GoogleConnection.business_name)
+            .join(GoogleConnection, Review.connection_id == GoogleConnection.id)
+            .where(GoogleConnection.user_id == user.id)
+            .order_by(Review.create_time.desc().nullslast(), Review.created_at.desc())
+            .limit(10)
+        ).all()
+
+        latest_reviews = [str(comment or "").strip() for comment, _ in rows if str(comment or "").strip()]
+        business_name = next((name for _, name in rows if name), None) or "tu negocio"
+
+        tip = generate_starter_tip(
+            business_name=business_name,
+            business_type=business_type,
+            location=location,
+            reviews=latest_reviews,
+        )
+        return StarterTipResponse(**tip)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error generating Starter tip: {str(e)}",
         )

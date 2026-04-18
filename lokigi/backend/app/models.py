@@ -210,6 +210,13 @@ class MonthlyReport(Base):
     month: Mapped[int] = mapped_column(Integer, nullable=False)
 
     payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    executive_summary: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    pdf_status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
+    pdf_object_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+    pdf_signed_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    pdf_signed_url_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    pdf_generated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    pdf_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     generated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 

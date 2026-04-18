@@ -22,6 +22,7 @@ FastAPI lifespan starts/stops.  The cron trigger fires at 06:00 UTC on the
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import uuid
@@ -124,8 +125,12 @@ async def _process_user(
         sentiment=sentiment,
         value_metrics=value_metrics,
     )
-    _upsert_report(db, user.id, year, month, payload)
+    report_row = _upsert_report(db, user.id, year, month, payload)
     db.commit()
+
+    await _enqueue_pdf_generation(report_row.id)
+    pdf_url = await _await_pdf_signed_url(db, report_row.id)
+    report_online_url = _build_report_online_url(user.id, year, month)
 
     if settings.sendgrid_api_key and user.email:
         await _send_report_email(
@@ -134,6 +139,8 @@ async def _process_user(
             year=year,
             month=month,
             kpis=kpis,
+            pdf_url=pdf_url,
+            report_online_url=report_online_url,
         )
 
 
@@ -408,6 +415,12 @@ def _upsert_report(
     if existing:
         existing.payload = payload
         existing.generated_at = datetime.now(tz=timezone.utc)
+        existing.pdf_status = "pending"
+        existing.pdf_object_key = None
+        existing.pdf_signed_url = None
+        existing.pdf_signed_url_expires_at = None
+        existing.pdf_generated_at = None
+        existing.pdf_error = None
         db.add(existing)
         return existing
 
@@ -420,6 +433,38 @@ def _upsert_report(
     )
     db.add(report)
     return report
+
+
+async def _enqueue_pdf_generation(report_id: uuid.UUID) -> None:
+    """Request async PDF render through external BullMQ worker endpoint."""
+    if not settings.pdf_worker_enqueue_url:
+        logger.info("PDF enqueue URL not configured, skipping PDF generation for report %s", report_id)
+        return
+
+    headers = {"Content-Type": "application/json"}
+    if settings.pdf_worker_enqueue_token:
+        headers["X-Worker-Token"] = settings.pdf_worker_enqueue_token
+
+    body = {
+        "report_id": str(report_id),
+        "requested_at": datetime.now(tz=timezone.utc).isoformat(),
+        "signed_url_ttl_seconds": settings.pdf_signed_url_ttl_seconds,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=12) as client:
+            response = await client.post(settings.pdf_worker_enqueue_url, headers=headers, json=body)
+            if response.status_code not in (200, 201, 202):
+                logger.error(
+                    "Failed to enqueue monthly report PDF %s (status=%s): %s",
+                    report_id,
+                    response.status_code,
+                    response.text[:240],
+                )
+            else:
+                logger.info("Queued monthly report PDF generation for report %s", report_id)
+    except Exception:
+        logger.exception("Unexpected error enqueueing PDF generation for report %s", report_id)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -436,14 +481,27 @@ async def _send_report_email(
     year: int,
     month: int,
     kpis: dict[str, Any],
+    pdf_url: str | None = None,
+    report_online_url: str | None = None,
 ) -> None:
-    subject = f"Tu Reporte Mensual Lokigi — {_month_label(month)} {year}"
+    subject = f"Tu reporte de exito de {business_name} ya esta disponible - {_month_label(month)} {year}"
     total = kpis.get("total_reviews", 0)
     avg_rating = kpis.get("avg_rating")
     response_rate = kpis.get("response_rate_pct")
 
-    avg_rating_str = f"{avg_rating:.1f} ★" if avg_rating is not None else "—"
-    response_rate_str = f"{response_rate:.0f}%" if response_rate is not None else "—"
+    avg_rating_str = f"{avg_rating:.1f} ★" if avg_rating is not None else "-"
+    response_rate_str = f"{response_rate:.0f}%" if response_rate is not None else "-"
+    effective_report_url = report_online_url or f"https://{settings.app_domain}/starter/dashboard"
+    pdf_button_html = ""
+    if pdf_url:
+        pdf_button_html = f"""
+      <div style="text-align:center;margin:28px 0 12px">
+        <a href="{pdf_url}"
+           style="background:#1a56db;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:15px">
+          Descargar PDF
+        </a>
+      </div>
+        """
 
     html_body = f"""
 <!doctype html>
@@ -457,7 +515,7 @@ async def _send_report_email(
     </div>
     <div style="padding:32px">
       <p style="font-size:16px">Hola,</p>
-      <p>Tu reporte de <strong>{business_name}</strong> para <strong>{_month_label(month)} {year}</strong> ya está listo.</p>
+            <p>Tu reporte de exito de <strong>{business_name}</strong> para <strong>{_month_label(month)} {year}</strong> ya esta disponible.</p>
 
       <table style="width:100%;border-collapse:collapse;margin:24px 0">
         <tr style="background:#f0f4ff">
@@ -474,13 +532,15 @@ async def _send_report_email(
         </tr>
       </table>
 
+            {pdf_button_html}
+
       <p style="color:#6b7280;font-size:14px">
         Inicia sesión en Lokigi para ver el análisis completo de sentimiento, los conceptos más mencionados y el gráfico de barras interactivo.
       </p>
       <div style="text-align:center;margin:28px 0">
-        <a href="https://{settings.app_domain}/starter/dashboard"
+                <a href="{effective_report_url}"
            style="background:#1a56db;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:15px">
-          Ver reporte completo →
+                    Ver Online →
         </a>
       </div>
     </div>
@@ -514,6 +574,31 @@ async def _send_report_email(
             )
         else:
             logger.info("Report email sent to %s (%04d-%02d)", to_email, year, month)
+
+
+def _build_report_online_url(user_id: uuid.UUID, year: int, month: int) -> str:
+    return f"https://{settings.app_domain}/starter/report?user_id={user_id}&year={year}&month={month}"
+
+
+async def _await_pdf_signed_url(db: Session, report_id: uuid.UUID, timeout_seconds: int = 120) -> str | None:
+    """Wait briefly for async PDF worker to attach a signed URL to the monthly report row."""
+    if not settings.pdf_worker_enqueue_url:
+        return None
+
+    deadline = datetime.now(tz=timezone.utc).timestamp() + timeout_seconds
+    while datetime.now(tz=timezone.utc).timestamp() < deadline:
+        db.expire_all()
+        row = db.scalars(select(MonthlyReport).where(MonthlyReport.id == report_id)).first()
+        if not row:
+            return None
+        if row.pdf_status == "ready" and row.pdf_signed_url:
+            return row.pdf_signed_url
+        if row.pdf_status == "failed":
+            return None
+        await asyncio.sleep(4)
+
+    logger.warning("Timed out waiting for PDF URL for report %s", report_id)
+    return None
 
 
 # ─────────────────────────────────────────────────────────────────────────────

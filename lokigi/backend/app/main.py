@@ -40,8 +40,9 @@ from .services import (
 )
 from .sentiment_analysis import analyze_monthly_sentiment
 from .review_reply_engine import generate_reply_by_tone
+from .starter_tip_service import generate_starter_tip
 from .monthly_report_worker import _build_response_velocity, build_scheduler
-from .routes import cancellation_routes, grace_period_routes
+from .routes import cancellation_routes, grace_period_routes, nlp_analysis_routes
 
 
 class ApproveReplyRequest(BaseModel):
@@ -85,6 +86,7 @@ app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.parsed_allowed_
 
 app.include_router(cancellation_routes.router)
 app.include_router(grace_period_routes.router)
+app.include_router(nlp_analysis_routes.router)
 
 
 def _esc(value: Any) -> str:
@@ -822,6 +824,8 @@ def render_starter_dashboard_html(
     response_velocity: dict[str, Any],
     sentiment_snapshot: dict[str, Any],
     keyword_concepts: list[dict[str, Any]],
+    starter_tip: dict[str, Any],
+    report_history: list[dict[str, Any]],
 ) -> str:
     status_text = "Conectado" if connection else "Sin conectar"
     status_color = "#0f766e" if connection else "#b91c1c"
@@ -921,11 +925,69 @@ def render_starter_dashboard_html(
     if not keyword_html:
       keyword_html = '<span class="empty">Todavía no hay conceptos suficientes este mes.</span>'
 
+    month_names_es = {
+      1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
+      5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
+      9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre",
+    }
+    history_items_html = ""
+    for item in report_history:
+      month_value = int(item.get("month") or 0)
+      year_value = int(item.get("year") or 0)
+      month_name = month_names_es.get(month_value, str(month_value))
+      period_label = f"{month_name} {year_value}"
+      view_url = f"/starter/report?user_id={user_id}&year={year_value}&month={month_value}"
+
+      status = str(item.get("pdf_status") or "pending")
+      pdf_url = item.get("pdf_signed_url")
+      if status == "ready" and isinstance(pdf_url, str) and pdf_url:
+        pdf_button_html = f'<a href="{_esc(pdf_url)}" target="_blank" rel="noreferrer" class="btn btn-download">Descargar PDF</a>'
+      elif status == "failed":
+        pdf_button_html = '<button type="button" class="btn btn-disabled" disabled>No disponible</button>'
+      elif status == "processing":
+        pdf_button_html = '<button type="button" class="btn btn-disabled" disabled>Generando PDF</button>'
+      else:
+        pdf_button_html = '<button type="button" class="btn btn-disabled" disabled>PDF pendiente</button>'
+
+      history_items_html += f"""
+      <li class=\"history-item\">
+        <div>
+          <div class=\"history-period\">{period_label}</div>
+          <div class=\"history-meta\">Estado PDF: {_esc(status)}</div>
+        </div>
+        <div class=\"history-actions\">
+          <a href=\"{view_url}\" class=\"btn\" target=\"_blank\" rel=\"noreferrer\">Ver Online</a>
+          {pdf_button_html}
+        </div>
+      </li>
+      """
+    if not history_items_html:
+      history_items_html = '<li class="empty">Aún no hay reportes mensuales generados.</li>'
+
     report_days_copy = (
         "Hoy cierra el reporte mensual."
         if days_to_report_close == 0
         else f"Faltan {days_to_report_close} día{'s' if days_to_report_close != 1 else ''} para el cierre del reporte mensual."
     )
+
+    tip_text = _esc(starter_tip.get("tip_del_dia") or "Activa más reseñas recientes para desbloquear recomendaciones más precisas.")
+    tip_focus = _esc(str(starter_tip.get("focus") or "other").replace("_", " "))
+    tip_source = _esc(starter_tip.get("source") or "fallback")
+    tip_tone = _esc(starter_tip.get("tone") or "opportunity")
+    tip_confidence = starter_tip.get("confidence")
+    tip_confidence_copy = f"{float(tip_confidence) * 100:.0f}%" if tip_confidence is not None else "—"
+    tip_evidence = int(starter_tip.get("evidence_count") or 0)
+    tip_fallback = bool(starter_tip.get("is_fallback"))
+
+    tip_signals = starter_tip.get("supporting_signals") or []
+    tip_signals_html = "".join(
+      f'<li>{_esc(str(signal))}</li>' for signal in tip_signals[:3] if str(signal).strip()
+    )
+    if not tip_signals_html:
+      tip_signals_html = '<li>Sin señales textuales fuertes en el último lote de reseñas.</li>'
+
+    tip_badge = "Tip con fallback" if tip_fallback else "Tip context-aware"
+    tip_badge_class = "tip-badge fallback" if tip_fallback else "tip-badge"
 
     return f"""
 <!doctype html>
@@ -1004,6 +1066,15 @@ def render_starter_dashboard_html(
       .keyword-cloud {{ display:flex; flex-wrap:wrap; gap:8px; }}
       .keyword-chip {{ display:inline-flex; align-items:center; padding:7px 12px; border-radius:999px; background:#eef5ff; color:#1d4ed8; font-size:13px; font-weight:700; }}
 
+      .tip-card {{ margin-top: 14px; border: 1px solid #bfdbfe; background: linear-gradient(180deg, #f8fbff, #eef5ff); }}
+      .tip-header {{ display: flex; justify-content: space-between; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }}
+      .tip-badge {{ display: inline-flex; border-radius: 999px; padding: 6px 10px; font-size: 12px; font-weight: 700; color: #0f62fe; background: rgba(15, 98, 254, 0.12); }}
+      .tip-badge.fallback {{ color: #b45309; background: rgba(245, 158, 11, 0.22); }}
+      .tip-main {{ font-size: 16px; line-height: 1.45; color: #0f172a; margin: 0 0 10px; }}
+      .tip-meta {{ display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }}
+      .tip-chip {{ display: inline-flex; border-radius: 999px; padding: 6px 10px; border: 1px solid #dbe3ee; background: #fff; font-size: 12px; color: #334155; }}
+      .tip-signals {{ margin: 0; padding-left: 18px; color: #475569; font-size: 13px; line-height: 1.45; }}
+
       .pending-list, .reviews {{ list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }}
       .pending-item, .review-item {{ border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; background: #fbfcff; }}
       .pending-top, .review-top {{ display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }}
@@ -1011,6 +1082,15 @@ def render_starter_dashboard_html(
       .pending-reply {{ color: #475569; margin-top: 4px; }}
       .stars {{ color: #a16207; font-weight: 700; }}
       .empty {{ border: 1px dashed #cbd5e1; border-radius: 12px; padding: 12px; color: var(--muted); }}
+
+      .history-list {{ list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }}
+      .history-item {{ border: 1px solid var(--border); border-radius: 12px; padding: 11px 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; background: #fbfcff; }}
+      .history-period {{ font-size: 14px; font-weight: 700; color: #0f172a; }}
+      .history-meta {{ font-size: 12px; color: var(--muted); margin-top: 4px; }}
+      .history-actions {{ display: flex; gap: 8px; flex-wrap: wrap; }}
+      .btn-download {{ background: var(--primary); border-color: var(--primary); color: #fff; }}
+      .btn-download:hover {{ background: var(--primary-dark); }}
+      .btn-disabled {{ color: #94a3b8; background: #f8fafc; border-color: #e2e8f0; cursor: not-allowed; }}
 
       .banner {{
         margin-top: 14px;
@@ -1088,6 +1168,22 @@ def render_starter_dashboard_html(
         <a href=\"/starter/report?user_id={user_id}&year={datetime.utcnow().year}&month={datetime.utcnow().month}\" class=\"btn\">Ver reporte</a>
       </section>
 
+      <section class=\"card tip-card\">
+        <div class=\"tip-header\">
+          <h2 style=\"margin:0\">Tip del Día</h2>
+          <span class=\"{tip_badge_class}\">{tip_badge}</span>
+        </div>
+        <p class=\"tip-main\">{tip_text}</p>
+        <div class=\"tip-meta\">
+          <span class=\"tip-chip\">Foco: {tip_focus}</span>
+          <span class=\"tip-chip\">Confianza: {tip_confidence_copy}</span>
+          <span class=\"tip-chip\">Evidencia: {tip_evidence}/10</span>
+          <span class=\"tip-chip\">Fuente: {tip_source}</span>
+          <span class=\"tip-chip\">Tono: {tip_tone}</span>
+        </div>
+        <ul class=\"tip-signals\">{tip_signals_html}</ul>
+      </section>
+
       <section class=\"value-grid\">
         <article class=\"value-card\">
           <div class=\"value-title\">Response Velocity</div>
@@ -1116,6 +1212,12 @@ def render_starter_dashboard_html(
           <a href=\"/starter/profile?user_id={user_id}\" class=\"btn\">Configuración de perfil</a>
           <a href=\"/starter/subscription?user_id={user_id}\" class=\"btn\">Suscripción y facturas</a>
         </div>
+      </section>
+
+      <section class="card" style="margin-top:14px">
+        <h2>Historial de Reportes</h2>
+        <p class="muted" style="margin:0 0 10px; font-size:13px">Lista cronológica mensual con acceso al reporte online y al PDF.</p>
+        <ul class="history-list">{history_items_html}</ul>
       </section>
     </div>
   </body>
@@ -1674,6 +1776,8 @@ def starter_tone_selector(user_id: UUID, db: Session = Depends(get_db)) -> HTMLR
 
 @app.get("/starter/dashboard", response_class=HTMLResponse)
 def starter_dashboard(user_id: UUID, db: Session = Depends(get_db)) -> HTMLResponse:
+    from .models import MonthlyReport as MonthlyReportModel
+
     connection = db.scalar(select(GoogleConnection).where(GoogleConnection.user_id == user_id))
 
     now = datetime.utcnow()
@@ -1771,6 +1875,40 @@ def starter_dashboard(user_id: UUID, db: Session = Depends(get_db)) -> HTMLRespo
         .limit(5)
     ).all()
 
+    tip_reviews = db.scalars(
+      select(Review)
+      .join(GoogleConnection, Review.connection_id == GoogleConnection.id)
+      .where(
+        GoogleConnection.user_id == user_id,
+        Review.comment.is_not(None),
+      )
+      .order_by(Review.create_time.desc().nullslast(), Review.created_at.desc())
+      .limit(10)
+    ).all()
+
+    starter_tip = generate_starter_tip(
+      business_name=(connection.business_name if connection and connection.business_name else "tu negocio"),
+      business_type="negocio local",
+      location=(connection.location_id if connection else "tu zona"),
+      reviews=[r.comment or "" for r in tip_reviews],
+    )
+
+    history_rows = db.scalars(
+      select(MonthlyReportModel)
+      .where(MonthlyReportModel.user_id == user_id)
+      .order_by(MonthlyReportModel.year.desc(), MonthlyReportModel.month.desc())
+      .limit(24)
+    ).all()
+    report_history = [
+      {
+        "year": row.year,
+        "month": row.month,
+        "pdf_status": row.pdf_status,
+        "pdf_signed_url": row.pdf_signed_url,
+      }
+      for row in history_rows
+    ]
+
     return HTMLResponse(
         render_starter_dashboard_html(
             user_id=user_id,
@@ -1786,6 +1924,8 @@ def starter_dashboard(user_id: UUID, db: Session = Depends(get_db)) -> HTMLRespo
             response_velocity=response_velocity,
             sentiment_snapshot=sentiment_report.get("sentiment_snapshot", {}),
             keyword_concepts=sentiment_report.get("top_concepts", []),
+            starter_tip=starter_tip,
+            report_history=report_history,
         )
     )
 
@@ -2187,6 +2327,35 @@ def api_monthly_report(
     return row.payload
 
 
+@app.get("/api/reports/monthly-pdf")
+def api_monthly_report_pdf(
+    user_id: UUID,
+    year: int,
+    month: int,
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    """Return signed PDF URL and generation status for a monthly report."""
+    from .models import MonthlyReport as MonthlyReportModel
+
+    row = db.scalars(
+        select(MonthlyReportModel).where(
+            MonthlyReportModel.user_id == user_id,
+            MonthlyReportModel.year == year,
+            MonthlyReportModel.month == month,
+        )
+    ).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Report not found for this period")
+
+    return {
+        "status": row.pdf_status,
+        "signed_url": row.pdf_signed_url,
+        "expires_at": row.pdf_signed_url_expires_at.isoformat() if row.pdf_signed_url_expires_at else None,
+        "generated_at": row.pdf_generated_at.isoformat() if row.pdf_generated_at else None,
+        "error": row.pdf_error,
+    }
+
+
 @app.get("/api/reports/history")
 def api_reports_history(
     user_id: UUID,
@@ -2518,7 +2687,7 @@ def starter_monthly_report_page(
   </div><!-- /report-body -->
 
   <div class="report-footer" id="report-footer" style="display:none">
-    Generado por Lokigi · {period_label} · <a href="javascript:window.print()" class="no-print" style="color:#6b7280">Imprimir / Guardar PDF</a>
+    Generado por Lokigi · {period_label} · <a href="javascript:window.print()" class="no-print" style="color:#6b7280">Imprimir / Guardar PDF</a> · <span id="pdf-download-slot" class="no-print">Preparando PDF descargable…</span>
   </div>
 </div>
 
@@ -2758,9 +2927,10 @@ def starter_monthly_report_page(
   // ── Main loader ───────────────────────────────────────────────────────────
   async function load() {{
     try {{
-      const [report, history] = await Promise.all([
+      const [report, history, pdfMeta] = await Promise.all([
         fetchJSON(`/api/reports/monthly?user_id=${{USER_ID}}&year=${{YEAR}}&month=${{MONTH}}`),
         fetchJSON(`/api/reports/history?user_id=${{USER_ID}}`),
+        fetchJSON(`/api/reports/monthly-pdf?user_id=${{USER_ID}}&year=${{YEAR}}&month=${{MONTH}}`).catch(() => null),
       ]);
 
       // Header
@@ -2802,6 +2972,18 @@ def starter_monthly_report_page(
       hide("loading-state");
       show("report-body");
       show("report-footer");
+
+      const downloadSlot = document.getElementById("pdf-download-slot");
+      if (downloadSlot) {{
+        if (pdfMeta && pdfMeta.signed_url && pdfMeta.status === "ready") {{
+          const expiresCopy = pdfMeta.expires_at ? ` (expira: ${{new Date(pdfMeta.expires_at).toLocaleString()}})` : "";
+          downloadSlot.innerHTML = `<a href="${{pdfMeta.signed_url}}" target="_blank" rel="noreferrer" style="color:#1a56db">Descargar PDF generado</a>${{expiresCopy}}`;
+        }} else if (pdfMeta && pdfMeta.status === "failed") {{
+          downloadSlot.textContent = "No se pudo generar el PDF automático. Puedes usar Imprimir / Guardar PDF.";
+        }} else {{
+          downloadSlot.textContent = "PDF automático en generación. Refresca en unos minutos.";
+        }}
+      }}
 
     }} catch (err) {{
       showError(err.message.includes("404")

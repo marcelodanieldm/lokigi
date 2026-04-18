@@ -30,6 +30,17 @@ class Settings(BaseSettings):
     stripe_growth_price_id: str = ""
     stripe_growth_checkout_url: str = ""
 
+    # Optional LLM provider for Starter Tip-of-Day (OpenAI-compatible API)
+    tip_llm_enabled: bool = False
+    tip_llm_api_base: str = "https://api.openai.com/v1"
+    tip_llm_api_key: str = ""
+    tip_llm_model: str = "gpt-4o-mini"
+
+    # Monthly report PDF worker integration
+    pdf_worker_enqueue_url: str = ""
+    pdf_worker_enqueue_token: str = ""
+    pdf_signed_url_ttl_seconds: int = 604800
+
     # Public domain used in email links (no scheme, no trailing slash)
     app_domain: str = "localhost:8000"
 
