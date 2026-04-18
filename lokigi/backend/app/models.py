@@ -30,6 +30,7 @@ class GoogleConnection(Base):
     google_account_name: Mapped[str] = mapped_column(String(255), nullable=False)
     business_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     location_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    preferred_tone: Mapped[str] = mapped_column(String(50), nullable=False, default="cercano")
 
     encrypted_access_token: Mapped[str] = mapped_column(Text, nullable=False)
     encrypted_refresh_token: Mapped[str] = mapped_column(Text, nullable=False)

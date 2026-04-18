@@ -96,6 +96,178 @@ def _template_mid_rating(language: str, business_name: str, author_name: str) ->
     )
 
 
+# ── Tone-based reply templates ────────────────────────────────────────────────
+
+def _generate_reply_cercano(
+    language: str,
+    business_name: str,
+    author_name: str,
+    rating: int,
+) -> str:
+    """Cercano (Close/Friendly): Casual, warm, personal tone."""
+    if language.startswith("es"):
+        if rating > 4:
+            return (
+                f"¡Qué alegría, {author_name}! 😊 Tu reseña nos hizo el día. "
+                f"En {business_name} nos encanta saber que la pasaste bien. "
+                "¡Vuelve pronto, te extrañaremos!"
+            )
+        return (
+            f"Hola {author_name}, gracias por tu feedback. "
+            f"En {business_name} siempre buscamos mejorar y tus comentarios nos ayudan mucho. "
+            "¡Esperamos verte de nuevo pronto!"
+        )
+    if language.startswith("pt"):
+        if rating > 4:
+            return (
+                f"Que alegria, {author_name}! 😊 Sua avaliação fez nosso dia. "
+                f"Na {business_name}, adoramos saber que você se divertiu. "
+                "Volte logo, você vai fazer falta!"
+            )
+        return (
+            f"Oi {author_name}, obrigado pelo feedback. "
+            f"Na {business_name}, sempre buscamos melhorar e seus comentários nos ajudam muito. "
+            "Esperamos vê-lo em breve!"
+        )
+    # English friendly
+    if rating > 4:
+        return (
+            f"What a joy, {author_name}! 😊 Your review made our day. "
+            f"At {business_name}, we love knowing you had a great time. "
+            "Come back soon, we'll miss you!"
+        )
+    return (
+        f"Hi {author_name}, thanks for the feedback! "
+        f"At {business_name}, we're always looking to improve, and your thoughts really help. "
+        "Hope to see you again soon!"
+    )
+
+
+def _generate_reply_formal(
+    language: str,
+    business_name: str,
+    author_name: str,
+    rating: int,
+) -> str:
+    """Formal: Professional, corporate, polished tone."""
+    if language.startswith("es"):
+        if rating > 4:
+            return (
+                f"Estimado/a {author_name}, agradecemos sinceramente su valiosa reseña. "
+                f"En {business_name}, nos complace confirmar que su experiencia fue satisfactoria. "
+                "Confiamos en contar con su preferencia en futuras ocasiones."
+            )
+        return (
+            f"Estimado/a {author_name}, apreciamos sus comentarios sobre {business_name}. "
+            "Consideramos cada observación como una oportunidad de mejora y perfeccionamiento de nuestros servicios. "
+            "Le invitamos a visitarnos nuevamente."
+        )
+    if language.startswith("pt"):
+        if rating > 4:
+            return (
+                f"Prezado/a {author_name}, agradecemos sinceramente sua valiosa avaliação. "
+                f"Em {business_name}, ficamos satisfeitos em confirmar que sua experiência foi positiva. "
+                "Confiamos em contar com sua preferência em futuras ocasiões."
+            )
+        return (
+            f"Prezado/a {author_name}, apreciamos seus comentários sobre {business_name}. "
+            "Consideramos cada observação como uma oportunidade de melhoria e aperfeiçoamento de nossos serviços. "
+            "Convidamos você a nos visitar novamente."
+        )
+    # English formal
+    if rating > 4:
+        return (
+            f"Dear {author_name}, we sincerely appreciate your valued review. "
+            f"At {business_name}, we are pleased to confirm that your experience was satisfactory. "
+            "We look forward to serving you again."
+        )
+    return (
+        f"Dear {author_name}, we appreciate your feedback regarding {business_name}. "
+        "We view each observation as an opportunity for continuous improvement. "
+        "We would welcome the opportunity to serve you again."
+    )
+
+
+def _generate_reply_moderno(
+    language: str,
+    business_name: str,
+    author_name: str,
+    rating: int,
+) -> str:
+    """Moderno (Modern): Contemporary, upbeat, dynamic tone."""
+    if language.startswith("es"):
+        if rating > 4:
+            return (
+                f"{author_name}, ¡gracias! Tu review es fuego. 🔥 "
+                f"En {business_name} nos encanta cuando nuestro trabajo genera impacto. "
+                "Seguiremos dándola al máximo. ¡Nos vemos!"
+            )
+        return (
+            f"{author_name}, gracias por tomar el tiempo. 🙌 "
+            f"En {business_name} estamos en constante evolución y tu feedback nos ayuda a llegar lejos. "
+            "¡Nos vemos pronto!"
+        )
+    if language.startswith("pt"):
+        if rating > 4:
+            return (
+                f"{author_name}, valeu! Sua review é top. 🔥 "
+                f"Na {business_name}, a gente curte quando nosso trabalho faz impacto. "
+                "Vamos seguir dando o melhor. Até breve!"
+            )
+        return (
+            f"{author_name}, valeu por investir tempo com a gente. 🙌 "
+            f"Na {business_name} estamos sempre evoluindo e seu feedback nos ajuda muito. "
+            "Te vejo em breve!"
+        )
+    # English modern
+    if rating > 4:
+        return (
+            f"{author_name}, thanks! Your review is fire. 🔥 "
+            f"At {business_name}, we love seeing our work make an impact. "
+            "We'll keep bringing our best. See you soon!"
+        )
+    return (
+        f"{author_name}, thanks for the real talk. 🙌 "
+        f"At {business_name}, we're always evolving and your feedback helps us grow. "
+        "Catch you soon!"
+    )
+
+
+def generate_reply_by_tone(
+    *,
+    tone: str,
+    review_text: str,
+    stars: int | None,
+    business_name: str,
+    author_name: str,
+) -> str:
+    """Generate a reply based on the selected tone.
+    
+    Args:
+        tone: One of 'cercano', 'formal', 'moderno'
+        review_text: The original review text
+        stars: Rating (1-5)
+        business_name: Name of the business
+        author_name: Name of the review author
+        
+    Returns:
+        Generated reply string
+    """
+    language = _detect_language(review_text)
+    safe_business_name = (business_name or "our business").strip() or "our business"
+    safe_author_name = (author_name or "there").strip() or "there"
+    rating = int(stars or 0)
+    
+    tone_lower = (tone or "cercano").lower().strip()
+    
+    if tone_lower == "formal":
+        return _generate_reply_formal(language, safe_business_name, safe_author_name, rating)
+    elif tone_lower == "moderno":
+        return _generate_reply_moderno(language, safe_business_name, safe_author_name, rating)
+    else:  # Default to cercano
+        return _generate_reply_cercano(language, safe_business_name, safe_author_name, rating)
+
+
 def generate_review_reply_decision(
     *,
     review_text: str,

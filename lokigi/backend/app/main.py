@@ -27,6 +27,7 @@ from .services import (
     verify_pubsub_jwt,
 )
 from .sentiment_analysis import analyze_monthly_sentiment
+from .review_reply_engine import generate_reply_by_tone
 from .monthly_report_worker import build_scheduler
 
 
@@ -45,6 +46,374 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.parsed_allowed_hosts())
+
+
+app = FastAPI(title=settings.app_name, lifespan=lifespan)
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.parsed_allowed_hosts())
+
+
+def render_starter_tone_selector_html(user_id: UUID, first_review_text: str, first_review_author: str, first_review_stars: int, business_name: str) -> str:
+    """Interactive tone selector with real-time preview."""
+    return f"""
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Elige tu tono de voz | Lokigi</title>
+    <style>
+        :root {{
+            --accent: #0f766e;
+            --accent-2: #115e59;
+            --bg: #f3f7f6;
+            --card: #ffffff;
+            --text: #1f2937;
+            --muted: #6b7280;
+        }}
+        * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+        body {{
+            font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+            background:
+                radial-gradient(circle at 10% 10%, #d1fae5 0%, transparent 35%),
+                radial-gradient(circle at 85% 20%, #cffafe 0%, transparent 30%),
+                var(--bg);
+            min-height: 100vh;
+            padding: 24px;
+            padding-bottom: 48px;
+        }}
+        .container {{
+            max-width: 900px;
+            margin: 0 auto;
+        }}
+        .header {{
+            text-align: center;
+            margin-bottom: 40px;
+        }}
+        .header h1 {{
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 8px;
+        }}
+        .header p {{
+            font-size: 15px;
+            color: var(--muted);
+            max-width: 500px;
+            margin: 0 auto;
+        }}
+        /* ── Tone cards grid ────────────────────────────────────── */
+        .tones-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }}
+        .tone-card {{
+            background: var(--card);
+            border: 2px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }}
+        .tone-card:hover {{
+            border-color: var(--accent);
+            box-shadow: 0 8px 20px rgba(15, 118, 110, 0.15);
+            transform: translateY(-4px);
+        }}
+        .tone-card.selected {{
+            border-color: var(--accent);
+            background: linear-gradient(135deg, rgba(15, 118, 110, 0.05), rgba(17, 94, 89, 0.05));
+            box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1);
+        }}
+        .tone-card.selected::after {{
+            content: '✓';
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 28px;
+            height: 28px;
+            background: var(--accent);
+            color: #fff;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            font-weight: 700;
+            font-size: 16px;
+        }}
+        .tone-card {{
+            position: relative;
+        }}
+        .tone-icon {{
+            font-size: 40px;
+            margin-bottom: 12px;
+            display: block;
+        }}
+        .tone-title {{
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 6px;
+        }}
+        .tone-desc {{
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }}
+        .tone-example {{
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.5;
+            font-style: italic;
+            max-height: 60px;
+            overflow: hidden;
+        }}
+        /* ── Preview section ────────────────────────────────────── */
+        .preview-section {{
+            background: var(--card);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }}
+        .preview-label {{
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--muted);
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+        }}
+        .preview-content {{
+            background: #f9fafb;
+            border: 1px dashed #d1d5db;
+            border-radius: 10px;
+            padding: 16px;
+            min-height: 80px;
+            color: var(--text);
+            line-height: 1.6;
+            font-size: 14px;
+        }}
+        .preview-content.empty {{
+            color: var(--muted);
+            font-style: italic;
+            display: grid;
+            place-items: center;
+        }}
+        .original-review {{
+            background: var(--card);
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 20px;
+            font-size: 13px;
+        }}
+        .original-review .review-author {{
+            font-weight: 600;
+            color: var(--text);
+            display: block;
+            margin-bottom: 4px;
+        }}
+        .original-review .review-stars {{
+            color: #f59e0b;
+            font-size: 12px;
+            font-weight: 700;
+            display: block;
+            margin-bottom: 6px;
+        }}
+        .original-review .review-text {{
+            color: var(--muted);
+        }}
+        .footer {{
+            text-align: center;
+            margin-top: 40px;
+        }}
+        .btn {{
+            padding: 12px 28px;
+            border-radius: 10px;
+            border: none;
+            font-weight: 700;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }}
+        .btn-primary {{
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            color: #fff;
+        }}
+        .btn-primary:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(15, 118, 110, 0.3);
+        }}
+        .btn-primary:disabled {{
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }}
+        .loading-spinner {{
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }}
+        @keyframes spin {{
+            to {{ transform: rotate(360deg); }}
+        }}
+        .no-tone-selected {{
+            opacity: 0.5;
+            pointer-events: none;
+        }}
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>¿Cuál es tu tono de voz?</h1>
+        <p>Lokigi adaptará sus respuestas al estilo de tu negocio. Aquí puedes ver un adelanto de cómo respondería.</p>
+    </div>
+
+    <!-- Tone selection cards -->
+    <div class="tones-grid">
+        <!-- Cercano / Friendly -->
+        <div class="tone-card" data-tone="cercano" onclick="selectTone(this)">
+            <span class="tone-icon">😊</span>
+            <div class="tone-title">Cercano</div>
+            <div class="tone-desc">Cálido, amigable y personal. Perfecto para negocios donde la confianza humana es clave.</div>
+            <div class="tone-example">"¡Qué alegría, cliente! En {business_name} nos encanta saber que la pasaste bien. ¡Vuelve pronto!"</div>
+        </div>
+
+        <!-- Formal / Corporate -->
+        <div class="tone-card" data-tone="formal" onclick="selectTone(this)">
+            <span class="tone-icon">💼</span>
+            <div class="tone-title">Formal</div>
+            <div class="tone-desc">Profesional y corporativo. Ideal para servicios B2B, legales o empresariales.</div>
+            <div class="tone-example">"Estimado cliente, apreciamos sinceramente su valiosa evaluación. Confiamos en contar con su preferencia."</div>
+        </div>
+
+        <!-- Moderno / Contemporary -->
+        <div class="tone-card" data-tone="moderno" onclick="selectTone(this)">
+            <span class="tone-icon">🚀</span>
+            <div class="tone-title">Moderno</div>
+            <div class="tone-desc">Dinámico y contemporáneo. Para marcas jóvenes, tech o disruptivas.</div>
+            <div class="tone-example">"cliente, ¡gracias! Tu review es fuego 🔥. En {business_name} estamos en constante evolución."</div>
+        </div>
+    </div>
+
+    <!-- Preview Section -->
+    <div class="preview-section">
+        <div class="preview-label">Adelanto: Cómo respondería Lokigi</div>
+        
+        <div style="margin-bottom: 20px;">
+            <div class="original-review">
+                <span class="review-author">{first_review_author}</span>
+                <span class="review-stars">★★★★★ ({first_review_stars} estrellas)</span>
+                <div class="review-text">{first_review_text}</div>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <div class="preview-label">Tu respuesta:</div>
+            <div id="preview-content" class="preview-content empty">
+                Selecciona un tono arriba para ver un adelanto →
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <button class="btn btn-primary no-tone-selected" id="confirm-btn" onclick="confirmTone()" disabled>
+            <span class="loading-spinner" id="spinner" style="display:none;"></span>
+            Confirmar selección
+        </button>
+        <p style="margin-top: 12px; font-size: 13px; color: var(--muted);">
+            Puedes cambiar tu tono de voz en cualquier momento desde tu dashboard.
+        </p>
+    </div>
+</div>
+
+<script>
+const USER_ID = "{user_id}";
+const BUSINESS_NAME = "{business_name}";
+
+let selectedTone = null;
+
+async function selectTone(el) {{
+    // Update UI
+    document.querySelectorAll(".tone-card").forEach(c => c.classList.remove("selected"));
+    el.classList.add("selected");
+    selectedTone = el.dataset.tone;
+
+    // Enable button
+    document.getElementById("confirm-btn").classList.remove("no-tone-selected");
+    document.getElementById("confirm-btn").disabled = false;
+
+    // Fetch preview
+    try {{
+        const res = await fetch("/api/tone-preview", {{
+            method: "POST",
+            headers: {{ "Content-Type": "application/json" }},
+            body: JSON.stringify({{
+                tone: selectedTone,
+                review_text: "{first_review_text}",
+                stars: {first_review_stars},
+                business_name: BUSINESS_NAME,
+                author_name: "{first_review_author}",
+            }}),
+        }});
+
+        if (!res.ok) throw new Error(`HTTP ${{res.status}}`);
+        const data = await res.json();
+        document.getElementById("preview-content").textContent = data.preview;
+        document.getElementById("preview-content").classList.remove("empty");
+    }} catch (e) {{
+        document.getElementById("preview-content").textContent = "Error al generar preview: " + e.message;
+        document.getElementById("preview-content").classList.add("empty");
+    }}
+}}
+
+async function confirmTone() {{
+    if (!selectedTone) return;
+
+    const btn = document.getElementById("confirm-btn");
+    const spinner = document.getElementById("spinner");
+
+    btn.disabled = true;
+    spinner.style.display = "inline-block";
+
+    try {{
+        const res = await fetch("/api/tone/set", {{
+            method: "POST",
+            headers: {{ "Content-Type": "application/json" }},
+            body: JSON.stringify({{ user_id: USER_ID, tone: selectedTone }}),
+        }});
+
+        if (!res.ok) throw new Error(`HTTP ${{res.status}}`);
+
+        // Success - redirect to dashboard
+        setTimeout(() => {{
+            window.location.href = `/starter/dashboard?user_id=${{USER_ID}}`;
+        }}, 600);
+    }} catch (e) {{
+        alert("Error al guardar tu preferencia: " + e.message);
+        btn.disabled = false;
+        spinner.style.display = "none";
+    }}
+}}
+</script>
+</body>
+</html>
+"""
 
 
 def render_starter_loading_html(user_id: UUID) -> str:
@@ -555,6 +924,54 @@ def starter_loading(user_id: UUID) -> HTMLResponse:
     return HTMLResponse(render_starter_loading_html(user_id=user_id))
 
 
+@app.get("/starter/tone-selector", response_class=HTMLResponse)
+def starter_tone_selector(user_id: UUID, db: Session = Depends(get_db)) -> HTMLResponse:
+    """Interactive tone selector with real-time preview.
+    
+    Allows user to select between 'cercano', 'formal', 'moderno' voice tones.
+    Fetches the user's first positive review to use as preview example.
+    """
+    connection = db.scalar(select(GoogleConnection).where(GoogleConnection.user_id == user_id))
+    if not connection:
+        raise HTTPException(status_code=404, detail="User not connected")
+    
+    # Get the user's first positive review for preview
+    first_review = db.scalar(
+        select(Review)
+        .where(Review.connection_id == connection.id, Review.rating >= 4)
+        .order_by(Review.created_at.asc())
+        .limit(1)
+    )
+    
+    if not first_review:
+        # Fallback to any review if no positive ones
+        first_review = db.scalar(
+            select(Review)
+            .where(Review.connection_id == connection.id)
+            .order_by(Review.created_at.asc())
+            .limit(1)
+        )
+    
+    if not first_review:
+        # Last resort: use a placeholder review
+        first_review_text = "Esta ha sido una excelente experiencia. El servicio fue impecable."
+        first_review_author = "Cliente Ejemplo"
+        first_review_stars = 5
+    else:
+        first_review_text = first_review.comment or "(sin comentario)"
+        first_review_author = first_review.author_display_name or "Cliente"
+        first_review_stars = first_review.rating or 5
+    
+    html = render_starter_tone_selector_html(
+        user_id=user_id,
+        first_review_text=first_review_text,
+        first_review_author=first_review_author,
+        first_review_stars=first_review_stars,
+        business_name=connection.business_name or "nuestro negocio",
+    )
+    return HTMLResponse(html)
+
+
 @app.get("/starter/dashboard", response_class=HTMLResponse)
 def starter_dashboard(user_id: UUID, db: Session = Depends(get_db)) -> HTMLResponse:
     connection = db.scalar(select(GoogleConnection).where(GoogleConnection.user_id == user_id))
@@ -664,6 +1081,66 @@ async def api_review_regenerate(
         "review_id": updated.review_id,
         "suggested_reply": updated.reply_public_text or "",
     }
+
+
+# ── Tone Selection & Preview ───────────────────────────────────────────────
+
+class TonePreviewRequest(BaseModel):
+    tone: str
+    review_text: str
+    stars: int
+    business_name: str
+    author_name: str
+
+
+@app.post("/api/tone-preview")
+def api_tone_preview(req: TonePreviewRequest) -> dict[str, str]:
+    """Generate a preview reply based on the selected tone.
+    
+    Tones: 'cercano' (friendly), 'formal' (corporate), 'moderno' (contemporary)
+    """
+    reply = generate_reply_by_tone(
+        tone=req.tone,
+        review_text=req.review_text,
+        stars=req.stars,
+        business_name=req.business_name,
+        author_name=req.author_name,
+    )
+    return {"preview": reply, "tone": req.tone}
+
+
+@app.post("/api/tone/set")
+def api_tone_set(
+    user_id: UUID,
+    tone: str,
+    db: Session = Depends(get_db),
+) -> dict[str, str]:
+    """Save the user's preferred tone for reply generation.
+    
+    Tones: 'cercano', 'formal', 'moderno'
+    """
+    connection = db.scalar(select(GoogleConnection).where(GoogleConnection.user_id == user_id))
+    if not connection:
+        raise HTTPException(status_code=404, detail="User not connected")
+    
+    tone_lower = (tone or "cercano").lower().strip()
+    if tone_lower not in ["cercano", "formal", "moderno"]:
+        raise HTTPException(status_code=400, detail=f"Invalid tone. Must be one of: cercano, formal, moderno")
+    
+    connection.preferred_tone = tone_lower
+    db.commit()
+    db.refresh(connection)
+    
+    return {"status": "saved", "preferred_tone": connection.preferred_tone}
+
+
+@app.get("/api/tone/current")
+def api_tone_current(user_id: UUID, db: Session = Depends(get_db)) -> dict[str, str]:
+    """Get the current tone preference for the user."""
+    connection = db.scalar(select(GoogleConnection).where(GoogleConnection.user_id == user_id))
+    if not connection:
+        raise HTTPException(status_code=404, detail="User not connected")
+    return {"tone": connection.preferred_tone}
 
 
 @app.get("/api/reports/monthly-sentiment")

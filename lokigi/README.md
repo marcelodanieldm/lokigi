@@ -43,6 +43,17 @@ Lokigi is a backend service for Google Business Profile automation — review in
 - SQL upsert query in `backend/sql/starter_monthly_metrics_query.sql` — ready for a daily background job.
 - Tenant-isolated: all queries scoped to `user_id` via `INNER JOIN google_connections`.
 
+### Voice tone personalization
+- **Three tone variants**: 
+  - `cercano` (friendly/warm) — for personal, human-centric brands
+  - `formal` (professional/corporate) — for B2B, legal, enterprise services
+  - `moderno` (contemporary/dynamic) — for tech-forward, disruptive brands
+- **Tone selector UI** (`/starter/tone-selector`): 3 interactive cards with real-time preview of how Lokigi would respond to the user's first positive review.
+- **Stateless preview engine**: `POST /api/tone-preview` generates sample reply on-demand (no DB hit).
+- **Persistent preference**: User choice saved to `preferred_tone` column on `google_connections`.
+- **Multilingual support**: All tones work in ES, PT, EN with language-aware phrasing.
+- **Rating-aware responses**: High ratings (5★) vs mid ratings (3★) receive different celebratory vs improvement messages.
+
 ### Sentiment analysis — concept extraction (`sentiment_analysis.py`)
 - Lexicon-based (bilingual ES/EN), no external ML dependency.
 - Polarity derived from star rating: 4-5★ → positive, 1-2★ → negative, 3★ skipped.
@@ -85,11 +96,15 @@ This installs dependencies, runs migrations, creates a local test user, and star
 | `GET` | `/starter/connect-google` | Redirect to Google OAuth with starter flag |
 | `GET` | `/starter/loading` | Active loading screen with animated milestones (step 2) |
 | `GET` | `/starter/dashboard` | Connection status + last 5 reviews |
+| `GET` | `/starter/tone-selector` | Interactive voice tone selector (3 cards: cercano, formal, moderno) |
 | `GET` | `/starter/approvals` | Review approval UI (Bootstrap, `?user_id=`) |
 | `GET` | `/starter/report` | Monthly report page (Chart.js, KPI cards, sentiment) (`?user_id=&year=&month=`) |
 | `GET` | `/api/reviews/pending` | List pending AUTO_REPLY reviews (`?user_id=`) |
 | `POST` | `/api/reviews/{id}/approve` | Send reply to Google + mark as sent |
 | `POST` | `/api/reviews/{id}/regenerate` | Re-run NLP, return new suggestion |
+| `POST` | `/api/tone-preview` | Generate preview reply based on tone (cercano, formal, moderno) |
+| `POST` | `/api/tone/set` | Save user's preferred tone (`user_id`, `tone`) |
+| `GET` | `/api/tone/current` | Get current tone preference (`?user_id=`) |
 | `GET` | `/api/reports/monthly-sentiment` | Top-3 positive/negative concepts (`?user_id=&year=&month=`) |
 | `GET` | `/api/reports/monthly` | Stored monthly report payload (`?user_id=&year=&month=`) |
 | `GET` | `/api/reports/history` | Historical KPI data for rating evolution (`?user_id=`) |
@@ -103,6 +118,7 @@ This installs dependencies, runs migrations, creates a local test user, and star
 | `0003` | `starter_monthly_metrics` table |
 | `0004` | `reply_approved_text` + `reply_sent_at` on reviews |
 | `0005` | `monthly_reports` table for persisted monthly KPI reports |
+| `0006` | `preferred_tone` column on google_connections (cercano, formal, moderno) |
 
 ## Running tests
 
