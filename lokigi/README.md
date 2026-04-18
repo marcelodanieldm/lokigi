@@ -19,10 +19,12 @@ Lokigi is a backend service for Google Business Profile automation — review in
 - `stars 3` → `AUTO_REPLY` with professional improvement template.
 - Decision persisted in DB for full auditability.
 
-### Starter onboarding UX
-- 3-click onboarding flow: `/starter/onboarding` → connect Google → `/starter/dashboard`.
-- OAuth `state` signed with `itsdangerous`; `starter_flow` flag redirects back to the dashboard instead of raw JSON.
-- Dashboard shows connection status and last 5 reviews.
+### Starter onboarding UX — Zero-Friction Flow
+- **Location discovery API**: `GET /api/locations?user_id=` detects if user is linked and returns available locations.
+- **Seamless OAuth**: Modified OAuth flow allows auto-selection of the first location (for < 3-minute onboarding).
+- 3-click onboarding: `/starter/onboarding` → Google consent → auto-redirect to `/starter/dashboard`.
+- OAuth `state` signed with `itsdangerous`; `starter_flow` flag ensures dashboard redirect.
+- Dashboard shows connection status, business name, and last 5 reviews received.
 
 ### Human approval workflow (`/starter/approvals`)
 - Bootstrap 5 page (no npm, no build step) served directly by FastAPI.
@@ -44,6 +46,17 @@ Lokigi is a backend service for Google Business Profile automation — review in
 - Includes `chart_data` key with aligned `labels / positive / negative` arrays for direct use in any bar chart library.
 - API: `GET /api/reports/monthly-sentiment?user_id=&year=&month=`.
 
+### Monthly report — KPI analytics & sentiment reporting (`monthly_report_worker.py`)
+- **APScheduler-based cron**: Runs day 1 of each month at 06:00 UTC to generate reports for all users.
+- **Report payload** includes: KPIs (avg_rating, total_reviews, response_rate_pct, avg_response_time_minutes), business_name, sentiment analysis (top 3 positive + negative concepts).
+- **Auto-email**: SendGrid integration notifies users via email when their report is ready (if `SENDGRID_API_KEY` configured).
+- **HTML report page** (`/starter/report`): Single-page, print-ready, mobile-responsive report with Chart.js visualizations.
+  - KPI cards: rating, review count, AI response rate, avg response time.
+  - Rating evolution chart (line).
+  - Reviews per month (bar chart with current month highlighted).
+  - Word cloud of sentiment concepts (size proportional to mention count).
+  - Sentiment concepts bar chart (positive vs negative).
+
 ## Quick start (local)
 
 From `backend/`:
@@ -59,17 +72,21 @@ This installs dependencies, runs migrations, creates a local test user, and star
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/health` | Liveness check |
-| `GET` | `/oauth/google/start` | Begin OAuth flow (`user_id`, `location_id`) |
+| `GET` | `/api/locations` | List available locations for user (`?user_id=`) — supports zero-friction onboarding |
+| `GET` | `/oauth/google/start` | Begin OAuth flow (`user_id`, optional `location_id`) |
 | `GET` | `/oauth/google/callback` | OAuth callback — returns JSON or redirects |
 | `POST` | `/webhooks/google/reviews` | Pub/Sub push for new reviews |
 | `GET` | `/starter/onboarding` | Starter welcome page (Bootstrap) |
 | `GET` | `/starter/connect-google` | Redirect to Google OAuth with starter flag |
 | `GET` | `/starter/dashboard` | Connection status + last 5 reviews |
 | `GET` | `/starter/approvals` | Review approval UI (Bootstrap, `?user_id=`) |
+| `GET` | `/starter/report` | Monthly report page (Chart.js, KPI cards, sentiment) (`?user_id=&year=&month=`) |
 | `GET` | `/api/reviews/pending` | List pending AUTO_REPLY reviews (`?user_id=`) |
 | `POST` | `/api/reviews/{id}/approve` | Send reply to Google + mark as sent |
 | `POST` | `/api/reviews/{id}/regenerate` | Re-run NLP, return new suggestion |
 | `GET` | `/api/reports/monthly-sentiment` | Top-3 positive/negative concepts (`?user_id=&year=&month=`) |
+| `GET` | `/api/reports/monthly` | Stored monthly report payload (`?user_id=&year=&month=`) |
+| `GET` | `/api/reports/history` | Historical KPI data for rating evolution (`?user_id=`) |
 
 ## Database migrations (Alembic)
 
@@ -79,6 +96,7 @@ This installs dependencies, runs migrations, creates a local test user, and star
 | `0002` | NLP decision columns on reviews + business_name on connections |
 | `0003` | `starter_monthly_metrics` table |
 | `0004` | `reply_approved_text` + `reply_sent_at` on reviews |
+| `0005` | `monthly_reports` table for persisted monthly KPI reports |
 
 ## Running tests
 

@@ -18,6 +18,7 @@ from .services import (
     OAuthStateManager,
     build_google_oauth_url,
     get_pending_approvals,
+    list_locations_for_user,
     parse_pubsub_push,
     regenerate_review_reply,
     send_review_reply,
@@ -275,6 +276,20 @@ async def oauth_google_callback(code: str, state: str, db: Session = Depends(get
         "user_id": str(connection.user_id),
         "location_id": connection.location_id,
     }
+
+
+# ── Location Discovery (Zero-Friction Onboarding) ────────────────────────────
+
+@app.get("/api/locations")
+def api_locations(user_id: UUID, db: Session = Depends(get_db)) -> dict[str, Any]:
+    """List available Google Business Profile locations for onboarding.
+
+    Returns:
+      - status='not-found': User does not exist
+      - status='need-oauth': User exists but not linked to Google. Includes oauth_url.
+      - status='connected': User is linked. Includes location details.
+    """
+    return list_locations_for_user(db, str(user_id))
 
 
 # ── Review Approval API ──────────────────────────────────────────────────────

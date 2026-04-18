@@ -57,9 +57,11 @@ def sha256_json(data: dict[str, Any]) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
-def build_google_oauth_url(user_id: str, location_id: str, extra_state: dict[str, Any] | None = None) -> str:
+def build_google_oauth_url(user_id: str, location_id: str | None = None, extra_state: dict[str, Any] | None = None) -> str:
     state_manager = OAuthStateManager(settings.oauth_state_secret)
-    state_payload: dict[str, Any] = {"user_id": user_id, "location_id": location_id}
+    state_payload: dict[str, Any] = {"user_id": user_id}
+    if location_id:
+        state_payload["location_id"] = location_id
     if extra_state:
         state_payload.update(extra_state)
     state = state_manager.sign(state_payload)
@@ -83,8 +85,8 @@ async def upsert_google_connection(db: Session, code: str, state: str) -> Google
     user_id = state_payload.get("user_id")
     location_id = state_payload.get("location_id")
 
-    if not user_id or not location_id:
-        raise HTTPException(status_code=400, detail="Missing user_id or location_id in state")
+    if not user_id:
+        raise HTTPException(status_code=400, detail="Missing user_id in state")
 
     user = db.get(User, user_id)
     if not user:
@@ -102,18 +104,25 @@ async def upsert_google_connection(db: Session, code: str, state: str) -> Google
     except GoogleOAuthError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
-    selected = next((loc for loc in locations if loc["location_id"] == location_id), None)
-    if not selected:
-        raise HTTPException(status_code=403, detail="Selected location is not accessible by this Google account")
+    if not locations:
+        raise HTTPException(status_code=403, detail="No accessible locations found in your Google Business Profile")
+
+    # If location_id is provided, use it; otherwise auto-select the first (for zero-friction flow)
+    if location_id:
+        selected = next((loc for loc in locations if loc["location_id"] == location_id), None)
+        if not selected:
+            raise HTTPException(status_code=403, detail="Selected location is not accessible by this Google account")
+    else:
+        selected = locations[0]
 
     existing_for_user = db.scalar(select(GoogleConnection).where(GoogleConnection.user_id == user.id))
-    if existing_for_user and existing_for_user.location_id != location_id:
+    if existing_for_user and existing_for_user.location_id != selected["location_id"]:
         raise HTTPException(
             status_code=409,
             detail="User already linked to a different location. Only one location is allowed.",
         )
 
-    existing_for_location = db.scalar(select(GoogleConnection).where(GoogleConnection.location_id == location_id))
+    existing_for_location = db.scalar(select(GoogleConnection).where(GoogleConnection.location_id == selected["location_id"]))
     if existing_for_location and existing_for_location.user_id != user.id:
         raise HTTPException(status_code=409, detail="Location already linked to another user")
 
@@ -127,12 +136,12 @@ async def upsert_google_connection(db: Session, code: str, state: str) -> Google
     if existing_for_user:
         connection = existing_for_user
     else:
-        connection = GoogleConnection(user_id=user.id, location_id=location_id, google_account_name=selected["account_name"])
+        connection = GoogleConnection(user_id=user.id, location_id=selected["location_id"], google_account_name=selected["account_name"])
         db.add(connection)
 
     connection.google_account_name = selected["account_name"]
     connection.business_name = selected.get("title") or selected["account_name"]
-    connection.location_id = location_id
+    connection.location_id = selected["location_id"]
     connection.encrypted_access_token = cipher.encrypt(token_data["access_token"])
     connection.encrypted_refresh_token = cipher.encrypt(refresh_token)
     connection.token_expiry = token_data["expires_at"]
@@ -397,6 +406,51 @@ async def send_review_reply(db: Session, review: Review, reply_text: str) -> Rev
     db.commit()
     db.refresh(review)
     return review
+
+
+async def list_locations_for_user(db: Session, user_id: str) -> dict[str, Any]:
+    """List available Google Business Profile locations for a user.
+
+    Returns:
+        - status='not-found': User does not exist
+        - status='need-oauth': User exists but has no connection. Includes oauth_url to initiate flow
+        - status='connected': User has a connection. Includes the linked location details
+    """
+    try:
+        from uuid import UUID
+        user_uuid = UUID(user_id)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=400, detail="Invalid user_id format")
+
+    user = db.get(User, user_uuid)
+    if not user:
+        return {"status": "not-found", "message": "User not found"}
+
+    connection = db.scalar(select(GoogleConnection).where(GoogleConnection.user_id == user_uuid))
+    if not connection:
+        # User exists but has no connection. Provide OAuth URL to start the flow.
+        oauth_url = build_google_oauth_url(
+            user_id=str(user_uuid),
+            location_id="",  # No location selected yet
+            extra_state={"starter_flow": True, "location_selection": True},
+        )
+        return {
+            "status": "need-oauth",
+            "message": "Connect your Google Business Profile to link locations",
+            "oauth_url": oauth_url,
+        }
+
+    # User has a connection. Return the linked location.
+    return {
+        "status": "connected",
+        "locations": [
+            {
+                "location_id": connection.location_id,
+                "title": connection.business_name or connection.google_account_name,
+                "account_name": connection.google_account_name,
+            }
+        ],
+    }
 
 
 async def regenerate_review_reply(db: Session, review: Review) -> Review:
