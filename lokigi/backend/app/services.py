@@ -216,6 +216,10 @@ async def ensure_valid_access_token(db: Session, connection: GoogleConnection) -
 def parse_google_time(value: str | None) -> datetime | None:
     if not value:
         return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
 
 
 def apply_review_reply_decision(review: Review, decision: dict[str, Any]) -> None:
@@ -240,10 +244,6 @@ def emit_review_alert(review: Review) -> None:
         review.reply_alert_category,
         review.reply_alert_summary,
     )
-    try:
-        return datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError:
-        return None
 
 
 async def store_new_review_from_webhook(db: Session, webhook_payload: dict[str, Any]) -> Review:
