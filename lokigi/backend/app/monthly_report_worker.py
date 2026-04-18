@@ -39,6 +39,7 @@ from sqlalchemy.orm import Session
 from .auto_reply_worker import run_auto_reply_dispatch
 from .config import settings
 from .database import engine
+from .growth_premium_report_service import GrowthPremiumReportService, PremiumConfig
 from .growth_sentiment_benchmark_service import BenchmarkConfig, GrowthSentimentBenchmarkService
 from .models import GoogleConnection, GrowthCompetitor, MonthlyReport, Review, StarterMonthlyMetrics, User
 from .sentiment_analysis import analyze_monthly_sentiment
@@ -149,6 +150,7 @@ async def _process_user(
     kpis = _fetch_kpis(db, user.id, conn.location_id, year, month)
     sentiment = _fetch_sentiment(db, conn, year, month)
     value_metrics = _build_value_metrics(db, user.id, conn, year, month, sentiment)
+    growth_premium = _build_growth_premium_payload(db, user.id)
     payload = _build_report_payload(
         user_id=user.id,
         location_id=conn.location_id,
@@ -158,6 +160,7 @@ async def _process_user(
         kpis=kpis,
         sentiment=sentiment,
         value_metrics=value_metrics,
+        growth_premium=growth_premium,
     )
     report_row = _upsert_report(db, user.id, year, month, payload)
     db.commit()
@@ -403,6 +406,7 @@ def _build_report_payload(
     kpis: dict[str, Any],
     sentiment: dict[str, Any],
     value_metrics: dict[str, Any],
+    growth_premium: dict[str, Any],
 ) -> dict[str, Any]:
     return {
         "report_id": str(uuid.uuid4()),
@@ -413,6 +417,7 @@ def _build_report_payload(
         "generated_at": datetime.now(tz=timezone.utc).isoformat(),
         "kpis": kpis,
         "value_metrics": value_metrics,
+        "growth_premium": growth_premium,
         "sentiment": {
             "total_reviews_analyzed": sentiment.get("total_reviews_analyzed", 0),
             "positive_reviews": sentiment.get("positive_reviews", 0),
@@ -425,6 +430,21 @@ def _build_report_payload(
             "chart_data": sentiment.get("chart_data", {}),
         },
     }
+
+
+def _build_growth_premium_payload(db: Session, user_id: uuid.UUID) -> dict[str, Any]:
+    try:
+        service = GrowthPremiumReportService(db)
+        return service.build_report(
+            user_id=user_id,
+            config=PremiumConfig(window_days=30, max_locations=5),
+        )
+    except Exception:
+        logger.exception("Growth premium payload build failed for user %s", user_id)
+        return {
+            "status": "unavailable",
+            "reason": "growth_premium_build_failed",
+        }
 
 
 # ─────────────────────────────────────────────────────────────────────────────

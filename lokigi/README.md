@@ -175,6 +175,9 @@ Esto instala dependencias, ejecuta migraciones, crea un usuario local de prueba 
 | `GET` | `/api/growth/sentiment-benchmark/latest` | Lee último benchmark persistido |
 | `GET` | `/api/growth/sentiment-benchmark/runs` | Lista paginada de runs benchmark |
 | `GET` | `/api/growth/sentiment-benchmark/runs/{run_id}` | Detalle de run + topic gaps |
+| `POST` | `/api/growth/serp-observations` | Ingesta observaciones SERP para KPIs premium |
+| `POST` | `/api/growth/keyword-conquests` | Ingesta eventos de conquista de keyword |
+| `GET` | `/api/growth/premium-report` | Reporte estratégico premium (MSP, Conquest, Delta, AVI, ROI, alertas) |
 
 ## Migraciones Alembic
 
@@ -191,6 +194,8 @@ Esto instala dependencias, ejecuta migraciones, crea un usuario local de prueba 
 | `20260418_0009` | Campos PDF y resumen ejecutivo en `monthly_reports` |
 | `20260418_0010` | Esquema Growth competitor intelligence |
 | `20260418_0011` | Tablas de benchmark de sentimiento Growth |
+| `20260418_0012` | Tablas de sugerencias/acciones/alertas SEO Growth |
+| `20260418_0013` | KPI Premium Growth: SERP observations, conquest events, columnas de fotos y vista de correlación |
 
 ## Ejemplos API Growth
 
@@ -352,6 +357,7 @@ pytest backend/tests/test_churn_system.py -v
 - `SESSION_6_COMPLETE.md`
 - `DELIVERY_SUMMARY_SESSION_6.md`
 - `FILES_INDEX_SESSION_6.md`
+- `DOCUMENTACION_IMPLEMENTACION_GROWTH_FASE2.md`
 
 ### NLP model improvement
 - `backend/START_HERE.md`

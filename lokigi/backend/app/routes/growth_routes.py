@@ -11,6 +11,7 @@ from sqlalchemy import and_, desc, select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.growth_premium_report_service import GrowthPremiumReportService, PremiumConfig
 from app.growth_sentiment_benchmark_service import BenchmarkConfig, GrowthSentimentBenchmarkService
 from app.growth_scraper_service import GrowthScraperService
 from app.models import (
@@ -21,6 +22,8 @@ from app.models import (
     GrowthSentimentBenchmarkTopicGap,
     GrowthCompetitorServiceSnapshot,
     GrowthCompetitorSnapshot,
+    GrowthKeywordConquestEvent,
+    GrowthSerpObservation,
     User,
 )
 
@@ -85,6 +88,34 @@ class GrowthSentimentBenchmarkRunRequest(BaseModel):
     opp_threshold_client_complaint_rate: float = Field(default=0.15, ge=0, le=1)
     confidence_threshold: float = Field(default=0.70, ge=0, le=1)
     top_marketing_opportunities: int = Field(default=8, ge=1, le=20)
+
+
+class GrowthSerpObservationItem(BaseModel):
+    keyword: str = Field(min_length=2, max_length=120)
+    location_label: str = Field(default="default", min_length=2, max_length=140)
+    entity_type: str = Field(default="client", pattern="^(client|competitor)$")
+    rank_position: int = Field(ge=1, le=30)
+    observed_at: datetime
+    competitor_id: UUID | None = None
+
+
+class GrowthSerpObservationIngestRequest(BaseModel):
+    user_id: UUID
+    observations: list[GrowthSerpObservationItem] = Field(min_length=1, max_length=500)
+
+
+class GrowthKeywordConquestItem(BaseModel):
+    keyword: str = Field(min_length=2, max_length=120)
+    location_label: str = Field(default="default", min_length=2, max_length=140)
+    conquered_at: datetime
+    displaced_competitor_id: UUID | None = None
+    previous_rank: int | None = Field(default=None, ge=1, le=30)
+    new_rank: int | None = Field(default=None, ge=1, le=30)
+
+
+class GrowthKeywordConquestIngestRequest(BaseModel):
+    user_id: UUID
+    events: list[GrowthKeywordConquestItem] = Field(min_length=1, max_length=200)
 
 
 @router.post(
@@ -525,3 +556,91 @@ def get_growth_sentiment_benchmark_run_detail(
             for g in gaps
         ],
     }
+
+
+@router.post(
+    "/serp-observations",
+    summary="Ingest SERP observations for advanced Growth KPIs",
+)
+def ingest_growth_serp_observations(
+    request: GrowthSerpObservationIngestRequest,
+    db: Session = Depends(get_db),
+):
+    user = db.get(User, request.user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    inserted = 0
+    for item in request.observations:
+        if item.entity_type == "competitor" and item.competitor_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="competitor_id is required when entity_type is competitor",
+            )
+
+        row = GrowthSerpObservation(
+            user_id=request.user_id,
+            competitor_id=item.competitor_id,
+            keyword=item.keyword.strip().lower(),
+            location_label=item.location_label.strip().lower(),
+            entity_type=item.entity_type,
+            rank_position=item.rank_position,
+            observed_at=item.observed_at,
+        )
+        db.add(row)
+        inserted += 1
+
+    db.commit()
+    return {"ok": True, "inserted": inserted}
+
+
+@router.post(
+    "/keyword-conquests",
+    summary="Ingest keyword conquest events for Growth KPI tracking",
+)
+def ingest_growth_keyword_conquests(
+    request: GrowthKeywordConquestIngestRequest,
+    db: Session = Depends(get_db),
+):
+    user = db.get(User, request.user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    inserted = 0
+    for item in request.events:
+        row = GrowthKeywordConquestEvent(
+            user_id=request.user_id,
+            keyword=item.keyword.strip().lower(),
+            location_label=item.location_label.strip().lower(),
+            conquered_at=item.conquered_at,
+            displaced_competitor_id=item.displaced_competitor_id,
+            previous_rank=item.previous_rank,
+            new_rank=item.new_rank,
+        )
+        db.add(row)
+        inserted += 1
+
+    db.commit()
+    return {"ok": True, "inserted": inserted}
+
+
+@router.get(
+    "/premium-report",
+    summary="Build Growth Premium strategic report payload",
+)
+def get_growth_premium_report(
+    user_id: UUID,
+    window_days: int = Query(default=30, ge=7, le=120),
+    max_locations: int = Query(default=5, ge=1, le=5),
+    db: Session = Depends(get_db),
+):
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    service = GrowthPremiumReportService(db)
+    payload = service.build_report(
+        user_id=user_id,
+        config=PremiumConfig(window_days=window_days, max_locations=max_locations),
+    )
+    return {"ok": True, "user_id": str(user_id), "report": payload}

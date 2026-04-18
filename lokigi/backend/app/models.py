@@ -32,6 +32,8 @@ class User(Base):
     growth_seo_suggestions: Mapped[list["GrowthSeoSuggestion"]] = relationship(back_populates="user")
     growth_seo_suggestion_actions: Mapped[list["GrowthSeoSuggestionAction"]] = relationship(back_populates="user")
     growth_seo_alerts: Mapped[list["GrowthSeoAlert"]] = relationship(back_populates="user")
+    growth_serp_observations: Mapped[list["GrowthSerpObservation"]] = relationship(back_populates="user")
+    growth_keyword_conquest_events: Mapped[list["GrowthKeywordConquestEvent"]] = relationship(back_populates="user")
 
 
 
@@ -408,6 +410,7 @@ class GrowthClientSnapshot(Base):
     rating_avg: Mapped[float | None] = mapped_column(Numeric(4, 2), nullable=True)
     posts_count_7d: Mapped[int | None] = mapped_column(Integer, nullable=True)
     posts_count_30d: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    photos_count_total: Mapped[int | None] = mapped_column(Integer, nullable=True)
     services_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     data_source: Mapped[str] = mapped_column(String(60), nullable=False, default="google_maps_public")
     extraction_job_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
@@ -434,6 +437,7 @@ class GrowthCompetitorSnapshot(Base):
     rating_avg: Mapped[float | None] = mapped_column(Numeric(4, 2), nullable=True)
     posts_count_7d: Mapped[int | None] = mapped_column(Integer, nullable=True)
     posts_count_30d: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    photos_count_total: Mapped[int | None] = mapped_column(Integer, nullable=True)
     services_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     data_source: Mapped[str] = mapped_column(String(60), nullable=False, default="google_maps_public")
     extraction_job_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
@@ -747,3 +751,59 @@ class GrowthSeoAlert(Base):
 
     user: Mapped[User] = relationship(back_populates="growth_seo_alerts")
     suggestion: Mapped[GrowthSeoSuggestion | None] = relationship(back_populates="alerts")
+
+
+class GrowthSerpObservation(Base):
+    __tablename__ = "growth_serp_observations"
+    __table_args__ = (
+        Index("ix_growth_serp_observations_user_observed", "user_id", "observed_at"),
+        Index("ix_growth_serp_observations_user_keyword", "user_id", "keyword"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    competitor_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("growth_competitors.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    keyword: Mapped[str] = mapped_column(String(120), nullable=False)
+    location_label: Mapped[str] = mapped_column(String(140), nullable=False, default="default")
+    entity_type: Mapped[str] = mapped_column(String(20), nullable=False, default="client")
+    rank_position: Mapped[int] = mapped_column(Integer, nullable=False)
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+
+    user: Mapped[User] = relationship(back_populates="growth_serp_observations")
+
+
+class GrowthKeywordConquestEvent(Base):
+    __tablename__ = "growth_keyword_conquest_events"
+    __table_args__ = (
+        Index("ix_growth_keyword_conquest_user_conquered", "user_id", "conquered_at"),
+        Index("ix_growth_keyword_conquest_user_keyword", "user_id", "keyword"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    keyword: Mapped[str] = mapped_column(String(120), nullable=False)
+    location_label: Mapped[str] = mapped_column(String(140), nullable=False, default="default")
+    displaced_competitor_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("growth_competitors.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    previous_rank: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    new_rank: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    conquered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+
+    user: Mapped[User] = relationship(back_populates="growth_keyword_conquest_events")
