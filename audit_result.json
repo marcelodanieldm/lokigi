@@ -1,0 +1,58 @@
+{
+  "score": 15,
+  "critical_fix": "🚨 URGENTE: Tu negocio NO está reclamado en Google. Cualquiera puede editar tu información y robar clientes. Reclámalo HOY.",
+  "economic_impact": "💸 ESTÁS PERDIENDO $5,700/mes ($68,400/año)\n\nDesglose:\n• $1,800/mes por falta de sitio web\n• $2,400/mes por no reclamar tu negocio\n• $900/mes por falta de reseñas\n• $600/mes por fotos desactualizadas\n\nEso son 114 clientes perdidos cada mes que van a tu competencia.",
+  "foda": {
+    "fortalezas": [
+      "Presencia online existente: hay donde construir"
+    ],
+    "oportunidades": [
+      "Aumentar reseñas 5 estrellas = +35% de conversión",
+      "Fotos profesionales recientes = +42% de clics",
+      "Lanzar sitio web captura $1,800/mes adicionales"
+    ],
+    "debilidades": [
+      "SIN RECLAMAR: Pierdes $2,400/mes en negocio robado",
+      "Sin web: 30% de clientes potenciales van a competencia",
+      "Rating 3.5 espanta al 60% de clientes"
+    ],
+    "amenazas": [
+      "Competidores con mejor presencia online capturan TU mercado",
+      "Clientes buscan alternativas si no encuentras información clara"
+    ]
+  },
+  "competitors": [
+    {
+      "name": "Restaurante La Competencia",
+      "rating": 4.4,
+      "review_count": 316,
+      "has_website": true,
+      "distance_km": 5.0,
+      "estimated_monthly_revenue": "$23k"
+    },
+    {
+      "name": "Café Premium Zone",
+      "rating": 4.7,
+      "review_count": 284,
+      "has_website": true,
+      "distance_km": 5.9,
+      "estimated_monthly_revenue": "$45k"
+    },
+    {
+      "name": "Negocio Rival Pro",
+      "rating": 4.7,
+      "review_count": 321,
+      "has_website": true,
+      "distance_km": 2.3,
+      "estimated_monthly_revenue": "$29k"
+    }
+  ],
+  "detailed_analysis": "**DIAGNÓSTICO DE RESTAURANTE CASA PEPE**\n\nTu negocio tiene un score de 15/100 en presencia local. Esto NO es suficiente en 2025.\n\n**LA REALIDAD DURA:**\n💸 ESTÁS PERDIENDO $5,700/mes ($68,400/año)\n\nDesglose:\n• $1,800/mes por falta de sitio web\n• $2,400/mes por no reclamar tu negocio\n• $900/mes por falta de reseñas\n• $600/mes por fotos desactualizadas\n\nEso son 114 clientes perdidos cada mes que van a tu competencia.\n\n**POR QUÉ ESTÁS PERDIENDO:**\nTus competidores directos tienen ratings de 4.5+, más de 200 reseñas, sitios web optimizados y actualizan contenido semanalmente. Mientras tú lees esto, ellos están capturando a TUS clientes potenciales.\n\n**EL COSTO DE LA INACCIÓN:**\nCada mes que pasa sin optimizar tu presencia local, tu competencia se fortalece. Los clientes que no te encuentran o no confían en tu perfil van a otro lado. Y no vuelven.\n\n**LO QUE DEBES HACER YA:**\n🚨 URGENTE: Tu negocio NO está reclamado en Google. Cualquiera puede editar tu información y robar clientes. Reclámalo HOY.\n\nEl mercado local es una guerra. O atacas agresivamente tu visibilidad, o desapareces.",
+  "action_plan": [
+    "PASO 1 (HOY): Reclama tu negocio en Google My Business. Toma 15 minutos.",
+    "PASO 2 (Esta semana): Crea una landing page simple con tu info y CTA claro.",
+    "PASO 3 (Próximos 7 días): Pide reseñas a tus 20 mejores clientes. Envía email/WhatsApp.",
+    "PASO 4 (Este fin de semana): Toma 30 fotos profesionales de tu negocio, equipo y productos.",
+    "PASO 5 (Próximas 2 semanas): Responde TODAS las reseñas (buenas y malas). Muestra que te importa."
+  ]
+}
