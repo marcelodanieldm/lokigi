@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Index, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Index, Integer, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -81,3 +81,49 @@ class Review(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
 
     connection: Mapped[GoogleConnection] = relationship(back_populates="reviews")
+
+
+class StarterMonthlyMetrics(Base):
+    """Pre-aggregated monthly KPIs per user / active location for Plan Starter reports.
+
+    Populated by the reporting job using the SQL in
+    backend/sql/starter_monthly_metrics_query.sql.
+    Unique constraint (user_id, year, month) enforces exactly one row per
+    calendar month per user so upserts are idempotent.
+    """
+
+    __tablename__ = "starter_monthly_metrics"
+    __table_args__ = (
+        UniqueConstraint("user_id", "year", "month", name="uq_starter_monthly_metrics_user_year_month"),
+        Index("ix_starter_monthly_metrics_user_id", "user_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    location_id: Mapped[str] = mapped_column(String(128), nullable=False)
+
+    year: Mapped[int] = mapped_column(Integer, nullable=False)
+    month: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    # ── KPI 1: volume ────────────────────────────────────────────────────────
+    total_reviews: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    # ── KPI 2: quality ───────────────────────────────────────────────────────
+    avg_rating: Mapped[float | None] = mapped_column(Numeric(4, 2), nullable=True)
+
+    # ── KPI 3: responsiveness ────────────────────────────────────────────────
+    # Percentage of reviews that triggered an AUTO_REPLY (0-100).
+    response_rate_pct: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
+
+    # ── KPI 4: speed ─────────────────────────────────────────────────────────
+    # Average minutes from review creation to NLP decision (reply_decided_at).
+    avg_response_time_minutes: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
+
+    computed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
