@@ -22,6 +22,13 @@ class User(Base):
     acknowledged_alerts: Mapped[list["ChurnAlert"]] = relationship(back_populates="acknowledged_by")
     starter_profile_settings: Mapped["StarterProfileSettings | None"] = relationship(back_populates="user", uselist=False)
     subscription_profile: Mapped["SubscriptionProfile | None"] = relationship(back_populates="user", uselist=False)
+    growth_competitors: Mapped[list["GrowthCompetitor"]] = relationship(back_populates="user")
+    growth_client_snapshots: Mapped[list["GrowthClientSnapshot"]] = relationship(back_populates="user")
+    growth_client_service_snapshots: Mapped[list["GrowthClientServiceSnapshot"]] = relationship(back_populates="user")
+    growth_client_keyword_metrics: Mapped[list["GrowthClientKeywordMetric"]] = relationship(back_populates="user")
+    growth_benchmark_comparisons: Mapped[list["GrowthBenchmarkComparison"]] = relationship(back_populates="user")
+    growth_sentiment_benchmark_runs: Mapped[list["GrowthSentimentBenchmarkRun"]] = relationship(back_populates="user")
+    growth_sentiment_benchmark_topic_gaps: Mapped[list["GrowthSentimentBenchmarkTopicGap"]] = relationship(back_populates="user")
 
 
 
@@ -340,3 +347,303 @@ class ChurnAlert(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
     
     acknowledged_by: Mapped[User | None] = relationship(back_populates="acknowledged_alerts")
+
+
+# ────────────────────────────────────────────────────────────────────────────────
+# GROWTH PLAN - COMPETITOR INTELLIGENCE MODELS
+# ────────────────────────────────────────────────────────────────────────────────
+
+
+class GrowthCompetitor(Base):
+    __tablename__ = "growth_competitors"
+    __table_args__ = (
+        UniqueConstraint("user_id", "google_place_id", name="uq_growth_competitors_user_place"),
+        Index("ix_growth_competitors_user_id", "user_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    google_place_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    country_code: Mapped[str | None] = mapped_column(String(2), nullable=True)
+    city: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
+
+    user: Mapped[User] = relationship(back_populates="growth_competitors")
+    snapshots: Mapped[list["GrowthCompetitorSnapshot"]] = relationship(back_populates="competitor")
+    service_snapshots: Mapped[list["GrowthCompetitorServiceSnapshot"]] = relationship(back_populates="competitor")
+    keyword_metrics: Mapped[list["GrowthCompetitorKeywordMetric"]] = relationship(back_populates="competitor")
+    benchmark_comparisons: Mapped[list["GrowthBenchmarkComparison"]] = relationship(back_populates="competitor")
+
+
+class GrowthClientSnapshot(Base):
+    __tablename__ = "growth_client_snapshots"
+    __table_args__ = (
+        UniqueConstraint("user_id", "observed_at", name="uq_growth_client_snapshots_user_observed"),
+        Index("ix_growth_client_snapshots_user_observed", "user_id", "observed_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    review_count_total: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    rating_avg: Mapped[float | None] = mapped_column(Numeric(4, 2), nullable=True)
+    posts_count_7d: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    posts_count_30d: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    services_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    data_source: Mapped[str] = mapped_column(String(60), nullable=False, default="google_maps_public")
+    extraction_job_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+
+    user: Mapped[User] = relationship(back_populates="growth_client_snapshots")
+
+
+class GrowthCompetitorSnapshot(Base):
+    __tablename__ = "growth_competitor_snapshots"
+    __table_args__ = (
+        UniqueConstraint("competitor_id", "observed_at", name="uq_growth_comp_snapshots_comp_observed"),
+        Index("ix_growth_competitor_snapshots_competitor_observed", "competitor_id", "observed_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    competitor_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("growth_competitors.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    review_count_total: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    rating_avg: Mapped[float | None] = mapped_column(Numeric(4, 2), nullable=True)
+    posts_count_7d: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    posts_count_30d: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    services_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    data_source: Mapped[str] = mapped_column(String(60), nullable=False, default="google_maps_public")
+    extraction_job_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+
+    competitor: Mapped[GrowthCompetitor] = relationship(back_populates="snapshots")
+
+
+class GrowthClientServiceSnapshot(Base):
+    __tablename__ = "growth_client_services_snapshot"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "observed_at",
+            "service_name_normalized",
+            name="uq_growth_client_services_user_observed_service",
+        ),
+        Index("ix_growth_client_services_user_observed", "user_id", "observed_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    service_name_normalized: Mapped[str] = mapped_column(String(180), nullable=False)
+    service_name_raw: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+
+    user: Mapped[User] = relationship(back_populates="growth_client_service_snapshots")
+
+
+class GrowthCompetitorServiceSnapshot(Base):
+    __tablename__ = "growth_competitor_services_snapshot"
+    __table_args__ = (
+        UniqueConstraint(
+            "competitor_id",
+            "observed_at",
+            "service_name_normalized",
+            name="uq_growth_comp_services_comp_observed_service",
+        ),
+        Index("ix_growth_comp_services_competitor_observed", "competitor_id", "observed_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    competitor_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("growth_competitors.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    service_name_normalized: Mapped[str] = mapped_column(String(180), nullable=False)
+    service_name_raw: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+
+    competitor: Mapped[GrowthCompetitor] = relationship(back_populates="service_snapshots")
+
+
+class GrowthClientKeywordMetric(Base):
+    __tablename__ = "growth_client_keyword_metrics"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "period_start",
+            "period_end",
+            "keyword",
+            name="uq_growth_client_keywords_user_period_keyword",
+        ),
+        Index("ix_growth_client_keywords_user_period", "user_id", "period_end", "mentions_count"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    period_start: Mapped[date] = mapped_column(Date, nullable=False)
+    period_end: Mapped[date] = mapped_column(Date, nullable=False)
+    keyword: Mapped[str] = mapped_column(String(120), nullable=False)
+    mentions_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    sentiment_positive_pct: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
+    sentiment_neutral_pct: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
+    sentiment_negative_pct: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+
+    user: Mapped[User] = relationship(back_populates="growth_client_keyword_metrics")
+
+
+class GrowthCompetitorKeywordMetric(Base):
+    __tablename__ = "growth_competitor_keyword_metrics"
+    __table_args__ = (
+        UniqueConstraint(
+            "competitor_id",
+            "period_start",
+            "period_end",
+            "keyword",
+            name="uq_growth_comp_keywords_comp_period_keyword",
+        ),
+        Index("ix_growth_comp_keywords_comp_period", "competitor_id", "period_end", "mentions_count"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    competitor_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("growth_competitors.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    period_start: Mapped[date] = mapped_column(Date, nullable=False)
+    period_end: Mapped[date] = mapped_column(Date, nullable=False)
+    keyword: Mapped[str] = mapped_column(String(120), nullable=False)
+    mentions_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    sentiment_positive_pct: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
+    sentiment_neutral_pct: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
+    sentiment_negative_pct: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+
+    competitor: Mapped[GrowthCompetitor] = relationship(back_populates="keyword_metrics")
+
+
+class GrowthBenchmarkComparison(Base):
+    __tablename__ = "growth_benchmark_comparisons"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "competitor_id",
+            "observed_at",
+            name="uq_growth_benchmark_user_comp_observed",
+        ),
+        Index("ix_growth_benchmark_user_observed", "user_id", "observed_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    competitor_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("growth_competitors.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    rating_gap: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
+    review_count_gap: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    review_growth_30d_gap: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    posting_freq_30d_gap: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    keyword_share_gap: Mapped[float | None] = mapped_column(Numeric(6, 2), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+
+    user: Mapped[User] = relationship(back_populates="growth_benchmark_comparisons")
+    competitor: Mapped[GrowthCompetitor] = relationship(back_populates="benchmark_comparisons")
+
+
+class GrowthSentimentBenchmarkRun(Base):
+    __tablename__ = "growth_sentiment_benchmark_runs"
+    __table_args__ = (
+        Index("ix_growth_sentiment_benchmark_runs_user_created", "user_id", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    window_days: Mapped[int] = mapped_column(Integer, nullable=False, default=30)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="ok")
+    client_sentiment_score: Mapped[float | None] = mapped_column(Numeric(6, 3), nullable=True)
+    competitor_average_sentiment_score: Mapped[float | None] = mapped_column(Numeric(6, 3), nullable=True)
+    client_negative_rate: Mapped[float | None] = mapped_column(Numeric(6, 3), nullable=True)
+    rank_client_among_6: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    summary_payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    diagnostics_payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+
+    user: Mapped[User] = relationship(back_populates="growth_sentiment_benchmark_runs")
+    topic_gaps: Mapped[list["GrowthSentimentBenchmarkTopicGap"]] = relationship(
+        back_populates="run",
+        cascade="all, delete-orphan",
+    )
+
+
+class GrowthSentimentBenchmarkTopicGap(Base):
+    __tablename__ = "growth_sentiment_benchmark_topic_gaps"
+    __table_args__ = (
+        Index("ix_growth_sentiment_benchmark_topic_gaps_run", "run_id"),
+        Index("ix_growth_sentiment_benchmark_topic_gaps_user_label", "user_id", "label"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    run_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("growth_sentiment_benchmark_runs.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    topic: Mapped[str] = mapped_column(String(120), nullable=False)
+    client_complaint_rate: Mapped[float | None] = mapped_column(Numeric(6, 3), nullable=True)
+    competitor_complaint_rate: Mapped[float | None] = mapped_column(Numeric(6, 3), nullable=True)
+    gap: Mapped[float | None] = mapped_column(Numeric(6, 3), nullable=True)
+    support_competitors: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    label: Mapped[str] = mapped_column(String(40), nullable=False)
+    confidence: Mapped[float | None] = mapped_column(Numeric(5, 3), nullable=True)
+    evidence_payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+
+    run: Mapped[GrowthSentimentBenchmarkRun] = relationship(back_populates="topic_gaps")
+    user: Mapped[User] = relationship(back_populates="growth_sentiment_benchmark_topic_gaps")

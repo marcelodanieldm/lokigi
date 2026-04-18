@@ -39,7 +39,8 @@ from sqlalchemy.orm import Session
 from .auto_reply_worker import run_auto_reply_dispatch
 from .config import settings
 from .database import engine
-from .models import GoogleConnection, MonthlyReport, Review, StarterMonthlyMetrics, User
+from .growth_sentiment_benchmark_service import BenchmarkConfig, GrowthSentimentBenchmarkService
+from .models import GoogleConnection, GrowthCompetitor, MonthlyReport, Review, StarterMonthlyMetrics, User
 from .sentiment_analysis import analyze_monthly_sentiment
 
 logger = logging.getLogger(__name__)
@@ -70,6 +71,16 @@ def build_scheduler() -> AsyncIOScheduler:
         replace_existing=True,
         misfire_grace_time=3600,  # tolerate up to 1h delay (e.g. server restart)
     )
+    scheduler.add_job(
+        run_growth_sentiment_benchmark_daily,
+        trigger=CronTrigger(hour=7, minute=15),
+        id="growth_sentiment_benchmark_daily_job",
+        name="Run Growth sentiment benchmark daily",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=1800,
+    )
     return scheduler
 
 
@@ -99,6 +110,29 @@ async def run_monthly_reports() -> None:
                 logger.exception("Monthly report failed for user %s", user.id)
 
     logger.info("Monthly report job finished — period %04d-%02d", year, month)
+
+
+async def run_growth_sentiment_benchmark_daily() -> None:
+    """Compute daily sentiment benchmarking for users with active Growth competitors."""
+    logger.info("Growth sentiment benchmark daily job started")
+
+    with Session(engine) as db:
+        user_ids = db.scalars(
+            select(GrowthCompetitor.user_id)
+            .where(GrowthCompetitor.is_active.is_(True))
+            .distinct()
+        ).all()
+
+        service = GrowthSentimentBenchmarkService(db)
+        cfg = BenchmarkConfig()
+        for user_id in user_ids:
+            try:
+                service.run_for_user(user_id=user_id, config=cfg)
+            except Exception:
+                db.rollback()
+                logger.exception("Growth sentiment benchmark failed for user %s", user_id)
+
+    logger.info("Growth sentiment benchmark daily job finished")
 
 
 # ─────────────────────────────────────────────────────────────────────────────

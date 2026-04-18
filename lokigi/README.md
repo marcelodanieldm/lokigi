@@ -74,6 +74,14 @@ Lokigi centraliza automatización de reseñas de Google Business Profile para el
 - Endpoint `GET /api/nlp/starter-tip-of-day` para consumo de Tip del Día.
 - Tip del Día integrado en dashboard con foco, confianza, evidencia y señales de soporte.
 
+### Growth: competencia, scraping y benchmark de sentimiento
+- Gestión de competidores Growth (`growth_competitors`) por usuario.
+- Scraping en Python con Playwright + rotación de proxies para snapshot competitivo.
+- Persistencia de snapshots cliente/competencia, servicios, keywords y comparativos.
+- Benchmark de sentimiento cliente vs promedio competencia con detección de gaps temáticos.
+- Etiquetado automático de `Oportunidad de Marketing`, `Paridad`, `Desventaja`, `No concluyente`.
+- Historial de ejecuciones de benchmark con detalle de topic gaps.
+
 ### Cancelación, retención y churn
 - Flujo de cancelación con Impact Modal y oferta `Plan Pausa`.
 - Servicio `cancellation_service.py` para:
@@ -156,6 +164,17 @@ Esto instala dependencias, ejecuta migraciones, crea un usuario local de prueba 
 | `GET` | `/api/nlp/user-edit-analysis` | Análisis NLP por usuario |
 | `GET` | `/api/nlp/systemic-analysis` | Análisis NLP sistémico |
 | `POST` | `/api/nlp/export-training-dataset` | Exporta dataset de entrenamiento |
+| `POST` | `/api/growth/competitors` | Crea competidor Growth |
+| `GET` | `/api/growth/competitors` | Lista competidores Growth |
+| `DELETE` | `/api/growth/competitors/{competitor_id}` | Desactiva competidor Growth |
+| `GET` | `/api/growth/competitors/{competitor_id}/latest` | Último snapshot de competidor |
+| `GET` | `/api/growth/benchmark/latest` | Últimos comparativos cliente vs competencia |
+| `POST` | `/api/growth/competitors/{competitor_id}/scrape` | Ejecuta scraping para un competidor |
+| `POST` | `/api/growth/scrape/run` | Ejecuta scraping masivo de competidores activos |
+| `POST` | `/api/growth/sentiment-benchmark/run` | Ejecuta benchmark NLP y persiste resultado |
+| `GET` | `/api/growth/sentiment-benchmark/latest` | Lee último benchmark persistido |
+| `GET` | `/api/growth/sentiment-benchmark/runs` | Lista paginada de runs benchmark |
+| `GET` | `/api/growth/sentiment-benchmark/runs/{run_id}` | Detalle de run + topic gaps |
 
 ## Migraciones Alembic
 
@@ -170,6 +189,133 @@ Esto instala dependencias, ejecuta migraciones, crea un usuario local de prueba 
 | `20260418_0007` | Lifecycle + churn tracking |
 | `20260418_0008` | Flags de activación Starter |
 | `20260418_0009` | Campos PDF y resumen ejecutivo en `monthly_reports` |
+| `20260418_0010` | Esquema Growth competitor intelligence |
+| `20260418_0011` | Tablas de benchmark de sentimiento Growth |
+
+## Ejemplos API Growth
+
+### Ejecutar benchmark de sentimiento
+
+Request:
+
+```json
+{
+  "user_id": "8f3f74f0-7f8e-4b72-8ffd-0e63c83d65e2",
+  "time_window_days": 30,
+  "min_support_topic_competitors": 30,
+  "opp_threshold_competitor_complaint_rate": 0.35,
+  "opp_threshold_client_complaint_rate": 0.15,
+  "confidence_threshold": 0.70,
+  "top_marketing_opportunities": 8
+}
+```
+
+Response (resumen):
+
+```json
+{
+  "ok": true,
+  "result": {
+    "job_id": "2f4a233f-8e5d-4f17-bba4-c60f68da8db2",
+    "status": "ok",
+    "window": {
+      "start_date": "2026-03-20",
+      "end_date": "2026-04-18",
+      "time_window_days": 30
+    },
+    "summary": {
+      "client_sentiment_score": 0.41,
+      "client_negative_rate": 0.18,
+      "competitor_average_sentiment_score": 0.16,
+      "rank_client_among_6": 2
+    },
+    "topic_gaps": [
+      {
+        "topic": "tiempo de espera",
+        "client_complaint_rate": 0.09,
+        "competitor_complaint_rate": 0.46,
+        "gap": 0.37,
+        "support_competitors": 126,
+        "label": "Oportunidad de Marketing",
+        "confidence": 1.0,
+        "marketing_label": "Rapidez comprobada",
+        "suggested_copy": "Atencion agil y tiempos de espera minimos para resolverte rapido.",
+        "risk_level": "bajo"
+      }
+    ]
+  }
+}
+```
+
+### Listar historial de runs benchmark
+
+Request:
+
+```http
+GET /api/growth/sentiment-benchmark/runs?user_id=8f3f74f0-7f8e-4b72-8ffd-0e63c83d65e2&limit=20&offset=0
+```
+
+Response (resumen):
+
+```json
+{
+  "items": [
+    {
+      "id": "2f4a233f-8e5d-4f17-bba4-c60f68da8db2",
+      "status": "ok",
+      "window_days": 30,
+      "client_sentiment_score": 0.41,
+      "competitor_average_sentiment_score": 0.16,
+      "client_negative_rate": 0.18,
+      "rank_client_among_6": 2,
+      "created_at": "2026-04-18T23:31:12.740000+00:00"
+    }
+  ],
+  "limit": 20,
+  "offset": 0
+}
+```
+
+### Detalle de run benchmark
+
+Request:
+
+```http
+GET /api/growth/sentiment-benchmark/runs/2f4a233f-8e5d-4f17-bba4-c60f68da8db2?user_id=8f3f74f0-7f8e-4b72-8ffd-0e63c83d65e2
+```
+
+Response (resumen):
+
+```json
+{
+  "run": {
+    "id": "2f4a233f-8e5d-4f17-bba4-c60f68da8db2",
+    "status": "ok",
+    "window_days": 30,
+    "client_sentiment_score": 0.41,
+    "competitor_average_sentiment_score": 0.16,
+    "client_negative_rate": 0.18,
+    "rank_client_among_6": 2
+  },
+  "topic_gaps": [
+    {
+      "id": "da2a0ea1-e8c9-4dcb-9b19-7ea610fac790",
+      "topic": "tiempo de espera",
+      "client_complaint_rate": 0.09,
+      "competitor_complaint_rate": 0.46,
+      "gap": 0.37,
+      "support_competitors": 126,
+      "label": "Oportunidad de Marketing",
+      "confidence": 1.0,
+      "evidence_payload": {
+        "marketing_label": "Rapidez comprobada",
+        "suggested_copy": "Atencion agil y tiempos de espera minimos para resolverte rapido.",
+        "risk_level": "bajo"
+      }
+    }
+  ]
+}
+```
 
 ## Tests
 
@@ -223,6 +369,9 @@ pytest backend/tests/test_churn_system.py -v
 ## Notas operativas
 
 - La UI principal sigue siendo server-rendered desde FastAPI; el árbol `frontend/src` contiene componentes y hooks de referencia para el flujo de cancelación, pero no existe un build frontend separado en este workspace.
-- El scheduler de `monthly_report_worker.py` ahora registra tanto el job mensual de reportes como el job de auto-reply por minuto.
+- El scheduler de `monthly_report_worker.py` ahora registra:
+  - job mensual de reportes
+  - job de auto-reply por minuto
+  - job diario de benchmark de sentimiento Growth
 - Las rutas de cancelación están montadas desde `backend/app/routes/` y requieren la instancia única de FastAPI definida en `backend/app/main.py`.
 

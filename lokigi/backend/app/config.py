@@ -44,6 +44,16 @@ class Settings(BaseSettings):
     # Public domain used in email links (no scheme, no trailing slash)
     app_domain: str = "localhost:8000"
 
+    # Growth scraper (Playwright Python)
+    growth_proxy_pool: str = ""
+    growth_playwright_timeout_ms: int = 45000
+    growth_playwright_headless: bool = True
+    growth_playwright_user_agent: str = (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    )
+
     def parsed_allowed_hosts(self) -> list[str]:
         value = self.allowed_hosts.strip()
         if not value:
