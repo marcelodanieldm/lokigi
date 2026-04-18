@@ -13,3 +13,4 @@ gunicorn==23.0.0
 pytest==8.3.3
 pytest-asyncio==0.24.0
 testcontainers[postgres]==4.8.2
+langdetect==1.0.9

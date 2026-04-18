@@ -104,6 +104,9 @@ async def test_webhook_new_review_is_stored_idempotently(client, test_user, db_s
     first = client.post("/webhooks/google/reviews", json=body, headers={"Authorization": "Bearer test"})
     assert first.status_code == 200
     assert first.json()["status"] == "stored"
+    assert first.json()["decision_action"] == "AUTO_REPLY"
+    assert first.json()["detected_language"].startswith("es")
+    assert "public_reply" in first.json()
 
     second = client.post("/webhooks/google/reviews", json=body, headers={"Authorization": "Bearer test"})
     assert second.status_code == 200

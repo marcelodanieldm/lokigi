@@ -28,6 +28,7 @@ class GoogleConnection(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     google_account_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    business_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     location_id: Mapped[str] = mapped_column(String(128), nullable=False)
 
     encrypted_access_token: Mapped[str] = mapped_column(Text, nullable=False)
@@ -66,6 +67,16 @@ class Review(Base):
 
     raw_payload: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     raw_payload_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+
+    reply_action: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    reply_detected_language: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    reply_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    reply_public_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    reply_alert_priority: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    reply_alert_category: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    reply_alert_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    reply_alert_next_step: Mapped[str | None] = mapped_column(Text, nullable=True)
+    reply_decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
 

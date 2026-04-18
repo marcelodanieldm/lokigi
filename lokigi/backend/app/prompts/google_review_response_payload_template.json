@@ -1,0 +1,13 @@
+{
+  "review_id": "review-123",
+  "business_name": "Lokigi",
+  "author_name": "Marcela",
+  "stars": 5,
+  "review_text": "Excelente servicio y muy buena atencion.",
+  "review_date": "2026-04-18T10:30:00Z",
+  "location_id": "1234567890",
+  "extra_context": {
+    "channel": "google_business_profile",
+    "country": "AR"
+  }
+}

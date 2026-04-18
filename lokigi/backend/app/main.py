@@ -71,4 +71,18 @@ async def webhook_google_reviews(
             return {"status": "ignored"}
         raise
 
-    return {"status": "stored", "review_id": review.review_id, "location_id": review.location_id}
+    response = {
+        "status": "stored",
+        "review_id": review.review_id,
+        "location_id": review.location_id,
+        "decision_action": review.reply_action,
+        "detected_language": review.reply_detected_language,
+    }
+
+    if review.reply_action == "AUTO_REPLY":
+        response["public_reply"] = review.reply_public_text
+    elif review.reply_action == "ALERT":
+        response["alert_priority"] = review.reply_alert_priority
+        response["alert_summary"] = review.reply_alert_summary
+
+    return response
