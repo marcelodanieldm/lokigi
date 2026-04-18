@@ -1,1 +1,0 @@
-// Si esta ruta solo responde JSON, asegúrate de que los mensajes sean claros, profesionales y sin referencias a dark mode o estilos antiguos.
