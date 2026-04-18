@@ -123,10 +123,21 @@ Criterio de aceptacion:
 - `POST /api/growth/keyword-conquests`
 - `GET /api/growth/premium-report?user_id=<uuid>&window_days=30&max_locations=5`
 
+## Prompts operativos parametrizados (A-D)
+- Prompt A (Data Analyst): define vista SQL de correlacion `frecuencia_posteos_competencia` vs `posicion_ranking_cliente`, con deltas 7d/14d y regla de negocio para `Cambio de Guardia`.
+- Prompt B (Data Science/BI): genera seccion `Analisis de Brecha` detectando servicios presentes en >=3 competidores y ausentes en el perfil del cliente, con recomendacion accionable.
+- Prompt C (Backend): guia de optimizacion del worker PDF para volumen 10x, soporte multiubicacion (hasta 5), radar competitivo dinamico y fallback de render.
+- Prompt D (UI/UX): define pagina `Estado de Dominio Local` con heatmap de zonas/keywords e iconografia de trofeo/alerta.
+
+Variables globales recomendadas para template engine:
+- `company_name`, `period_label`, `window_days`, `max_locations`, `load_multiplier`
+- `target_keywords`, `top_competitors`, `sql_engine`, `chart_library`, `page_format`
+
 ## Notas operativas
 - Ejecutar migraciones antes de usar nuevos endpoints.
 - Los KPIs MSP y Conquest dependen de carga de eventos SERP/conquest.
 - AVI usa posts y fotos; si fotos es nulo, se usa valor 0 como fallback.
+- Para mantener limpio el repositorio del worker PDF, no versionar `backend/pdf-worker/node_modules/`.
 
 ## Estado de validacion tecnica
 - Backend Python: compilacion de modulos modificados OK y rutas nuevas detectadas en FastAPI.

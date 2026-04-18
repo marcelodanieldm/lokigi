@@ -2,6 +2,14 @@
 
 Lokigi centraliza automatización de reseñas de Google Business Profile para el Plan Starter: onboarding guiado, generación y aprobación de respuestas, autoenvío programable, perfil operativo, suscripción/facturación, reportes mensuales, análisis de sentimiento, churn/cancelación y análisis NLP de respuestas editadas.
 
+## Actualizacion reciente (2026-04-18)
+
+- Growth Fase 2 documentada con pipeline Premium de KPIs: MSP, Keyword Conquest Rate, Competitor Sentiment Delta, AVI, ROI y alertas ejecutivas.
+- Nuevas APIs premium documentadas: `POST /api/growth/serp-observations`, `POST /api/growth/keyword-conquests`, `GET /api/growth/premium-report`.
+- Migracion `20260418_0013` agregada para tablas de observaciones SERP/eventos de conquista y vista de correlacion `growth_posting_rank_correlation`.
+- Worker PDF de Growth preparado para extension multiubicacion (hasta 5) y pagina de Estado de Dominio Local en la plantilla del reporte.
+- Hardening de repositorio en `backend/pdf-worker`: `node_modules/` se excluye del versionado para evitar commits de dependencias.
+
 ## Estado actual
 
 ### Plataforma base
