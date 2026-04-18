@@ -25,6 +25,7 @@ from .services import (
     upsert_google_connection,
     verify_pubsub_jwt,
 )
+from .sentiment_analysis import analyze_monthly_sentiment
 
 
 class ApproveReplyRequest(BaseModel):
@@ -329,6 +330,61 @@ async def api_review_regenerate(
         "review_id": updated.review_id,
         "suggested_reply": updated.reply_public_text or "",
     }
+
+
+@app.get("/api/reports/monthly-sentiment")
+def api_monthly_sentiment(
+    user_id: UUID,
+    year: int,
+    month: int,
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    """Return top-3 positive and negative concepts for the user's reviews in a given month.
+
+    Query params: user_id, year, month
+    Response: JSON ready to drive a simple bar chart (see chart_data key).
+    """
+    if not (1 <= month <= 12):
+        raise HTTPException(status_code=422, detail="month must be between 1 and 12")
+    if year < 2020 or year > 2100:
+        raise HTTPException(status_code=422, detail="year out of valid range")
+
+    # Resolve the active location for this user
+    conn = db.scalars(
+        select(GoogleConnection).where(GoogleConnection.user_id == user_id)
+    ).first()
+    location_id = conn.location_id if conn else str(user_id)
+
+    # Fetch reviews for the target month, scoped to this user's location
+    from sqlalchemy import extract
+    from .models import Review as ReviewModel
+
+    stmt = (
+        select(ReviewModel)
+        .join(GoogleConnection, ReviewModel.google_connection_id == GoogleConnection.id)
+        .where(
+            GoogleConnection.user_id == user_id,
+            extract("year", ReviewModel.create_time) == year,
+            extract("month", ReviewModel.create_time) == month,
+        )
+    )
+    reviews_orm = db.scalars(stmt).all()
+
+    review_dicts = [
+        {
+            "comment": r.comment or "",
+            "rating": r.star_rating,
+        }
+        for r in reviews_orm
+    ]
+
+    report = analyze_monthly_sentiment(
+        review_dicts,
+        year=year,
+        month=month,
+        location_id=location_id,
+    )
+    return report.to_dict()
 
 
 @app.get("/starter/approvals", response_class=HTMLResponse)
