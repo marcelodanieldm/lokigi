@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Centro de Comando - Plan Growth</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto py-8">
+        <h1 class="text-3xl font-bold mb-6">Radar de Competencia</h1>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="bg-white rounded shadow p-6">
+                <h2 class="text-xl font-semibold mb-2">Competidores</h2>
+                <ul>
+                    {% for c in competitors %}
+                    <li class="py-1 border-b">{{ c.name }} {% if c.is_client %}<span class="text-green-600 font-bold">(Tú)</span>{% endif %}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="bg-white rounded shadow p-6">
+                <h2 class="text-xl font-semibold mb-2">Estado de Workers Celery</h2>
+                <ul>
+                {% for worker, status in celery_status.items() %}
+                    <li class="py-1 border-b">{{ worker }}: <span class="{% if status['status'] == 'ONLINE' %}text-green-600{% else %}text-red-600{% endif %}">{{ status['status'] }}</span></li>
+                {% else %}
+                    <li>No hay información de workers.</li>
+                {% endfor %}
+                </ul>
+            </div>
+        </div>
+        <div class="bg-white rounded shadow p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-2">Alertas Inteligentes</h2>
+            <ul>
+                {% for alert in alerts %}
+                <li class="py-2 border-b">
+                    <span class="font-bold">{{ alert.review_date.strftime('%Y-%m-%d') }}</span>:
+                    {{ alert.review_text }}
+                    <span class="ml-2 text-blue-600">(Sentimiento: {{ alert.sentiment }})</span>
+                </li>
+                {% else %}
+                <li>No hay alertas recientes.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
