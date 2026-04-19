@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lokigi Marketplace</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    body { background: #181a1b; color: #f8f9fa; }
+    .card { background: #23272b; color: #f8f9fa; }
+    .navbar { background: #23272b; }
+    .btn-primary { background: #0d6efd; border: none; }
+    .btn-primary:hover { background: #0b5ed7; }
+    .flag { width: 24px; height: 16px; }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark mb-4">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">Lokigi Marketplace</a>
+      <div class="d-flex align-items-center">
+        <button class="btn btn-outline-light me-2" id="theme-toggle" title="Modo claro/oscuro">
+          <i class="bi bi-moon"></i>
+        </button>
+        <select id="lang-select" class="form-select form-select-sm bg-dark text-light" style="width:auto">
+          <option value="es">🇪🇸 ES</option>
+          <option value="en">🇺🇸 EN</option>
+        </select>
+      </div>
+    </div>
+  </nav>
+  <div class="container">
+    <div class="row mb-3">
+      <div class="col-md-4 mb-2">
+        <input id="search-input" class="form-control" type="text" placeholder="Buscar apps...">
+      </div>
+      <div class="col-md-3 mb-2">
+        <select id="category-filter" class="form-select">
+          <option value="">Todas las categorías</option>
+        </select>
+      </div>
+      <div class="col-md-3 mb-2">
+        <select id="rating-filter" class="form-select">
+          <option value="">Todas las valoraciones</option>
+          <option value="5">★★★★★</option>
+          <option value="4">★★★★☆ o más</option>
+          <option value="3">★★★☆☆ o más</option>
+        </select>
+      </div>
+      <div class="col-md-2 mb-2">
+        <select id="sort-filter" class="form-select">
+          <option value="">Ordenar por</option>
+          <option value="rating">Mejor valoradas</option>
+          <option value="name">Nombre A-Z</option>
+        </select>
+      </div>
+    </div>
+    <h1 class="mb-4" id="main-title">Apps Destacadas</h1>
+    <div id="apps-list" class="row g-4"></div>
+    <nav>
+      <ul class="pagination justify-content-center my-4" id="pagination"></ul>
+    </nav>
+    <hr class="my-5">
+    <h2 id="subs-title">Mis Suscripciones</h2>
+    <div id="subs-list" class="row g-4 mb-5"></div>
+  </div>
+  <div class="modal fade" id="appDetailModal" tabindex="-1" aria-labelledby="appDetailLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content bg-dark text-light">
+        <div class="modal-header">
+          <h5 class="modal-title" id="appDetailLabel"></h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="appDetailBody"></div>
+        <div class="modal-footer">
+          <form id="review-form" class="w-100">
+            <div class="mb-2">
+              <label for="review-text" class="form-label">Deja tu reseña:</label>
+              <textarea id="review-text" class="form-control" rows="2" maxlength="200"></textarea>
+            </div>
+            <div class="mb-2">
+              <label class="form-label">Valoración:</label>
+              <select id="review-rating" class="form-select form-select-sm w-auto d-inline-block">
+                <option value="5">★★★★★</option>
+                <option value="4">★★★★☆</option>
+                <option value="3">★★★☆☆</option>
+                <option value="2">★★☆☆☆</option>
+                <option value="1">★☆☆☆☆</option>
+              </select>
+              <button type="submit" class="btn btn-success btn-sm ms-2">Enviar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="marketplace.js"></script>
+</body>
+</html>

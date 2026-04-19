@@ -1,0 +1,12 @@
+[Unit]
+Description=Lokigi FastAPI Server
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/path/to/backend
+ExecStart=/path/to/venv/bin/uvicorn backend.main:app --host 0.0.0.0 --port 8000
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7
+        ports: [6379:6379]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          pip install -r backend/requirements.txt
+      - name: Run API tests
+        run: |
+          pytest backend/test_api.py
+      - name: Run Celery task tests
+        run: |
+          pytest backend/test_tasks.py
+      - name: Build Docker image
+        run: |
+          docker build -t lokigi-backend .
