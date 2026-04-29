@@ -7,13 +7,18 @@ POST   /api/cancellation/confirm           - Confirm final cancellation
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from uuid import UUID
 from typing import Optional
+import csv
+import io
+from datetime import datetime
 
 from app.database import get_db
-from app.models import User
+from app.models import GoogleConnection, Review, User
 from app.cancellation_service import CancellationService
 
 router = APIRouter(prefix="/api/cancellation", tags=["cancellation"])
@@ -95,6 +100,13 @@ class CancellationConfirmResponse(BaseModel):
     metrics_pdf_url: str
     goodbye_email_sent: bool
     alerts_triggered: int
+
+
+class CancellationLogoutResponse(BaseModel):
+    """Frontend handoff response after cancellation flow is completed."""
+    status: str
+    redirect_url: str
+    message: str
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -284,3 +296,77 @@ async def confirm_cancellation(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error confirming cancellation: {str(e)}",
         )
+
+
+@router.get(
+    "/export-reviews.csv",
+    summary="Export full review history as CSV",
+    description="Download all user review history before account closure.",
+)
+async def export_review_history_csv(
+    user_id: UUID,
+    db: Session = Depends(get_db),
+):
+    """Export user review history in CSV format for off-platform retention."""
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    reviews = db.scalars(
+        select(Review)
+        .join(GoogleConnection, Review.connection_id == GoogleConnection.id)
+        .where(GoogleConnection.user_id == user_id)
+        .order_by(Review.create_time.desc().nullslast(), Review.created_at.desc())
+    ).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(
+        [
+            "review_id",
+            "location_id",
+            "rating",
+            "author",
+            "comment",
+            "create_time",
+            "reply_action",
+            "reply_public_text",
+            "reply_sent_at",
+        ]
+    )
+
+    for row in reviews:
+        writer.writerow(
+            [
+                row.review_id,
+                row.location_id,
+                row.rating,
+                row.author_display_name or "",
+                (row.comment or "").replace("\r", " ").replace("\n", " "),
+                row.create_time.isoformat() if row.create_time else "",
+                row.reply_action or "",
+                row.reply_public_text or "",
+                row.reply_sent_at.isoformat() if row.reply_sent_at else "",
+            ]
+        )
+
+    output.seek(0)
+    stamp = datetime.utcnow().strftime("%Y%m%d")
+    filename = f"lokigi_reviews_{user_id}_{stamp}.csv"
+    headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
+    return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers=headers)
+
+
+@router.post(
+    "/logout",
+    response_model=CancellationLogoutResponse,
+    summary="Finalize cancellation flow and close session",
+    description="Client handoff endpoint for redirecting user to public landing after cancellation.",
+)
+async def cancellation_logout() -> CancellationLogoutResponse:
+    """Stateless logout handoff for UI flow completion."""
+    return CancellationLogoutResponse(
+        status="logged_out",
+        redirect_url="/",
+        message="Sesion finalizada. Gracias por usar Lokigi.",
+    )

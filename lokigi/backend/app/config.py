@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     google_pubsub_audience: str = ""
     allowed_hosts: str = "*"
     webhook_shared_secret: str = ""
+    negative_review_alert_webhook_url: str = ""
+    negative_review_alert_webhook_token: str = ""
 
     # SendGrid — leave empty to disable email sending
     sendgrid_api_key: str = ""
@@ -43,6 +45,9 @@ class Settings(BaseSettings):
 
     # Public domain used in email links (no scheme, no trailing slash)
     app_domain: str = "localhost:8000"
+
+    # Google Maps / Places API (Onboarding business search)
+    google_maps_api_key: str = ""
 
     # Growth scraper (Playwright Python)
     growth_proxy_pool: str = ""

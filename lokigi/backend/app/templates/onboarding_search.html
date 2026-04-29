@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lokigi · Activa tu negocio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' }</script>
+  <script src="https://unpkg.com/htmx.org@1.9.12" integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2uodhyzR+nG5VhQ3TKo0YsFB7A6+8THZGB" crossorigin="anonymous"></script>
+  <style>
+    body { background: #0a0f1e; font-family: 'Inter', system-ui, sans-serif; }
+    .glass { background: rgba(255,255,255,0.04); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+    .glow-emerald { box-shadow: 0 0 24px rgba(52,211,153,0.2); }
+    .step-done { background: #059669; }
+    .step-active { background: #10b981; box-shadow: 0 0 12px rgba(16,185,129,0.5); }
+    .step-pending { background: rgba(255,255,255,0.12); }
+    .suggestion-item:hover { background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.4); }
+    #search-results { min-height: 0; }
+  </style>
+</head>
+<body class="min-h-screen text-white flex flex-col items-center justify-start py-10 px-4">
+
+  <!-- ── Logo ── -->
+  <div class="mb-8 flex items-center gap-3">
+    <div class="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center font-black text-lg shadow-lg">L</div>
+    <span class="text-xl font-bold tracking-tight">Lokigi</span>
+    <span class="text-xs text-emerald-400 border border-emerald-500/40 rounded-full px-2 py-0.5 ml-1">Plan Starter</span>
+  </div>
+
+  <!-- ── Stepper ── -->
+  <div class="flex items-center gap-2 mb-10">
+    <!-- Step 1 -->
+    <div class="flex items-center gap-2">
+      <div class="step-done w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">✓</div>
+      <span class="text-sm text-emerald-400 hidden sm:inline">Cuenta</span>
+    </div>
+    <div class="w-10 h-px bg-emerald-600"></div>
+    <!-- Step 2 (active) -->
+    <div class="flex items-center gap-2">
+      <div class="step-active w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">2</div>
+      <span class="text-sm text-white font-semibold hidden sm:inline">Tu negocio</span>
+    </div>
+    <div class="w-10 h-px bg-white/10"></div>
+    <!-- Step 3 -->
+    <div class="flex items-center gap-2">
+      <div class="step-pending w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white/40">3</div>
+      <span class="text-sm text-white/40 hidden sm:inline">Voz de Marca</span>
+    </div>
+    <div class="w-10 h-px bg-white/10"></div>
+    <!-- Step 4 -->
+    <div class="flex items-center gap-2">
+      <div class="step-pending w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white/40">4</div>
+      <span class="text-sm text-white/40 hidden sm:inline">Activar</span>
+    </div>
+  </div>
+
+  <!-- ── Card ── -->
+  <div class="glass rounded-2xl w-full max-w-lg p-8 glow-emerald">
+
+    <div class="mb-6">
+      <h1 class="text-2xl font-bold mb-1">¿Cuál es tu negocio?</h1>
+      <p class="text-white/50 text-sm">
+        Lokigi protegerá tu reputación en Google Maps. Busca tu local para que lo identifiquemos correctamente.
+      </p>
+    </div>
+
+    <!-- Search input -->
+    <div class="relative mb-2">
+      <div class="absolute left-3 top-1/2 -translate-y-1/2 text-white/30">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+      </div>
+      <input
+        id="business-search"
+        type="text"
+        autocomplete="off"
+        placeholder="Escribe el nombre o dirección de tu negocio…"
+        class="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 transition-all text-sm"
+        hx-get="/onboarding/search"
+        hx-trigger="keyup changed delay:350ms"
+        hx-target="#search-results"
+        hx-include="[name='q']"
+        name="q"
+      />
+    </div>
+
+    {% if not maps_configured %}
+    <p class="text-amber-400/70 text-xs mb-3 flex items-center gap-1">
+      <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+      GOOGLE_MAPS_API_KEY no configurada — el buscador está en modo demo.
+    </p>
+    {% endif %}
+
+    <!-- Suggestions (HTMX target) -->
+    <div id="search-results" class="mb-4"></div>
+
+    <!-- Preview card (HTMX target) -->
+    <div id="place-preview"></div>
+
+  </div>
+
+  <!-- ── Hint ── -->
+  <p class="text-white/25 text-xs mt-6 max-w-sm text-center">
+    Solo necesitas confirmar el negocio una vez. Lokigi nunca publicará nada sin tu aprobación.
+  </p>
+
+</body>
+</html>

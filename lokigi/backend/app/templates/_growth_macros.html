@@ -1,0 +1,65 @@
+{% macro severity_badge(severity) -%}
+{% set key = (severity or 'medium')|lower %}
+{% if key in ['critical', 'high'] %}
+<span class="rounded-full bg-rose-500/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-rose-200">{{ key }}</span>
+{% elif key == 'medium' %}
+<span class="rounded-full bg-amber-500/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-amber-100">{{ key }}</span>
+{% else %}
+<span class="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-200">{{ key }}</span>
+{% endif %}
+{%- endmacro %}
+
+{% macro competitor_card(competitor) -%}
+<article class="rounded-2xl border border-white/10 bg-black/25 p-4">
+  <div class="flex items-start justify-between gap-3">
+    <div>
+      <h3 class="text-lg font-semibold text-white">{{ competitor.name }}</h3>
+      <p class="text-sm text-stone-400">{{ competitor.city }} · {{ competitor.country_code }} · {{ competitor.snapshot_at }}</p>
+    </div>
+    <span class="rounded-full bg-sky-500/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-sky-200">Radar</span>
+  </div>
+  <div class="mt-3 grid grid-cols-2 gap-2 text-sm lg:grid-cols-3">
+    <div class="rounded-xl bg-white/5 px-3 py-2"><span class="block text-stone-400">Rating</span><strong>{{ competitor.rating_avg if competitor.rating_avg is not none else '-' }}</strong></div>
+    <div class="rounded-xl bg-white/5 px-3 py-2"><span class="block text-stone-400">Reseñas</span><strong>{{ competitor.review_count_total if competitor.review_count_total is not none else '-' }}</strong></div>
+    <div class="rounded-xl bg-white/5 px-3 py-2"><span class="block text-stone-400">Posts 30d</span><strong>{{ competitor.posts_count_30d if competitor.posts_count_30d is not none else '-' }}</strong></div>
+    <div class="rounded-xl bg-white/5 px-3 py-2"><span class="block text-stone-400">Frescura</span><strong>{{ competitor.photos_count_total if competitor.photos_count_total is not none else '-' }}</strong></div>
+    <div class="rounded-xl bg-white/5 px-3 py-2"><span class="block text-stone-400">Engagement</span><strong>{{ competitor.engagement_score if competitor.engagement_score is not none else '-' }}</strong></div>
+    <div class="rounded-xl bg-white/5 px-3 py-2"><span class="block text-stone-400">Gap keyword</span><strong>{{ competitor.keyword_gap if competitor.keyword_gap is not none else '-' }}</strong></div>
+  </div>
+</article>
+{%- endmacro %}
+
+{% macro alert_card(alert) -%}
+<article class="rounded-2xl border border-white/10 bg-black/20 p-4">
+  <div class="mb-2 flex items-center justify-between gap-3">
+    {{ severity_badge(alert.severity) }}
+    <span class="text-xs text-stone-500">{{ alert.timestamp_label }}</span>
+  </div>
+  <h3 class="text-base font-semibold text-white">{{ alert.title }}</h3>
+  <p class="mt-2 text-sm text-stone-300">{{ alert.message }}</p>
+  <p class="mt-2 text-xs uppercase tracking-[0.16em] text-stone-500">{{ alert.source }}</p>
+</article>
+{%- endmacro %}
+
+{% macro worker_card(worker) -%}
+<article class="rounded-2xl border border-white/10 bg-black/20 p-4">
+  <div class="mb-3 flex items-center justify-between gap-3">
+    <h3 class="text-lg font-semibold text-white">{{ worker.name }}</h3>
+    {% if worker.badge == 'emerald' %}
+    <span class="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-200">{{ worker.status }}</span>
+    {% elif worker.badge == 'rose' %}
+    <span class="rounded-full bg-rose-500/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-rose-200">{{ worker.status }}</span>
+    {% elif worker.badge == 'amber' %}
+    <span class="rounded-full bg-amber-500/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-amber-100">{{ worker.status }}</span>
+    {% else %}
+    <span class="rounded-full bg-slate-500/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-200">{{ worker.status }}</span>
+    {% endif %}
+  </div>
+  <p class="text-sm text-stone-300">{{ worker.summary }}</p>
+  <div class="mt-4 grid grid-cols-2 gap-2 text-sm">
+    <div class="rounded-xl bg-white/5 px-3 py-2"><span class="block text-stone-400">Activas</span><strong>{{ worker.active_tasks }}</strong></div>
+    <div class="rounded-xl bg-white/5 px-3 py-2"><span class="block text-stone-400">Procesadas</span><strong>{{ worker.processed_tasks }}</strong></div>
+  </div>
+  <div class="mt-3 text-xs uppercase tracking-[0.16em] text-stone-500">Queues: {{ worker.queues|join(', ') if worker.queues else 'sin datos' }}</div>
+</article>
+{%- endmacro %}

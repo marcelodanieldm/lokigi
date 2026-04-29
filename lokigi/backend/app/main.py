@@ -46,10 +46,12 @@ from .routes import (
   cancellation_routes,
   competitor_scrape_routes,
   grace_period_routes,
+  growth_dashboard_routes,
   growth_event_routes,
   growth_routes,
   growth_seo_routes,
   nlp_analysis_routes,
+  onboarding_routes,
 )
 
 
@@ -95,10 +97,12 @@ app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.parsed_allowed_
 app.include_router(cancellation_routes.router)
 app.include_router(grace_period_routes.router)
 app.include_router(growth_routes.router)
+app.include_router(growth_dashboard_routes.router)
 app.include_router(growth_event_routes.router)
 app.include_router(competitor_scrape_routes.router)
 app.include_router(growth_seo_routes.router)
 app.include_router(nlp_analysis_routes.router)
+app.include_router(onboarding_routes.router)
 
 
 def _esc(value: Any) -> str:
@@ -1994,6 +1998,8 @@ def api_starter_profile_save(req: StarterProfileSaveRequest, db: Session = Depen
         raise HTTPException(status_code=404, detail="User not connected")
 
     tone_lower = (req.tone or "cercano").lower().strip()
+    if tone_lower == "amistoso":
+      tone_lower = "cercano"
     if tone_lower not in ["cercano", "formal", "moderno"]:
         raise HTTPException(status_code=400, detail="Invalid tone. Must be one of: cercano, formal, moderno")
 
@@ -2212,6 +2218,8 @@ def api_tone_set(
         raise HTTPException(status_code=404, detail="User not connected")
     
     tone_lower = (req.tone or "cercano").lower().strip()
+    if tone_lower == "amistoso":
+      tone_lower = "cercano"
     if tone_lower not in ["cercano", "formal", "moderno"]:
         raise HTTPException(status_code=400, detail=f"Invalid tone. Must be one of: cercano, formal, moderno")
     

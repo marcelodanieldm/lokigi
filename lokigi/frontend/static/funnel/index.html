@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lokigi | Captura de lead</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <div>
+        <div class="brand-mark">Lokigi funnel demo</div>
+        <strong>Frontend publico del cliente</strong>
+      </div>
+      <a class="button button-secondary" href="../index.html">Volver al marketplace</a>
+    </header>
+
+    <section class="hero">
+      <div class="hero-copy">
+        <span class="eyebrow">Etapa 1 · Captura</span>
+        <h1>Diagnostico local que termina en CTA, checkout y conversion.</h1>
+        <p>Esta home representa el inicio del funnel comercial del cliente: toma los datos base del negocio, crea el lead y empuja al usuario a su auditoria individual.</p>
+        <div class="flow-strip" aria-label="Etapas del funnel">
+          <div class="flow-step"><strong>1. Lead</strong><span>Formulario corto con negocio, telefono, email y ciudad.</span></div>
+          <div class="flow-step"><strong>2. Auditoria</strong><span>Score, fallos criticos, comparativa y oportunidad.</span></div>
+          <div class="flow-step"><strong>3. Checkout</strong><span>CTA comercial si el score esta bajo.</span></div>
+          <div class="flow-step"><strong>4. Success</strong><span>Confirmacion de pago y vuelta al contexto.</span></div>
+        </div>
+        <div class="hero-actions" style="margin-top:18px;">
+          <button class="button button-primary" type="button" onclick="document.getElementById('negocio').focus()">Empezar analisis</button>
+          <button class="button button-ghost" type="button" id="seed-demo">Cargar demo directa</button>
+        </div>
+      </div>
+
+      <aside class="panel">
+        <div class="section-kicker">LeadForm</div>
+        <h2>Datos minimos para crear el lead</h2>
+        <form id="lead-form" class="lead-form">
+          <div class="field">
+            <label for="negocio">Nombre del negocio</label>
+            <input id="negocio" name="negocio" type="text" placeholder="Cafe Aurora" required>
+          </div>
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" placeholder="dueno@negocio.com" required>
+          </div>
+          <div class="field">
+            <label for="telefono">Telefono</label>
+            <input id="telefono" name="telefono" type="tel" placeholder="+34 600 123 456" required>
+          </div>
+          <div class="field">
+            <label for="ciudad">Ciudad</label>
+            <input id="ciudad" name="ciudad" type="text" placeholder="Madrid" required>
+          </div>
+          <div class="form-actions">
+            <button class="button button-primary" type="submit">Crear lead y ver auditoria</button>
+            <a class="button button-secondary" href="audit.html?id=demo-4821">Ver ejemplo</a>
+          </div>
+          <div class="inline-note">En produccion esto llamaria a la API de creacion de lead y luego a la ruta de analisis.</div>
+        </form>
+      </aside>
+    </section>
+
+    <section style="margin-top:22px;" class="stage-grid">
+      <article class="stage">
+        <div class="stage-kicker">Objetivo</div>
+        <h3>Reducir friccion de entrada</h3>
+        <p>Solo pide los datos necesarios para disparar el lead y avanzar rapido al diagnostico. La meta no es cerrar aqui, sino llevar al usuario a una auditoria que justifique la compra.</p>
+      </article>
+      <article class="stage">
+        <div class="stage-kicker">CTA principal</div>
+        <h3>Crear lead y ver auditoria</h3>
+        <p>El boton principal representa el salto desde la home a la vista de auditoria individual, que es donde se produce la persuasion comercial.</p>
+      </article>
+    </section>
+
+    <section style="margin-top:18px;" class="grid-3">
+      <div class="stat">
+        <div class="stat-title">Pantalla</div>
+        <div class="stat-value">Home</div>
+        <p>Ruta publica equivalente a <strong>/</strong>.</p>
+      </div>
+      <div class="stat">
+        <div class="stat-title">Endpoint esperado</div>
+        <div class="stat-value">POST</div>
+        <p>/api/leads o /api/v1/create-lead segun la documentacion.</p>
+      </div>
+      <div class="stat">
+        <div class="stat-title">Estado del lead</div>
+        <div class="stat-value">pending</div>
+        <p>Se crea y pasa al analisis para decidir si activa oferta.</p>
+      </div>
+    </section>
+
+    <div class="footer-note">Entrada recomendada para la demo: <strong>frontend/static/funnel/index.html</strong></div>
+  </div>
+
+  <script src="funnel.js"></script>
+</body>
+</html>

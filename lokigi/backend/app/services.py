@@ -13,6 +13,7 @@ from cryptography.fernet import Fernet
 from fastapi import HTTPException
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
+import httpx
 from itsdangerous import URLSafeSerializer
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -20,7 +21,7 @@ from sqlalchemy.orm import Session
 from .config import settings
 from .google_client import GoogleBusinessProfileClient, GoogleOAuthError
 from .models import GoogleConnection, Review, StarterProfileSettings, SubscriptionProfile, User
-from .review_reply_engine import generate_review_reply_decision
+from .review_reply_engine import generate_reply_by_tone, generate_review_reply_decision
 
 
 logger = logging.getLogger(__name__)
@@ -328,6 +329,74 @@ def emit_review_alert(review: Review) -> None:
     )
 
 
+def _resolve_brand_tone(raw_tone: str | None) -> str:
+    """Normalize UI tone aliases to engine-supported values."""
+    tone = (raw_tone or "cercano").strip().lower()
+    if tone in {"amistoso", "friendly"}:
+        return "cercano"
+    if tone in {"formal", "moderno", "cercano"}:
+        return tone
+    return "cercano"
+
+
+def _apply_brand_tone_reply(
+    *,
+    connection: GoogleConnection,
+    review_comment: str,
+    review_rating: int | None,
+    author_name: str,
+    decision: dict[str, Any],
+) -> dict[str, Any]:
+    """Inject brand-tone reply text when decision is AUTO_REPLY."""
+    if decision.get("action") != "AUTO_REPLY":
+        return decision
+
+    decision["public_reply"] = generate_reply_by_tone(
+        tone=_resolve_brand_tone(connection.preferred_tone),
+        review_text=review_comment,
+        stars=review_rating,
+        business_name=connection.business_name or connection.google_account_name,
+        author_name=author_name,
+    )
+    return decision
+
+
+async def send_negative_review_alert_notification(review: Review, connection: GoogleConnection) -> None:
+    """Push immediate negative-review notification to webhook when configured."""
+    endpoint = settings.negative_review_alert_webhook_url.strip()
+    if not endpoint:
+        return
+
+    headers = {"Content-Type": "application/json"}
+    token = settings.negative_review_alert_webhook_token.strip()
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
+    payload = {
+        "event": "starter.negative_review_alert",
+        "review_id": review.review_id,
+        "location_id": review.location_id,
+        "business_name": connection.business_name or connection.google_account_name,
+        "author": review.author_display_name,
+        "rating": review.rating,
+        "summary": review.reply_alert_summary,
+        "priority": review.reply_alert_priority,
+        "created_at": review.created_at.isoformat() if review.created_at else None,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.post(endpoint, headers=headers, json=payload)
+            if response.status_code >= 400:
+                logger.warning(
+                    "Negative alert webhook failed status=%s review_id=%s",
+                    response.status_code,
+                    review.review_id,
+                )
+    except Exception:
+        logger.exception("Negative alert webhook request failed for review_id=%s", review.review_id)
+
+
 async def store_new_review_from_webhook(db: Session, webhook_payload: dict[str, Any]) -> Review:
     notification_type = webhook_payload.get("notificationType") or webhook_payload.get("notification_type")
     if notification_type and notification_type.upper() != "NEW_REVIEW":
@@ -372,6 +441,13 @@ async def store_new_review_from_webhook(db: Session, webhook_payload: dict[str, 
                 business_name=connection.business_name or connection.google_account_name,
                 author_name=existing.author_display_name or "there",
             )
+            decision = _apply_brand_tone_reply(
+                connection=connection,
+                review_comment=existing.comment or "",
+                review_rating=existing.rating,
+                author_name=existing.author_display_name or "there",
+                decision=decision,
+            )
             decision["public_reply"] = apply_forbidden_words_filter(
                 decision.get("public_reply"),
                 profile_settings.forbidden_words if profile_settings else "",
@@ -379,6 +455,7 @@ async def store_new_review_from_webhook(db: Session, webhook_payload: dict[str, 
             apply_review_reply_decision(existing, decision)
             if existing.reply_action == "ALERT":
                 emit_review_alert(existing)
+                await send_negative_review_alert_notification(existing, connection)
             db.commit()
             db.refresh(existing)
 
@@ -429,6 +506,14 @@ async def store_new_review_from_webhook(db: Session, webhook_payload: dict[str, 
         author_name=review.author_display_name or "there",
     )
 
+    decision = _apply_brand_tone_reply(
+        connection=connection,
+        review_comment=review.comment or "",
+        review_rating=review.rating,
+        author_name=review.author_display_name or "there",
+        decision=decision,
+    )
+
     decision["public_reply"] = apply_forbidden_words_filter(
         decision.get("public_reply"),
         profile_settings.forbidden_words if profile_settings else "",
@@ -442,6 +527,7 @@ async def store_new_review_from_webhook(db: Session, webhook_payload: dict[str, 
 
     if review.reply_action == "ALERT":
         emit_review_alert(review)
+        await send_negative_review_alert_notification(review, connection)
     elif (
         review.reply_action == "AUTO_REPLY"
         and review.reply_sent_at is None
@@ -577,6 +663,14 @@ async def regenerate_review_reply(db: Session, review: Review) -> Review:
         business_name=business_name,
         author_name=review.author_display_name or "there",
     )
+    if connection:
+        decision = _apply_brand_tone_reply(
+            connection=connection,
+            review_comment=review.comment or "",
+            review_rating=review.rating,
+            author_name=review.author_display_name or "there",
+            decision=decision,
+        )
     if connection:
         profile_settings = db.scalar(
             select(StarterProfileSettings).where(StarterProfileSettings.user_id == connection.user_id)
