@@ -1,0 +1,13 @@
+{% if fragment == 'toast' %}
+<div class="rounded-2xl border px-4 py-3 text-sm {% if kind == 'success' %}border-emerald-500/30 bg-emerald-500/10 text-emerald-100{% else %}border-rose-500/30 bg-rose-500/10 text-rose-100{% endif %}">{{ message }}</div>
+{% elif fragment == 'card' %}
+{% include 'review_card.html' %}
+{% else %}
+<div id="pending-list" class="grid gap-4">
+  {% for card in pending_cards %}
+    {% include 'review_card.html' %}
+  {% else %}
+  <div class="rounded-2xl border border-dashed border-white/10 bg-black/10 p-8 text-center text-sm text-slate-400">No hay reseñas pendientes de acción.</div>
+  {% endfor %}
+</div>
+{% endif %}

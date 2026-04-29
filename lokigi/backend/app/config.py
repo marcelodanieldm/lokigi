@@ -38,6 +38,12 @@ class Settings(BaseSettings):
     tip_llm_api_key: str = ""
     tip_llm_model: str = "gpt-4o-mini"
 
+    # Optional LLM provider for Google review reply drafts
+    review_reply_llm_enabled: bool = False
+    review_reply_llm_api_base: str = "https://api.openai.com/v1"
+    review_reply_llm_api_key: str = ""
+    review_reply_llm_model: str = "gpt-4o-mini"
+
     # Monthly report PDF worker integration
     pdf_worker_enqueue_url: str = ""
     pdf_worker_enqueue_token: str = ""

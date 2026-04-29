@@ -110,6 +110,42 @@ class Review(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
 
     connection: Mapped[GoogleConnection] = relationship(back_populates="reviews")
+    pending_response: Mapped["PendingResponse | None"] = relationship(
+        back_populates="review",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+
+
+class PendingResponse(Base):
+    __tablename__ = "pending_responses"
+    __table_args__ = (
+        UniqueConstraint("review_pk", name="uq_pending_responses_review_pk"),
+        Index("ix_pending_responses_status", "status"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    review_pk: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("reviews.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    draft_text: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending")
+    tone: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    prompt_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    model_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    approved_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
+
+    review: Mapped[Review] = relationship(back_populates="pending_response")
 
 
 class StarterProfileSettings(Base):

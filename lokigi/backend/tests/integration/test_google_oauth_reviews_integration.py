@@ -1,12 +1,16 @@
 import base64
+import asyncio
 import json
 from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qs, urlparse
+from types import SimpleNamespace
 
 import pytest
 from sqlalchemy import select
 
-from app.models import GoogleConnection, Review
+from app.models import GoogleConnection, PendingResponse, Review
+from app.services import process_review_workflow
+from tasks.review_processing import process_reviews
 
 
 @pytest.mark.asyncio
@@ -142,6 +146,12 @@ async def test_webhook_new_review_is_stored_idempotently(client, test_user, db_s
     monkeypatch.setattr("app.google_client.GoogleBusinessProfileClient.get_review", fake_get_review)
     monkeypatch.setattr("app.main.verify_pubsub_jwt", lambda _: None)
 
+    def fake_delay(review_pk: str):
+        asyncio.run(process_review_workflow(db=db_session, review_id=review_pk))
+        return SimpleNamespace(id=f"task-{review_pk}")
+
+    monkeypatch.setattr("app.main.process_google_review.delay", fake_delay)
+
     start_response = client.get(f"/oauth/google/start?user_id={test_user.id}&location_id=222", follow_redirects=False)
     state = parse_qs(urlparse(start_response.headers["location"]).query)["state"][0]
     callback_response = client.get(f"/oauth/google/callback?code=oauth-code-2&state={state}")
@@ -157,19 +167,95 @@ async def test_webhook_new_review_is_stored_idempotently(client, test_user, db_s
 
     first = client.post("/webhooks/google/reviews", json=body, headers={"Authorization": "Bearer test"})
     assert first.status_code == 200
-    assert first.json()["status"] == "stored"
-    assert first.json()["decision_action"] == "AUTO_REPLY"
-    assert first.json()["detected_language"].startswith("es")
-    assert "public_reply" in first.json()
+    assert first.json()["status"] == "queued"
+    assert first.json()["processing_mode"] == "celery"
+    assert first.json()["task_id"].startswith("task-")
 
     second = client.post("/webhooks/google/reviews", json=body, headers={"Authorization": "Bearer test"})
     assert second.status_code == 200
-    assert second.json()["status"] == "stored"
+    assert second.json()["status"] == "queued"
 
     reviews = db_session.scalars(select(Review).where(Review.location_id == "222")).all()
     assert len(reviews) == 1
     assert reviews[0].review_id == "review-abc-1"
     assert reviews[0].author_display_name == "John D"
+    assert reviews[0].reply_action == "AUTO_REPLY"
+    assert reviews[0].reply_detected_language.startswith("es")
+    assert reviews[0].reply_public_text
+
+
+def test_queue_only_webhook_enqueues_process_reviews(client, monkeypatch):
+    captured: dict[str, object] = {}
+    monkeypatch.setattr("app.main.verify_pubsub_jwt", lambda _: None)
+
+    def fake_delay(payload: dict[str, object]):
+        captured.update(payload)
+        return SimpleNamespace(id="task-queued-1")
+
+    monkeypatch.setattr("app.main.process_reviews.delay", fake_delay)
+
+    response = client.post(
+        "/webhooks/google-reviews",
+        json={
+            "notificationType": "NEW_REVIEW",
+            "locationName": "accounts/111/locations/222",
+            "reviewId": "review-inline-1",
+            "starRating": 5,
+            "comment": "Muy buena atención",
+        },
+        headers={"Authorization": "Bearer test"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "queued"
+    assert response.json()["queue"] == "process_reviews"
+    assert captured["review_id"] == "review-inline-1"
+    assert captured["rating"] == 5
+    assert captured["comment"] == "Muy buena atención"
+
+
+def test_process_reviews_worker_persists_pending_response(db_session, test_user):
+    connection = GoogleConnection(
+        user_id=test_user.id,
+        google_account_name="accounts/111",
+        business_name="My Store",
+        location_id="222",
+        encrypted_access_token="token",
+        encrypted_refresh_token="refresh",
+        token_expiry=datetime.now(timezone.utc) + timedelta(hours=1),
+        manual_approval_enabled=True,
+        preferred_tone="formal",
+    )
+    db_session.add(connection)
+    db_session.commit()
+
+    result = process_reviews.run(
+        {
+            "review_id": "review-worker-1",
+            "rating": 5,
+            "comment": "Excelente servicio y rapidez",
+            "location_id": "222",
+            "review_name": "accounts/111/locations/222/reviews/review-worker-1",
+            "reviewer": {"displayName": "Marcela", "profilePhotoUrl": None, "isAnonymous": False},
+            "payload": {
+                "notificationType": "NEW_REVIEW",
+                "locationName": "accounts/111/locations/222",
+                "reviewId": "review-worker-1",
+                "starRating": 5,
+                "comment": "Excelente servicio y rapidez",
+                "reviewer": {"displayName": "Marcela", "profilePhotoUrl": None, "isAnonymous": False},
+            },
+        }
+    )
+
+    assert result["status"] == "processed"
+    review = db_session.scalar(select(Review).where(Review.review_id == "review-worker-1"))
+    assert review is not None
+    pending = db_session.scalar(select(PendingResponse).where(PendingResponse.review_pk == review.id))
+    assert pending is not None
+    assert pending.status == "pending"
+    assert pending.draft_text
+    assert pending.prompt_text
 
 
 @pytest.mark.asyncio
@@ -219,6 +305,12 @@ async def test_webhook_rejects_reviewid_collision_with_different_payload(client,
     monkeypatch.setattr("app.google_client.GoogleBusinessProfileClient.list_accessible_locations", fake_list_locations)
     monkeypatch.setattr("app.google_client.GoogleBusinessProfileClient.get_review", fake_get_review)
     monkeypatch.setattr("app.main.verify_pubsub_jwt", lambda _: None)
+
+    def fake_delay(review_pk: str):
+        asyncio.run(process_review_workflow(db=db_session, review_id=review_pk))
+        return SimpleNamespace(id=f"task-{review_pk}")
+
+    monkeypatch.setattr("app.main.process_google_review.delay", fake_delay)
 
     start_response = client.get(f"/oauth/google/start?user_id={test_user.id}&location_id=222", follow_redirects=False)
     state = parse_qs(urlparse(start_response.headers["location"]).query)["state"][0]

@@ -7,6 +7,7 @@ import logging
 import re
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from uuid import UUID
 from urllib.parse import urlencode
 
 from cryptography.fernet import Fernet
@@ -20,8 +21,8 @@ from sqlalchemy.orm import Session
 
 from .config import settings
 from .google_client import GoogleBusinessProfileClient, GoogleOAuthError
-from .models import GoogleConnection, Review, StarterProfileSettings, SubscriptionProfile, User
-from .review_reply_engine import generate_reply_by_tone, generate_review_reply_decision
+from .models import GoogleConnection, PendingResponse, Review, StarterProfileSettings, SubscriptionProfile, User
+from .review_reply_engine import build_dynamic_review_prompt, generate_reply_by_tone, generate_review_reply_decision
 
 
 logger = logging.getLogger(__name__)
@@ -197,6 +198,12 @@ def parse_pubsub_push(body: dict[str, Any]) -> dict[str, Any]:
         raise HTTPException(status_code=400, detail="Invalid pubsub payload") from exc
 
 
+def parse_google_review_event_body(body: dict[str, Any]) -> dict[str, Any]:
+    if "message" in body:
+        return parse_pubsub_push(body)
+    return body
+
+
 def extract_location_id(payload: dict[str, Any]) -> str:
     for key in ("locationName", "location", "location_name"):
         value = payload.get(key)
@@ -204,6 +211,13 @@ def extract_location_id(payload: dict[str, Any]) -> str:
             return value.split("/")[-1]
         if isinstance(value, str) and value.isdigit():
             return value
+    review_name = payload.get("reviewName") or payload.get("review_name") or payload.get("name")
+    if isinstance(review_name, str) and "/locations/" in review_name:
+        parts = review_name.split("/")
+        if "locations" in parts:
+            index = parts.index("locations")
+            if index + 1 < len(parts):
+                return parts[index + 1]
     raise HTTPException(status_code=400, detail="Cannot determine location_id from webhook payload")
 
 
@@ -213,6 +227,42 @@ def extract_review_name(payload: dict[str, Any]) -> str:
         if isinstance(value, str) and "reviews/" in value:
             return value
     raise HTTPException(status_code=400, detail="Cannot determine reviewName from payload")
+
+
+def extract_review_id(payload: dict[str, Any]) -> str:
+    direct = payload.get("reviewId") or payload.get("review_id")
+    if isinstance(direct, str) and direct.strip():
+        return direct.strip()
+
+    review_name = payload.get("reviewName") or payload.get("review_name") or payload.get("name")
+    if isinstance(review_name, str) and review_name.strip():
+        return review_name.rstrip("/").split("/")[-1]
+
+    raise HTTPException(status_code=400, detail="Cannot determine review_id from payload")
+
+
+def build_review_processing_task_payload(body: dict[str, Any]) -> dict[str, Any]:
+    payload = parse_google_review_event_body(body)
+    rating_value = payload.get("starRating", payload.get("rating"))
+    try:
+        rating = int(rating_value) if rating_value is not None else None
+    except (TypeError, ValueError):
+        rating = None
+
+    comment = payload.get("comment")
+    if comment is not None and not isinstance(comment, str):
+        comment = str(comment)
+
+    return {
+        "review_id": extract_review_id(payload),
+        "rating": rating,
+        "comment": comment,
+        "location_id": extract_location_id(payload),
+        "review_name": payload.get("reviewName") or payload.get("review_name") or payload.get("name"),
+        "notification_type": payload.get("notificationType") or payload.get("notification_type"),
+        "reviewer": payload.get("reviewer") if isinstance(payload.get("reviewer"), dict) else {},
+        "payload": payload,
+    }
 
 
 async def ensure_valid_access_token(db: Session, connection: GoogleConnection) -> str:
@@ -262,6 +312,38 @@ def apply_review_reply_decision(review: Review, decision: dict[str, Any]) -> Non
     review.reply_alert_summary = alert.get("summary")
     review.reply_alert_next_step = alert.get("recommended_next_step")
     review.reply_decided_at = datetime.now(timezone.utc)
+
+
+def upsert_pending_response(
+    db: Session,
+    *,
+    review: Review,
+    draft_text: str,
+    prompt_text: str | None,
+    tone: str | None,
+    model_name: str | None,
+    status: str = "pending",
+) -> PendingResponse:
+    pending = db.scalar(select(PendingResponse).where(PendingResponse.review_pk == review.id))
+    if pending is None:
+        pending = PendingResponse(
+            review_pk=review.id,
+            draft_text=draft_text,
+            status=status,
+            tone=tone,
+            prompt_text=prompt_text,
+            model_name=model_name,
+        )
+        db.add(pending)
+    else:
+        pending.draft_text = draft_text
+        pending.status = status
+        pending.tone = tone
+        pending.prompt_text = prompt_text
+        pending.model_name = model_name
+    db.commit()
+    db.refresh(pending)
+    return pending
 
 
 def apply_forbidden_words_filter(text: str | None, forbidden_words_raw: str | None) -> str | None:
@@ -427,52 +509,9 @@ async def store_new_review_from_webhook(db: Session, webhook_payload: dict[str, 
 
     payload_hash = sha256_json(review_data)
     existing = db.scalar(select(Review).where(Review.review_id == review_id))
-    profile_settings = db.scalar(
-        select(StarterProfileSettings).where(StarterProfileSettings.user_id == connection.user_id)
-    )
     if existing:
         if existing.raw_payload_hash != payload_hash:
             raise HTTPException(status_code=409, detail="reviewId collision with different payload")
-
-        if not existing.reply_action:
-            decision = generate_review_reply_decision(
-                review_text=existing.comment or "",
-                stars=existing.rating,
-                business_name=connection.business_name or connection.google_account_name,
-                author_name=existing.author_display_name or "there",
-            )
-            decision = _apply_brand_tone_reply(
-                connection=connection,
-                review_comment=existing.comment or "",
-                review_rating=existing.rating,
-                author_name=existing.author_display_name or "there",
-                decision=decision,
-            )
-            decision["public_reply"] = apply_forbidden_words_filter(
-                decision.get("public_reply"),
-                profile_settings.forbidden_words if profile_settings else "",
-            )
-            apply_review_reply_decision(existing, decision)
-            if existing.reply_action == "ALERT":
-                emit_review_alert(existing)
-                await send_negative_review_alert_notification(existing, connection)
-            db.commit()
-            db.refresh(existing)
-
-            if (
-                existing.reply_action == "AUTO_REPLY"
-                and existing.reply_sent_at is None
-                and existing.reply_public_text
-                and should_auto_send_now(
-                    manual_approval_enabled=connection.manual_approval_enabled,
-                    response_schedule=profile_settings.response_schedule if profile_settings else "instant",
-                    decided_at=existing.reply_decided_at,
-                )
-            ):
-                try:
-                    await send_review_reply(db=db, review=existing, reply_text=existing.reply_public_text)
-                except HTTPException:
-                    logger.exception("Immediate auto-send failed for existing review %s", existing.review_id)
         return existing
 
     reviewer = review_data.get("reviewer", {})
@@ -499,13 +538,96 @@ async def store_new_review_from_webhook(db: Session, webhook_payload: dict[str, 
         raw_payload_hash=payload_hash,
     )
 
+    db.add(review)
+    db.commit()
+    db.refresh(review)
+    return review
+
+
+async def store_review_from_event_payload(db: Session, event_payload: dict[str, Any]) -> Review:
+    payload = event_payload.get("payload") if isinstance(event_payload.get("payload"), dict) else event_payload
+    notification_type = payload.get("notificationType") or payload.get("notification_type")
+    if notification_type and str(notification_type).upper() != "NEW_REVIEW":
+        raise HTTPException(status_code=202, detail="Notification ignored")
+
+    rating = event_payload.get("rating")
+    comment = event_payload.get("comment")
+    if rating is None and not comment and event_payload.get("review_name"):
+        return await store_new_review_from_webhook(db=db, webhook_payload=payload)
+
+    location_id = event_payload.get("location_id") or extract_location_id(payload)
+    review_id = event_payload.get("review_id") or extract_review_id(payload)
+
+    connection = db.scalar(select(GoogleConnection).where(GoogleConnection.location_id == location_id))
+    if not connection:
+        raise HTTPException(status_code=404, detail="Location not linked")
+
+    reviewer = event_payload.get("reviewer") if isinstance(event_payload.get("reviewer"), dict) else {}
+    author_metadata = {
+        "reviewer_name": reviewer.get("displayName"),
+        "profile_photo_url": reviewer.get("profilePhotoUrl"),
+        "is_anonymous": bool(reviewer.get("isAnonymous")),
+    }
+    payload_hash = sha256_json(payload)
+    existing = db.scalar(select(Review).where(Review.review_id == review_id))
+    if existing:
+        existing.rating = rating
+        existing.comment = comment
+        existing.author_display_name = reviewer.get("displayName") or existing.author_display_name
+        existing.author_profile_photo_url = reviewer.get("profilePhotoUrl") or existing.author_profile_photo_url
+        existing.author_is_anonymous = bool(reviewer.get("isAnonymous"))
+        existing.author_metadata = author_metadata
+        existing.author_metadata_hash = sha256_json(author_metadata)
+        existing.raw_payload = payload
+        existing.raw_payload_hash = payload_hash
+        db.commit()
+        db.refresh(existing)
+        return existing
+
+    review = Review(
+        connection_id=connection.id,
+        review_id=review_id,
+        location_id=location_id,
+        rating=rating,
+        comment=comment,
+        create_time=parse_google_time(payload.get("createTime")),
+        update_time=parse_google_time(payload.get("updateTime")),
+        author_display_name=reviewer.get("displayName"),
+        author_profile_photo_url=reviewer.get("profilePhotoUrl"),
+        author_is_anonymous=bool(reviewer.get("isAnonymous")),
+        author_metadata=author_metadata,
+        author_metadata_hash=sha256_json(author_metadata),
+        raw_payload=payload,
+        raw_payload_hash=payload_hash,
+    )
+    db.add(review)
+    db.commit()
+    db.refresh(review)
+    return review
+
+
+async def process_review_workflow(db: Session, review_id: UUID | str) -> Review:
+    review = db.get(Review, review_id)
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+
+    connection = db.get(GoogleConnection, review.connection_id)
+    if not connection:
+        raise HTTPException(status_code=404, detail="Connection not found for review")
+
+    if review.reply_action and review.reply_decided_at is not None:
+        return review
+
+    profile_settings = db.scalar(
+        select(StarterProfileSettings).where(StarterProfileSettings.user_id == connection.user_id)
+    )
+
     decision = generate_review_reply_decision(
         review_text=review.comment or "",
         stars=review.rating,
         business_name=connection.business_name or connection.google_account_name,
         author_name=review.author_display_name or "there",
     )
-
     decision = _apply_brand_tone_reply(
         connection=connection,
         review_comment=review.comment or "",
@@ -513,17 +635,30 @@ async def store_new_review_from_webhook(db: Session, webhook_payload: dict[str, 
         author_name=review.author_display_name or "there",
         decision=decision,
     )
-
     decision["public_reply"] = apply_forbidden_words_filter(
         decision.get("public_reply"),
         profile_settings.forbidden_words if profile_settings else "",
     )
 
     apply_review_reply_decision(review, decision)
-
-    db.add(review)
     db.commit()
     db.refresh(review)
+
+    if review.reply_action == "AUTO_REPLY" and review.reply_public_text:
+        prompt_text = build_dynamic_review_prompt(
+            tone=_resolve_brand_tone(connection.preferred_tone),
+            review_text=review.comment or "",
+            business_name=connection.business_name or connection.google_account_name,
+            author_name=review.author_display_name or "",
+        )
+        upsert_pending_response(
+            db,
+            review=review,
+            draft_text=review.reply_public_text,
+            prompt_text=prompt_text,
+            tone=_resolve_brand_tone(connection.preferred_tone),
+            model_name=settings.review_reply_llm_model if settings.review_reply_llm_enabled else "local-template-fallback",
+        )
 
     if review.reply_action == "ALERT":
         emit_review_alert(review)
@@ -532,6 +667,7 @@ async def store_new_review_from_webhook(db: Session, webhook_payload: dict[str, 
         review.reply_action == "AUTO_REPLY"
         and review.reply_sent_at is None
         and review.reply_public_text
+        and (review.rating or 0) >= 4
         and should_auto_send_now(
             manual_approval_enabled=connection.manual_approval_enabled,
             response_schedule=profile_settings.response_schedule if profile_settings else "instant",
@@ -601,6 +737,11 @@ async def send_review_reply(db: Session, review: Review, reply_text: str) -> Rev
 
     review.reply_approved_text = reply_text
     review.reply_sent_at = datetime.now(timezone.utc)
+    pending = db.scalar(select(PendingResponse).where(PendingResponse.review_pk == review.id))
+    if pending:
+        pending.status = "sent"
+        pending.approved_text = reply_text
+        pending.draft_text = reply_text
     db.commit()
     db.refresh(review)
     return review
@@ -685,4 +826,20 @@ async def regenerate_review_reply(db: Session, review: Review) -> Review:
     review.reply_approved_text = None
     db.commit()
     db.refresh(review)
+    if review.reply_public_text:
+        tone = _resolve_brand_tone(connection.preferred_tone if connection else "cercano")
+        prompt_text = build_dynamic_review_prompt(
+            tone=tone,
+            review_text=review.comment or "",
+            business_name=business_name,
+            author_name=review.author_display_name or "",
+        )
+        upsert_pending_response(
+            db,
+            review=review,
+            draft_text=review.reply_public_text,
+            prompt_text=prompt_text,
+            tone=tone,
+            model_name=settings.review_reply_llm_model if settings.review_reply_llm_enabled else "local-template-fallback",
+        )
     return review

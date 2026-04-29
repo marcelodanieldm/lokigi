@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Auto-Envío | Lokigi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' }</script>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <style>
+    body { background: #09111f; }
+    .glass { background: rgba(255,255,255,0.04); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+  </style>
+</head>
+<body class="min-h-screen text-white">
+  <div class="mx-auto max-w-3xl px-4 py-10">
+    <header class="mb-6">
+      <p class="text-xs uppercase tracking-[0.24em] text-emerald-300/80">Plan Starter · Auto-Envío</p>
+      <h1 class="mt-2 text-3xl font-semibold">Reglas de aprobación para {{ business_name }}</h1>
+      <p class="mt-2 text-sm text-slate-300">Define si Lokigi publica automáticamente respuestas positivas o si debe esperar aprobación humana.</p>
+    </header>
+    <div id="settings-toast" class="mb-4"></div>
+    <section class="glass rounded-3xl p-6">
+      <div class="space-y-5">
+        <label class="flex items-start gap-4 rounded-2xl border border-white/10 bg-black/20 p-4">
+          <input id="auto-positive" type="checkbox" class="mt-1 h-5 w-5 rounded border-white/20 bg-slate-950 text-emerald-500" {% if auto_send_positive %}checked{% endif %}>
+          <div>
+            <div class="text-base font-semibold">Responder automáticamente a reseñas de 4 y 5 estrellas</div>
+            <div class="mt-1 text-sm text-slate-300">Si está activado, Lokigi publica sin pasar por el inbox cuando la reseña es claramente positiva.</div>
+          </div>
+        </label>
+        <label class="flex items-start gap-4 rounded-2xl border border-white/10 bg-black/20 p-4">
+          <input type="checkbox" class="mt-1 h-5 w-5 rounded border-white/20 bg-slate-950 text-amber-500" checked disabled>
+          <div>
+            <div class="text-base font-semibold">Notificarme y esperar aprobación para reseñas de 1 a 3 estrellas</div>
+            <div class="mt-1 text-sm text-slate-300">Esta regla queda forzada para proteger reputación: reseñas sensibles o con fricción siempre requieren revisión.</div>
+          </div>
+        </label>
+      </div>
+      <div class="mt-6 flex gap-3">
+        <button class="rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400" hx-post="/starter/auto-send?user_id={{ user_id }}" hx-vals='js:{respond_four_five_stars_automatically: document.getElementById("auto-positive").checked, require_approval_for_one_to_three_stars: true}' hx-target="#settings-toast" hx-swap="innerHTML">Guardar configuración</button>
+        <a href="/starter/inbox?user_id={{ user_id }}" class="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10">Volver al inbox</a>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

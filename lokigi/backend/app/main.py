@@ -1,5 +1,6 @@
 import html
 import json
+import logging
 from calendar import monthrange
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
@@ -27,6 +28,7 @@ from .google_client import GoogleBusinessProfileClient, GoogleOAuthError
 
 from .services import (
     OAuthStateManager,
+  build_review_processing_task_payload,
     build_google_oauth_url,
     get_pending_approvals,
     list_locations_for_user,
@@ -34,6 +36,7 @@ from .services import (
     regenerate_review_reply,
     send_review_reply,
     ensure_valid_access_token,
+    process_review_workflow,
     store_new_review_from_webhook,
     upsert_google_connection,
     verify_pubsub_jwt,
@@ -42,6 +45,7 @@ from .sentiment_analysis import analyze_monthly_sentiment
 from .review_reply_engine import generate_reply_by_tone
 from .starter_tip_service import generate_starter_tip
 from .monthly_report_worker import _build_response_velocity, build_scheduler
+from tasks.review_processing import process_google_review, process_reviews
 from .routes import (
   cancellation_routes,
   competitor_scrape_routes,
@@ -52,7 +56,11 @@ from .routes import (
   growth_seo_routes,
   nlp_analysis_routes,
   onboarding_routes,
+  starter_inbox_routes,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 class ApproveReplyRequest(BaseModel):
@@ -103,6 +111,7 @@ app.include_router(competitor_scrape_routes.router)
 app.include_router(growth_seo_routes.router)
 app.include_router(nlp_analysis_routes.router)
 app.include_router(onboarding_routes.router)
+app.include_router(starter_inbox_routes.router)
 
 
 def _esc(value: Any) -> str:
@@ -3261,19 +3270,54 @@ async def webhook_google_reviews(
             return {"status": "ignored"}
         raise
 
+    task_id: str | None = None
+    processing_mode = "celery"
+    try:
+      async_result = process_google_review.delay(str(review.id))
+      task_id = async_result.id
+    except Exception:
+      processing_mode = "inline-fallback"
+      logger.exception("Falling back to inline review processing for review_id=%s", review.review_id)
+      review = await process_review_workflow(db=db, review_id=review.id)
+
     response = {
-        "status": "stored",
-        "review_id": review.review_id,
-        "location_id": review.location_id,
-        "decision_action": review.reply_action,
-        "detected_language": review.reply_detected_language,
+      "status": "queued" if processing_mode == "celery" else "processed",
+      "review_id": review.review_id,
+      "location_id": review.location_id,
+      "task_id": task_id,
+      "processing_mode": processing_mode,
     }
 
-    if review.reply_action == "AUTO_REPLY":
+    if processing_mode == "inline-fallback":
+      response["decision_action"] = review.reply_action
+      response["detected_language"] = review.reply_detected_language
+      if review.reply_action == "AUTO_REPLY":
         response["public_reply"] = review.reply_public_text
-    elif review.reply_action == "ALERT":
+      elif review.reply_action == "ALERT":
         response["alert_priority"] = review.reply_alert_priority
         response["alert_summary"] = review.reply_alert_summary
 
     return response
+
+
+@app.post("/webhooks/google-reviews")
+async def webhook_google_reviews_queue_only(
+  body: dict,
+  authorization: str = Header(default="", alias="Authorization"),
+  x_webhook_secret: str = Header(default="", alias="X-Webhook-Secret"),
+) -> dict[str, Any]:
+  if settings.webhook_shared_secret and x_webhook_secret != settings.webhook_shared_secret:
+    raise HTTPException(status_code=401, detail="Invalid webhook secret")
+
+  verify_pubsub_jwt(authorization)
+  task_payload = build_review_processing_task_payload(body)
+  async_result = process_reviews.delay(task_payload)
+  return {
+    "status": "queued",
+    "queue": "process_reviews",
+    "task_id": async_result.id,
+    "review_id": task_payload.get("review_id"),
+    "rating": task_payload.get("rating"),
+    "comment": task_payload.get("comment"),
+  }
 

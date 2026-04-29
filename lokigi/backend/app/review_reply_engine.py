@@ -1,11 +1,19 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import logging
+import re
 from typing import Any
 
+import httpx
 from langdetect import DetectorFactory, LangDetectException, detect
 
+from .config import settings
+
 DetectorFactory.seed = 0
+
+
+logger = logging.getLogger(__name__)
 
 
 SENSITIVE_TERMS = {
@@ -233,6 +241,65 @@ def _generate_reply_moderno(
     )
 
 
+def build_dynamic_review_prompt(
+    *,
+    tone: str,
+    review_text: str,
+    business_name: str,
+    author_name: str,
+) -> str:
+    safe_tone = (tone or "cercano").strip() or "cercano"
+    safe_business_name = (business_name or "Negocio").strip() or "Negocio"
+    safe_author_name = (author_name or "").strip()
+    reviewer_line = safe_author_name if safe_author_name else "No disponible"
+    return (
+        f"Responde a esta reseña de Google Maps. El tono debe ser {safe_tone}. "
+        "La respuesta debe ser corta, agradecer por nombre si está disponible y no usar frases genéricas de robot.\n\n"
+        f"Negocio: {safe_business_name}\n"
+        f"Autor: {reviewer_line}\n"
+        f"Reseña: {review_text.strip() or '(sin comentario)'}\n\n"
+        "Devuelve únicamente el texto final de la respuesta."
+    )
+
+
+def _clean_llm_reply(raw_text: str) -> str:
+    text = (raw_text or "").strip()
+    text = re.sub(r'^```[a-zA-Z]*\s*', '', text)
+    text = re.sub(r'```$', '', text).strip()
+    return text.strip('"').strip()
+
+
+def _call_review_reply_llm(prompt: str) -> str:
+    endpoint = settings.review_reply_llm_api_base.rstrip("/") + "/chat/completions"
+    payload = {
+        "model": settings.review_reply_llm_model,
+        "temperature": 0.3,
+        "messages": [
+            {
+                "role": "system",
+                "content": "Eres un asistente de reputación para Google Maps. Devuelve solo el texto final de la respuesta.",
+            },
+            {"role": "user", "content": prompt},
+        ],
+    }
+    headers = {
+        "Authorization": f"Bearer {settings.review_reply_llm_api_key}",
+        "Content-Type": "application/json",
+    }
+
+    with httpx.Client(timeout=20.0) as client:
+        response = client.post(endpoint, json=payload, headers=headers)
+        response.raise_for_status()
+        body = response.json()
+
+    content = (
+        body.get("choices", [{}])[0]
+        .get("message", {})
+        .get("content", "")
+    )
+    return _clean_llm_reply(content)
+
+
 def generate_reply_by_tone(
     *,
     tone: str,
@@ -259,6 +326,20 @@ def generate_reply_by_tone(
     rating = int(stars or 0)
     
     tone_lower = (tone or "cercano").lower().strip()
+
+    if settings.review_reply_llm_enabled and settings.review_reply_llm_api_key:
+        prompt = build_dynamic_review_prompt(
+            tone=tone_lower,
+            review_text=review_text,
+            business_name=safe_business_name,
+            author_name="" if safe_author_name == "there" else safe_author_name,
+        )
+        try:
+            llm_reply = _call_review_reply_llm(prompt)
+            if llm_reply:
+                return llm_reply
+        except Exception:
+            logger.exception("Review reply LLM generation failed; using local fallback templates")
     
     if tone_lower == "formal":
         return _generate_reply_formal(language, safe_business_name, safe_author_name, rating)

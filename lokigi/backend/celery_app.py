@@ -8,10 +8,12 @@ celery = Celery(
     "lokigi",
     broker=CELERY_BROKER_URL,
     backend=CELERY_RESULT_BACKEND,
-    include=["tasks.scraping", "tasks.ai_insights"]
+    include=["tasks.scraping", "tasks.ai_insights", "tasks.review_processing"]
 )
 
 celery.conf.task_routes = {
     "tasks.scraping.*": {"queue": "scraping"},
     "tasks.ai_insights.*": {"queue": "ai"},
+    "tasks.review_processing.process_reviews": {"queue": "process_reviews"},
+    "tasks.review_processing.*": {"queue": "reviews"},
 }

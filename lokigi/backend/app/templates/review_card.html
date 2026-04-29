@@ -1,0 +1,36 @@
+{% if card.urgency == 'alta' %}
+  {% set urgency_classes = 'bg-rose-500/20 text-rose-200' %}
+{% elif card.urgency == 'media' %}
+  {% set urgency_classes = 'bg-amber-500/20 text-amber-100' %}
+{% else %}
+  {% set urgency_classes = 'bg-emerald-500/20 text-emerald-200' %}
+{% endif %}
+<article id="review-card-{{ card.id }}" class="rounded-2xl border border-white/10 bg-black/20 p-5 transition-all duration-200 ease-out">
+  <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <div class="flex items-center gap-3">
+        <h3 class="text-lg font-semibold text-white">{{ card.author }}</h3>
+        <span class="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] {{ urgency_classes }}">{{ card.urgency }}</span>
+      </div>
+      <div class="mt-2 text-sm text-amber-300">{{ '★' * card.stars }}{{ '☆' * (5 - card.stars) }}</div>
+    </div>
+    <div class="text-xs uppercase tracking-[0.14em] text-slate-500">{{ card.decided_at }}</div>
+  </div>
+  <div class="mb-4 rounded-2xl bg-white/5 p-4 text-sm leading-relaxed text-slate-200">{{ card.comment }}</div>
+  <div class="mb-4 rounded-2xl border border-emerald-400/15 bg-emerald-500/5 p-4">
+    <div class="mb-2 text-xs uppercase tracking-[0.16em] text-emerald-300/80">Borrador de Lokigi</div>
+    <div id="draft-view-{{ card.id }}" class="text-sm leading-relaxed text-slate-100">{{ card.draft }}</div>
+    <form id="draft-form-{{ card.id }}" class="hidden" hx-post="/reviews/{{ card.id }}/edit" hx-target="#review-card-{{ card.id }}" hx-swap="outerHTML">
+      <textarea name="reply_text" id="draft-{{ card.id }}" class="mt-2 min-h-[120px] w-full rounded-xl border border-white/10 bg-slate-950/70 p-3 text-sm leading-relaxed text-slate-100 outline-none focus:border-emerald-500">{{ card.draft }}</textarea>
+      <div class="mt-3 flex gap-3">
+        <button class="rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15">Guardar</button>
+        <button type="button" class="rounded-xl border border-white/10 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-white/5" onclick="document.getElementById('draft-view-{{ card.id }}').classList.remove('hidden'); document.getElementById('draft-form-{{ card.id }}').classList.add('hidden');">Cancelar</button>
+      </div>
+    </form>
+  </div>
+  <div class="flex flex-col gap-3 sm:flex-row">
+    <button class="rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400" hx-post="/reviews/{{ card.id }}/approve" hx-vals='js:{reply_text: (document.getElementById("draft-{{ card.id }}")?.value || document.getElementById("draft-view-{{ card.id }}").innerText)}' hx-target="closest article" hx-swap="delete swap:200ms">Aprobar</button>
+    <button type="button" class="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10" onclick="document.getElementById('draft-view-{{ card.id }}').classList.add('hidden'); document.getElementById('draft-form-{{ card.id }}').classList.remove('hidden'); document.getElementById('draft-{{ card.id }}')?.focus();">Editar</button>
+    <button class="rounded-xl border border-sky-400/20 bg-sky-500/10 px-4 py-3 text-sm font-semibold text-sky-100 transition hover:bg-sky-500/20" hx-post="/reviews/{{ card.id }}/regenerate" hx-target="#review-card-{{ card.id }}" hx-swap="outerHTML">Regenerar</button>
+  </div>
+</article>
