@@ -77,6 +77,12 @@ Endpoints:
 - `GET /api/reviews/pending`
 - `POST /api/reviews/{review_id}/approve`
 
+## Beneficios del Flujo Starter
+
+- Valor percibido: el usuario siente que tiene un asistente que redacta por el y reduce la friccion operativa frente a cada reseña nueva.
+- Control: el paso de aprobacion le da seguridad antes de publicar en su perfil oficial y mantiene supervision humana cuando la reputacion esta en juego.
+- Eficiencia bare-metal: al ejecutarse localmente con Celery, los borradores se generan en segundos y permiten responder reseñas mientras el usuario sigue con su operacion diaria.
+
 ### C) Desuscripcion
 1. Boton "Pausar" (Plan Pausa) como estrategia de retencion.
 2. Encuesta rapida de churn.

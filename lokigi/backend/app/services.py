@@ -23,6 +23,7 @@ from .config import settings
 from .google_client import GoogleBusinessProfileClient, GoogleOAuthError
 from .models import GoogleConnection, PendingResponse, Review, StarterProfileSettings, SubscriptionProfile, User
 from .review_reply_engine import build_dynamic_review_prompt, generate_reply_by_tone, generate_review_reply_decision
+from .socketio_server import emit_new_review_ready
 
 
 logger = logging.getLogger(__name__)
@@ -658,6 +659,12 @@ async def process_review_workflow(db: Session, review_id: UUID | str) -> Review:
             prompt_text=prompt_text,
             tone=_resolve_brand_tone(connection.preferred_tone),
             model_name=settings.review_reply_llm_model if settings.review_reply_llm_enabled else "local-template-fallback",
+        )
+        await emit_new_review_ready(
+            user_id=str(connection.user_id),
+            review_pk=str(review.id),
+            author=review.author_display_name or "Cliente",
+            comment=review.comment or "",
         )
 
     if review.reply_action == "ALERT":

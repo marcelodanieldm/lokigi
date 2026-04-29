@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import UUID
@@ -8,11 +7,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
-from app.models import GoogleConnection, Review, User
-from app.services import get_pending_approvals, regenerate_review_reply, send_review_reply
+from app.models import GoogleConnection, PendingResponse, Review, User
+from app.services import regenerate_review_reply, send_review_reply
 
 
 router = APIRouter(tags=["starter-inbox"])
@@ -27,7 +26,18 @@ def _format_time(value: datetime | None) -> str:
 
 
 def _build_pending_cards(db: Session, user_id: UUID) -> list[dict]:
-    reviews = get_pending_approvals(db, str(user_id))
+    reviews = list(
+        db.scalars(
+            select(Review)
+            .options(selectinload(Review.pending_response), selectinload(Review.connection))
+            .join(GoogleConnection, Review.connection_id == GoogleConnection.id)
+            .where(
+                GoogleConnection.user_id == user_id,
+                Review.reply_sent_at.is_(None),
+            )
+            .order_by(Review.created_at.desc())
+        ).all()
+    )
     cards: list[dict] = []
     for review in reviews:
         if (review.rating or 0) >= 4:
@@ -36,6 +46,8 @@ def _build_pending_cards(db: Session, user_id: UUID) -> list[dict]:
             urgency = "media"
         else:
             urgency = "alta"
+        draft_text = (review.pending_response.draft_text if review.pending_response else review.reply_public_text) or ""
+        ai_state = "IA-Borrador Listo" if draft_text else "Pendiente de IA"
         cards.append(
             {
                 "id": str(review.id),
@@ -43,8 +55,9 @@ def _build_pending_cards(db: Session, user_id: UUID) -> list[dict]:
                 "author": review.author_display_name or "Cliente",
                 "stars": review.rating or 0,
                 "comment": review.comment or "(sin comentario)",
-                "draft": (review.pending_response.draft_text if review.pending_response else review.reply_public_text) or "",
+                "draft": draft_text,
                 "urgency": urgency,
+                "ai_state": ai_state,
                 "detected_language": review.reply_detected_language or "es",
                 "decided_at": _format_time(review.reply_decided_at),
             }
@@ -53,14 +66,16 @@ def _build_pending_cards(db: Session, user_id: UUID) -> list[dict]:
 
 
 def _card_payload(review: Review) -> dict:
+    draft_text = (review.pending_response.draft_text if review.pending_response else review.reply_public_text) or ""
     return {
         "id": str(review.id),
         "review_id": review.review_id,
         "author": review.author_display_name or "Cliente",
         "stars": review.rating or 0,
         "comment": review.comment or "(sin comentario)",
-        "draft": (review.pending_response.draft_text if review.pending_response else review.reply_public_text) or "",
+        "draft": draft_text,
         "urgency": "baja" if (review.rating or 0) >= 4 else ("media" if (review.rating or 0) == 3 else "alta"),
+        "ai_state": "IA-Borrador Listo" if draft_text else "Pendiente de IA",
         "detected_language": review.reply_detected_language or "es",
         "decided_at": _format_time(review.reply_decided_at),
     }

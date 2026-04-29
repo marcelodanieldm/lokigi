@@ -20,6 +20,7 @@ playwright==1.52.0
 celery[redis]==5.3.6
 redis==5.0.4
 aiohttp==3.9.5
+python-socketio==5.11.4
 loguru==0.7.2
 prometheus_client==0.20.0
 matplotlib==3.9.2

@@ -251,12 +251,14 @@ def build_dynamic_review_prompt(
     safe_tone = (tone or "cercano").strip() or "cercano"
     safe_business_name = (business_name or "Negocio").strip() or "Negocio"
     safe_author_name = (author_name or "").strip()
-    reviewer_line = safe_author_name if safe_author_name else "No disponible"
     return (
-        f"Responde a esta reseña de Google Maps. El tono debe ser {safe_tone}. "
-        "La respuesta debe ser corta, agradecer por nombre si está disponible y no usar frases genéricas de robot.\n\n"
-        f"Negocio: {safe_business_name}\n"
-        f"Autor: {reviewer_line}\n"
+        f"Responde a esta reseña de {safe_business_name}. "
+        "No digas que eres una IA. "
+        "Si el cliente menciona un producto específico, felicítalo por su elección. "
+        f"El tono debe ser el seleccionado por el usuario: {safe_tone}. "
+        "Asegura que la respuesta sea humana y cálida.\n\n"
+        f"Nombre_Local: {safe_business_name}\n"
+        f"Autor: {safe_author_name if safe_author_name else 'No disponible'}\n"
         f"Reseña: {review_text.strip() or '(sin comentario)'}\n\n"
         "Devuelve únicamente el texto final de la respuesta."
     )

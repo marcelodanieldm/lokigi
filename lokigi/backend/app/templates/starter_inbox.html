@@ -7,9 +7,12 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { darkMode: 'class' }</script>
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
   <style>
     body { background: #09111f; }
     .glass { background: rgba(255,255,255,0.04); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+    @keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 0 rgba(16,185,129,0); } 50% { box-shadow: 0 0 28px rgba(16,185,129,0.28); } }
+    .fresh-card { animation: pulseGlow 1.2s ease-in-out 2; }
   </style>
 </head>
 <body class="min-h-screen text-white">
@@ -37,5 +40,79 @@
       {% include 'starter_inbox_fragments.html' with context %}
     </section>
   </div>
+  <script>
+    const userId = {{ user_id | tojson }};
+
+    async function ensureNotificationPermission() {
+      if (!('Notification' in window)) return 'unsupported';
+      if (Notification.permission === 'default') {
+        return Notification.requestPermission();
+      }
+      return Notification.permission;
+    }
+
+    function highlightReviewCard(reviewPk) {
+      const card = document.getElementById(`review-card-${reviewPk}`);
+      if (!card) return;
+      card.classList.add('fresh-card');
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => card.classList.remove('fresh-card'), 2600);
+    }
+
+    function openReviewFromNotification(payload) {
+      const targetHash = `#review-card-${payload.review_pk}`;
+      if (window.location.hash !== targetHash) {
+        window.location.hash = targetHash;
+      }
+      highlightReviewCard(payload.review_pk);
+    }
+
+    function showLocalReviewNotification(payload) {
+      if (!('Notification' in window) || Notification.permission !== 'granted') return;
+      const notification = new Notification(`⭐ Nueva reseña de ${payload.author}!`, {
+        body: payload.comment_snippet
+          ? `La IA ya redactó una respuesta profesional. ${payload.comment_snippet}`
+          : 'La IA ya redactó una respuesta profesional. Haz clic para revisarla.',
+        tag: `starter-review-${payload.review_pk}`,
+      });
+      notification.onclick = () => {
+        window.focus();
+        openReviewFromNotification(payload);
+        notification.close();
+      };
+    }
+
+    function refreshInboxAndFocus(payload) {
+      htmx.ajax('GET', `/starter/inbox/fragments/list?user_id=${encodeURIComponent(userId)}`, '#pending-list')
+        .then(() => {
+          requestAnimationFrame(() => openReviewFromNotification(payload));
+        });
+    }
+
+    async function startInboxSocket() {
+      await ensureNotificationPermission();
+      const socket = io({
+        path: '/starter-realtime/socket.io',
+        transports: ['websocket'],
+        auth: { user_id: userId },
+        query: { user_id: userId },
+      });
+      socket.on('new_review_ready', (payload) => {
+        showLocalReviewNotification(payload);
+        refreshInboxAndFocus(payload);
+      });
+      socket.on('connect_error', () => {
+        window.setTimeout(startInboxSocket, 2500);
+      });
+    }
+
+    window.addEventListener('load', () => {
+      startInboxSocket();
+      if (window.location.hash.startsWith('#review-card-')) {
+        const reviewPk = window.location.hash.replace('#review-card-', '');
+        window.setTimeout(() => highlightReviewCard(reviewPk), 250);
+      }
+    });
+  </script>
 </body>
 </html>
