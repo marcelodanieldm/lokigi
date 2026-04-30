@@ -40,6 +40,7 @@ from .auto_reply_worker import run_auto_reply_dispatch
 from .config import settings
 from .database import engine
 from .growth_event_notification_service import GrowthEventNotificationService
+from .growth_keyword_conquest_service import GrowthKeywordConquestService
 from .growth_premium_report_service import GrowthPremiumReportService, PremiumConfig
 from .growth_sentiment_benchmark_service import BenchmarkConfig, GrowthSentimentBenchmarkService
 from .models import GoogleConnection, GrowthCompetitor, MonthlyReport, Review, StarterMonthlyMetrics, User
@@ -72,6 +73,16 @@ def build_scheduler() -> AsyncIOScheduler:
         name="Generate monthly reports for all active users",
         replace_existing=True,
         misfire_grace_time=3600,  # tolerate up to 1h delay (e.g. server restart)
+    )
+    scheduler.add_job(
+        run_growth_keyword_conquest_daily,
+        trigger=CronTrigger(hour=6, minute=20),
+        id="growth_keyword_conquest_daily_job",
+        name="Track Growth keyword conquest daily",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=1800,
     )
     scheduler.add_job(
         run_growth_sentiment_benchmark_daily,
@@ -147,6 +158,25 @@ async def run_growth_sentiment_benchmark_daily() -> None:
     logger.info("Growth sentiment benchmark daily job finished")
 
 
+async def run_growth_keyword_conquest_daily() -> None:
+    """Track daily local-map positions for configured focus keywords and publish conquest signals."""
+    logger.info("Growth keyword conquest daily job started")
+
+    with Session(engine) as db:
+        service = GrowthKeywordConquestService(db)
+        try:
+            result = await service.run_daily_tracking()
+            logger.info(
+                "Growth keyword conquest daily job finished: processed=%s observations=%s conquests=%s suggestions=%s",
+                result["processed_users"],
+                result["observations_inserted"],
+                result["conquests_inserted"],
+                result["suggestions_created"],
+            )
+        except Exception:
+            logger.exception("Growth keyword conquest daily job failed")
+
+
 async def run_growth_event_notifications_dispatch() -> None:
     """Dispatch pending Growth retention/upsell events from queue table."""
     with Session(engine) as db:
@@ -189,6 +219,16 @@ async def _process_user(
     )
     report_row = _upsert_report(db, user.id, year, month, payload)
     db.commit()
+
+    local_report_url = _generate_local_growth_report_url(db, user.id)
+    _publish_growth_report_dashboard_event(
+        db,
+        user_id=user.id,
+        year=year,
+        month=month,
+        business_name=payload["business_name"],
+        report_url=local_report_url,
+    )
 
     await _enqueue_pdf_generation(report_row.id)
     pdf_url = await _await_pdf_signed_url(db, report_row.id)
@@ -512,6 +552,42 @@ def _upsert_report(
     )
     db.add(report)
     return report
+
+
+def _generate_local_growth_report_url(db: Session, user_id: uuid.UUID) -> str | None:
+    try:
+        from .routes.growth_dashboard_routes import _fragment_context, _write_growth_pdf
+
+        report = _write_growth_pdf(_fragment_context(user_id, db), user_id)
+        return report.get("download_path")
+    except Exception:
+        logger.exception("Local Growth PDF generation failed for user %s", user_id)
+        return None
+
+
+def _publish_growth_report_dashboard_event(
+    db: Session,
+    *,
+    user_id: uuid.UUID,
+    year: int,
+    month: int,
+    business_name: str,
+    report_url: str | None,
+) -> None:
+    try:
+        GrowthEventNotificationService(db).publish_event(
+            user_id=user_id,
+            event_type="roi_snapshot",
+            severity="medium",
+            title=f"Reporte Premium listo · {_month_label(month)} {year}",
+            message=f"El PDF de inteligencia de {business_name} ya esta disponible en tu Dashboard Hub.",
+            report_url=report_url,
+            context_payload={"year": year, "month": month},
+            dedupe_key=f"{user_id}:roi_snapshot:report:{year}-{month}",
+            channels=["in_app"],
+        )
+    except Exception:
+        logger.exception("Failed to publish growth report dashboard event for user %s", user_id)
 
 
 async def _enqueue_pdf_generation(report_id: uuid.UUID) -> None:

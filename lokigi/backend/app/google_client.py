@@ -99,11 +99,11 @@ class GoogleBusinessProfileClient:
     ) -> dict[str, Any]:
         """Fetch GBP location profile metadata for read-only UI sections.
 
-        Includes title, storefrontAddress and regularHours.weekdayDescriptions.
+        Includes title, storefrontAddress, regularHours.weekdayDescriptions and profile.description.
         """
         headers = {"Authorization": f"Bearer {access_token}"}
         params = {
-            "readMask": read_mask or "title,storefrontAddress,regularHours.weekdayDescriptions",
+            "readMask": read_mask or "title,storefrontAddress,regularHours.weekdayDescriptions,profile.description",
         }
         async with httpx.AsyncClient(timeout=20.0) as client:
             response = await client.get(
@@ -160,4 +160,39 @@ class GoogleBusinessProfileClient:
             raise GoogleOAuthError("duplicate_reply")
         if response.status_code >= 400:
             raise GoogleOAuthError(f"Cannot post reply: {response.text}")
+        return response.json()
+
+    async def create_local_post(
+        self,
+        access_token: str,
+        account_name: str,
+        location_id: str,
+        summary: str,
+        topic_type: str = "STANDARD",
+        language_code: str = "es",
+    ) -> dict[str, Any]:
+        """Create a Google Business Profile Local Post.
+
+        Google API: POST https://mybusiness.googleapis.com/v4/{parent}/localPosts
+        where parent = accounts/{accountId}/locations/{locationId}
+        Returns the created localPost resource.
+        """
+        parent = f"{account_name}/locations/{location_id}"
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+        }
+        payload: dict[str, Any] = {
+            "languageCode": language_code,
+            "summary": summary,
+            "topicType": topic_type,
+        }
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.post(
+                f"https://mybusiness.googleapis.com/v4/{parent}/localPosts",
+                headers=headers,
+                json=payload,
+            )
+        if response.status_code >= 400:
+            raise GoogleOAuthError(f"Cannot create local post: {response.text}")
         return response.json()

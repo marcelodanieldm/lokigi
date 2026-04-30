@@ -14,8 +14,9 @@ import httpx
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.billing_service import get_or_create_subscription_profile
 from app.config import settings
-from app.models import User, Review, GoogleConnection, ChurnSurvey
+from app.models import User, Review, GoogleConnection, ChurnSurvey, SubscriptionProfile
 from app.telemetry_models import ChurnReasonOption
 
 
@@ -24,6 +25,24 @@ _SENDGRID_SEND_URL = "https://api.sendgrid.com/v3/mail/send"
 
 class CancellationService:
     """Service for handling subscription cancellation with retention logic."""
+
+    FEEDBACK_OPTIONS = [
+        {
+            "key": "price",
+            "label": "Precio",
+            "description": "El costo actual no encaja con el valor percibido o el volumen del negocio.",
+        },
+        {
+            "key": "difficulty",
+            "label": "Dificultad",
+            "description": "La configuración o el uso diario de Lokigi resultó confuso.",
+        },
+        {
+            "key": "business_closed",
+            "label": "Cierre de negocio",
+            "description": "El negocio cerró o pausó su operación y ya no necesita automatización activa.",
+        },
+    ]
     
     @staticmethod
     def _cutoff_date() -> datetime:
@@ -34,12 +53,23 @@ class CancellationService:
     def _normalize_reason(churn_reason: str) -> ChurnReasonOption:
         """Map UI reasons to persisted enum values without schema changes."""
         mapping = {
+            "price": ChurnReasonOption.PRICE_TOO_HIGH,
             "price_too_high": ChurnReasonOption.PRICE_TOO_HIGH,
+            "difficulty": ChurnReasonOption.EASE_OF_USE_DIFFICULTY,
             "ease_of_use_difficulty": ChurnReasonOption.EASE_OF_USE_DIFFICULTY,
+            "business_closed": ChurnReasonOption.PERSONAL_REASONS,
             "business_temporarily_closed": ChurnReasonOption.PERSONAL_REASONS,
             "switched_competitor": ChurnReasonOption.SWITCHED_COMPETITOR,
         }
         return mapping.get(churn_reason, ChurnReasonOption.OTHER)
+
+    @staticmethod
+    def allowed_feedback_reasons() -> list[str]:
+        return [item["key"] for item in CancellationService.FEEDBACK_OPTIONS]
+
+    @staticmethod
+    def feedback_options() -> list[dict[str, str]]:
+        return list(CancellationService.FEEDBACK_OPTIONS)
 
     @staticmethod
     def _metrics_pdf_url(user_id: UUID, cutoff_date: datetime) -> str:
@@ -49,12 +79,17 @@ class CancellationService:
         )
 
     @staticmethod
+    def _reviews_csv_url(user_id: UUID) -> str:
+        return f"/subscription/export-csv?user_id={user_id}"
+
+    @staticmethod
     async def _send_cancellation_farewell_email(
         *,
         to_email: str,
         business_name: str,
         cut_off_date_iso: str,
         metrics_pdf_url: str,
+        reviews_csv_url: str,
     ) -> bool:
         """Send legal cancellation confirmation and goodwill links via SendGrid."""
         if not settings.sendgrid_api_key or not to_email:
@@ -62,6 +97,7 @@ class CancellationService:
 
         subject = "Confirmación de cancelación | Lokigi"
         full_metrics_url = f"https://{settings.app_domain}{metrics_pdf_url}"
+        full_reviews_csv_url = f"https://{settings.app_domain}{reviews_csv_url}"
 
         html_body = f"""
 <!doctype html>
@@ -80,6 +116,9 @@ class CancellationService:
       <div style=\"margin:18px 0\">
         <a href=\"{full_metrics_url}\" style=\"background:#1d4ed8;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;font-weight:700\">Descargar historial (PDF)</a>
       </div>
+            <div style=\"margin:18px 0\">
+                <a href=\"{full_reviews_csv_url}\" style=\"background:#0f766e;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;font-weight:700\">Exportar reseñas y respuestas IA (CSV)</a>
+            </div>
       <p style=\"font-size:14px;color:#4b5563\">Negocio asociado: <strong>{business_name}</strong></p>
       <p style=\"font-size:13px;color:#6b7280\">Este correo sirve como confirmación legal de la cancelación.</p>
     </div>
@@ -135,8 +174,8 @@ class CancellationService:
         hours_saved = minutes_saved / 60
         
         # Get user's subscription plan (for context)
-        connection = db.query(GoogleConnection).filter_by(user_id=user_id).first()
-        plan = connection.subscription_plan if connection else "starter"
+        subscription_profile = db.scalar(select(SubscriptionProfile).where(SubscriptionProfile.user_id == user_id))
+        plan = subscription_profile.subscription_plan if subscription_profile else "starter"
         
         return {
             "hours_saved": round(hours_saved, 1),
@@ -182,6 +221,7 @@ class CancellationService:
         # Get user's subscription info
         user = db.query(User).filter_by(id=user_id).first()
         connection = db.query(GoogleConnection).filter_by(user_id=user_id).first()
+        subscription_profile = get_or_create_subscription_profile(db, user_id)
         
         if not user or not connection:
             raise ValueError("User or connection not found")
@@ -201,7 +241,7 @@ class CancellationService:
             "total_approved_responses": total_approved,
             "approval_rate": (total_approved / total_reviews * 100) if total_reviews > 0 else 0,
             "days_subscribed": days_subscribed,
-            "current_plan": connection.subscription_plan,
+            "current_plan": subscription_profile.subscription_plan,
             "is_high_value": is_high_value,
             "plan_price_monthly": 29.0,  # TODO: Get from subscription data
         }
@@ -222,26 +262,23 @@ class CancellationService:
         """
         impact_data = CancellationService.get_impact_data_for_user(db, user_id)
         
-        # Prepare alternative offers based on churn reason
-        offers = []
-        
-        if churn_reason == "price_too_high":
-            # Offer Plan Pausa (pause at $5/month)
-            offers.append({
-                "type": "plan_pausa",
-                "name": "Plan Pausa",
-                "description": "Pausa tu suscripción por $5/mes (solo lectura, sin IA)",
-                "price": 5,
-                "duration_days": 90,  # Can pause for up to 90 days
-                "features": [
-                    "✅ Acceso de lectura a tus datos",
-                    "✅ Ver histórico de reseñas",
-                    "❌ Sin respuestas IA automáticas",
-                    "❌ Sin alertas de competidores",
-                ],
-                "benefit_message": "Mantén tu información segura sin pagar el plan completo",
-            })
-            
+        # Always offer Plan Pausa before final churn.
+        offers = [{
+            "type": "plan_pausa",
+            "name": "Plan Pausa",
+            "description": "Pausa tu cuenta por $5/mes y conserva tu historial IA y reportes; solo se suspende la automatización.",
+            "price": 5,
+            "duration_days": 90,
+            "features": [
+                "✅ Conserva histórico de reseñas y respuestas IA",
+                "✅ Mantén acceso a reportes y exportaciones",
+                "❌ Automatización de respuestas suspendida",
+                "❌ Sin envío automático mientras la cuenta esté pausada",
+            ],
+            "benefit_message": "Mantén el valor acumulado sin perder tu cuenta ni tus reportes.",
+        }]
+
+        if churn_reason in {"price", "price_too_high"}:
             # Also offer annual plan discount if applicable
             offers.append({
                 "type": "annual_discount",
@@ -258,23 +295,7 @@ class CancellationService:
                 "benefit_message": "Mejor valor si planeas quedarte",
             })
         
-        elif churn_reason == "business_temporarily_closed":
-            # Offer Plan Pausa when business operation is temporarily suspended.
-            offers.append({
-                "type": "plan_pausa",
-                "name": "Plan Pausa",
-                "description": "Pausa sin compromisos mientras tu negocio se reactiva.",
-                "price": 5,
-                "duration_days": 90,
-                "features": [
-                    "✅ Pausa sin penalización",
-                    "✅ Conserva históricos y configuración",
-                    "✅ Vuelve cuando necesites",
-                ],
-                "benefit_message": "Tómate un descanso sin perder tu cuenta",
-            })
-        
-        elif churn_reason == "ease_of_use_difficulty":
+        elif churn_reason in {"difficulty", "ease_of_use_difficulty"}:
             # Offer support + extended trial
             offers.append({
                 "type": "onboarding_support",
@@ -295,6 +316,7 @@ class CancellationService:
             "status": "cancellation_initiated",
             "impact_data": impact_data,
             "churn_reason": churn_reason,
+            "feedback_options": CancellationService.feedback_options(),
             "alternative_offers": offers,
             "billing_cycle_end": CancellationService._cutoff_date().date().isoformat(),
         }
@@ -318,8 +340,9 @@ class CancellationService:
         connection = db.query(GoogleConnection).filter_by(user_id=user_id).first()
         if not connection:
             raise ValueError("Google connection not found")
-        
-        original_plan = connection.subscription_plan
+
+        subscription_profile = get_or_create_subscription_profile(db, user_id)
+        original_plan = subscription_profile.subscription_plan
         
         # TODO: In production, update Stripe subscription to $5/month plan
         # For now, just update our records
@@ -328,6 +351,12 @@ class CancellationService:
         from app.models import LifecycleEvent
         from app.telemetry_models import LifecycleEventType
         
+        connection.manual_approval_enabled = True
+        connection.negative_review_whatsapp_enabled = False
+        subscription_profile.subscription_plan = "plan_pausa"
+        subscription_profile.subscription_status = "active"
+        subscription_profile.current_period_end = datetime.utcnow() + timedelta(days=duration_days)
+
         pause_event = LifecycleEvent(
             user_id=user_id,
             event_type=LifecycleEventType.SUBSCRIPTION_PAUSED.value,
@@ -337,6 +366,7 @@ class CancellationService:
                 "pause_duration_days": duration_days,
                 "paused_at": datetime.utcnow().isoformat(),
                 "resume_date": (datetime.utcnow() + timedelta(days=duration_days)).isoformat(),
+                "automation_status": "suspended",
             }
         )
         db.add(pause_event)
@@ -344,13 +374,13 @@ class CancellationService:
         
         return {
             "status": "success",
-            "message": "Plan Pausa activated",
+            "message": "Cuenta pausada por $5/mes. Conservamos historial y reportes; la automatización queda suspendida.",
             "plan": "plan_pausa",
             "price": 5.0,
             "duration_days": duration_days,
             "resume_date": (datetime.utcnow() + timedelta(days=duration_days)).date().isoformat(),
             "google_api_permissions": "active",
-            "access_level": "read_only",
+            "access_level": "history_and_reports_only",
         }
     
     @staticmethod
@@ -429,7 +459,7 @@ class CancellationService:
             used_tone_selector=connection.preferred_tone != "cercano",
             locations_connected=1,  # TODO: Count actual
             days_subscribed=active_days,
-            subscription_plan=connection.subscription_plan,
+            subscription_plan=subscription_profile.subscription_plan,
         )
         db.add(telemetry)
         db.flush()
@@ -437,6 +467,12 @@ class CancellationService:
         # 3. Ensure Google API permissions stay active until billing cycle end.
         billing_cycle_end = CancellationService._cutoff_date()
         metrics_pdf_url = CancellationService._metrics_pdf_url(user_id, billing_cycle_end)
+        reviews_csv_url = CancellationService._reviews_csv_url(user_id)
+
+        connection.manual_approval_enabled = True
+        connection.negative_review_whatsapp_enabled = False
+        subscription_profile.subscription_status = "cancelled"
+        subscription_profile.current_period_end = billing_cycle_end
         
         # 4. Record churn lifecycle event
         churn_event = LifecycleEvent(
@@ -445,11 +481,13 @@ class CancellationService:
             event_metadata={
                 "reason": reason_enum.value,
                 "detail": churn_detail,
-                "plan": connection.subscription_plan,
+                "plan": subscription_profile.subscription_plan,
                 "approval_rate": approval_rate,
                 "active_days": active_days,
                 "google_api_permissions_active_until": billing_cycle_end.isoformat(),
                 "metrics_pdf_url": metrics_pdf_url,
+                "reviews_csv_url": reviews_csv_url,
+                "automation_status": "suspended",
             }
         )
         db.add(churn_event)
@@ -464,6 +502,7 @@ class CancellationService:
             business_name=connection.business_name or connection.google_account_name,
             cut_off_date_iso=billing_cycle_end.date().isoformat(),
             metrics_pdf_url=metrics_pdf_url,
+            reviews_csv_url=reviews_csv_url,
         )
         
         return {
@@ -476,6 +515,8 @@ class CancellationService:
             "access_level_after_cancellation": "read_only_until_" + billing_cycle_end.date().isoformat(),
             "cutoff_date": billing_cycle_end.date().isoformat(),
             "metrics_pdf_url": metrics_pdf_url,
+            "reviews_csv_url": reviews_csv_url,
+            "logout_url": "/api/cancellation/logout",
             "goodbye_email_sent": farewell_email_sent,
             "alerts_triggered": len([a for a in alerts if a.severity in ["HIGH", "CRITICAL"]]),
         }

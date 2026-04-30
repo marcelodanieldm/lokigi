@@ -7,21 +7,65 @@ POST   /api/cancellation/confirm           - Confirm final cancellation
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import StreamingResponse
+from fastapi.responses import RedirectResponse, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from uuid import UUID
 from typing import Optional
-import csv
-import io
 from datetime import datetime
+
+import pandas as pd
 
 from app.database import get_db
 from app.models import GoogleConnection, Review, User
 from app.cancellation_service import CancellationService
 
 router = APIRouter(prefix="/api/cancellation", tags=["cancellation"])
+
+
+def build_reviews_export_response(db: Session, user_id: UUID) -> Response:
+    """Build the CSV export used by both API and SSR cancellation flows."""
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    reviews = db.scalars(
+        select(Review)
+        .options(selectinload(Review.pending_response))
+        .join(GoogleConnection, Review.connection_id == GoogleConnection.id)
+        .where(GoogleConnection.user_id == user_id)
+        .order_by(Review.create_time.desc().nullslast(), Review.created_at.desc())
+    ).all()
+
+    rows: list[dict[str, str | int]] = []
+    for review in reviews:
+        pending_response = review.pending_response
+        lokigi_reply = (
+            review.reply_approved_text
+            or (pending_response.approved_text if pending_response else None)
+            or review.reply_public_text
+            or (pending_response.draft_text if pending_response else None)
+            or ""
+        )
+        review_date = review.create_time or review.created_at
+        rows.append(
+            {
+                "Fecha": review_date.strftime("%Y-%m-%d %H:%M") if review_date else "",
+                "Cliente": review.author_display_name or "Cliente anónimo",
+                "Estrellas": review.rating or "",
+                "Reseña Original": (review.comment or "").replace("\r", " ").replace("\n", " ").strip(),
+                "Respuesta de Lokigi": str(lokigi_reply).replace("\r", " ").replace("\n", " ").strip(),
+            }
+        )
+
+    dataframe = pd.DataFrame(
+        rows,
+        columns=["Fecha", "Cliente", "Estrellas", "Reseña Original", "Respuesta de Lokigi"],
+    )
+    csv_content = dataframe.to_csv(index=False).encode("utf-8-sig")
+    headers = {"Content-Disposition": 'attachment; filename="mi_historial_lokigi.csv"'}
+    return Response(content=csv_content, media_type="text/csv", headers=headers)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -55,11 +99,19 @@ class DownsellOffer(BaseModel):
     benefit_message: str
 
 
+class FeedbackOption(BaseModel):
+    """Single-click exit survey option."""
+    key: str
+    label: str
+    description: str
+
+
 class CancellationInitiateResponse(BaseModel):
     """Response when starting cancellation flow."""
     status: str = "cancellation_initiated"
     impact_data: ImpactDataResponse
     churn_reason: str
+    feedback_options: list[FeedbackOption]
     alternative_offers: list[DownsellOffer]
     billing_cycle_end: str
 
@@ -98,6 +150,8 @@ class CancellationConfirmResponse(BaseModel):
     access_level_after_cancellation: str
     cutoff_date: str
     metrics_pdf_url: str
+    reviews_csv_url: str
+    logout_url: str
     goodbye_email_sent: bool
     alerts_triggered: int
 
@@ -163,10 +217,9 @@ async def initiate_cancellation(
     
         Query param:
         - **churn_reason**: One of:
-            - price_too_high (A. Es muy caro para mi volumen actual)
-            - ease_of_use_difficulty (B. No entiendo cómo usar algunas funciones)
-            - business_temporarily_closed (C. Mi negocio cerró temporalmente)
-            - switched_competitor (D. Voy a probar otra herramienta)
+            - price (Precio)
+            - difficulty (Dificultad)
+            - business_closed (Cierre de negocio)
     
     Returns:
     - Impact data (hours saved, stats)
@@ -175,12 +228,7 @@ async def initiate_cancellation(
     
     Note: This is NOT final cancellation, just initiation with offer.
     """
-    valid_reasons = [
-        "price_too_high",
-        "ease_of_use_difficulty",
-        "business_temporarily_closed",
-        "switched_competitor",
-    ]
+    valid_reasons = CancellationService.allowed_feedback_reasons()
     
     if churn_reason not in valid_reasons:
         raise HTTPException(
@@ -275,6 +323,13 @@ async def confirm_cancellation(
     **Important:** Google API permissions REMAIN ACTIVE until the end of the current billing cycle.
     This ensures continuity of service during the transition period.
     """
+    valid_reasons = CancellationService.allowed_feedback_reasons()
+    if request.churn_reason not in valid_reasons:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid churn reason. Must be one of: {', '.join(valid_reasons)}",
+        )
+
     try:
         user = db.get(User, user_id)
         if not user:
@@ -308,65 +363,24 @@ async def export_review_history_csv(
     db: Session = Depends(get_db),
 ):
     """Export user review history in CSV format for off-platform retention."""
-    user = db.get(User, user_id)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-
-    reviews = db.scalars(
-        select(Review)
-        .join(GoogleConnection, Review.connection_id == GoogleConnection.id)
-        .where(GoogleConnection.user_id == user_id)
-        .order_by(Review.create_time.desc().nullslast(), Review.created_at.desc())
-    ).all()
-
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(
-        [
-            "review_id",
-            "location_id",
-            "rating",
-            "author",
-            "comment",
-            "create_time",
-            "reply_action",
-            "reply_public_text",
-            "reply_sent_at",
-        ]
-    )
-
-    for row in reviews:
-        writer.writerow(
-            [
-                row.review_id,
-                row.location_id,
-                row.rating,
-                row.author_display_name or "",
-                (row.comment or "").replace("\r", " ").replace("\n", " "),
-                row.create_time.isoformat() if row.create_time else "",
-                row.reply_action or "",
-                row.reply_public_text or "",
-                row.reply_sent_at.isoformat() if row.reply_sent_at else "",
-            ]
-        )
-
-    output.seek(0)
-    stamp = datetime.utcnow().strftime("%Y%m%d")
-    filename = f"lokigi_reviews_{user_id}_{stamp}.csv"
-    headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
-    return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers=headers)
+    return build_reviews_export_response(db, user_id)
 
 
 @router.post(
     "/logout",
-    response_model=CancellationLogoutResponse,
     summary="Finalize cancellation flow and close session",
-    description="Client handoff endpoint for redirecting user to public landing after cancellation.",
+    description="Delete cancellation/session cookies and redirect the user to the login screen.",
 )
-async def cancellation_logout() -> CancellationLogoutResponse:
-    """Stateless logout handoff for UI flow completion."""
-    return CancellationLogoutResponse(
-        status="logged_out",
-        redirect_url="/",
-        message="Sesion finalizada. Gracias por usar Lokigi.",
-    )
+async def cancellation_logout() -> RedirectResponse:
+    """Best-effort session cleanup followed by login redirect."""
+    response = RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
+    for cookie_name in (
+        "session_id",
+        "session",
+        "sessionid",
+        "lokigi_session",
+        "access_token",
+        "refresh_token",
+    ):
+        response.delete_cookie(cookie_name, path="/")
+    return response

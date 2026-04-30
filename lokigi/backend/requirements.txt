@@ -25,3 +25,4 @@ loguru==0.7.2
 prometheus_client==0.20.0
 matplotlib==3.9.2
 weasyprint==62.3
+pandas==2.2.3

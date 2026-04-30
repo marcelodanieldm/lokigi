@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      @page {
+        size: A4;
+        margin: 18mm;
+      }
+
+      :root {
+        --ink: #0f172a;
+        --muted: #475569;
+        --line: #dbe5f0;
+        --panel: #ffffff;
+        --hero-a: #0f766e;
+        --hero-b: #1d4ed8;
+        --client: #0f766e;
+        --rival: #c2410c;
+        --surface: #f8fafc;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: DejaVu Sans, Arial, sans-serif;
+        color: var(--ink);
+        margin: 0;
+        background: var(--surface);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      .hero {
+        padding: 24px 26px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, var(--hero-a), var(--hero-b));
+        color: #fff;
+      }
+
+      .hero-eyebrow {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.24em;
+        opacity: 0.82;
+      }
+
+      .hero h1 {
+        margin-top: 8px;
+        font-size: 28px;
+      }
+
+      .hero-subtitle {
+        margin-top: 8px;
+        font-size: 13px;
+        opacity: 0.92;
+      }
+
+      .hero-meta {
+        margin-top: 14px;
+        font-size: 11px;
+        opacity: 0.8;
+      }
+
+      .kpi-row {
+        width: 100%;
+        margin-top: 18px;
+        border-spacing: 0;
+      }
+
+      .kpi-row td {
+        width: 33.33%;
+        padding-right: 12px;
+        vertical-align: top;
+      }
+
+      .kpi-row td:last-child {
+        padding-right: 0;
+      }
+
+      .kpi-card,
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 16px 18px;
+      }
+
+      .kpi-label,
+      .panel-eyebrow {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        color: var(--muted);
+      }
+
+      .kpi-value {
+        display: block;
+        margin-top: 10px;
+        font-size: 26px;
+        font-weight: 700;
+        color: var(--ink);
+      }
+
+      .two-col {
+        width: 100%;
+        margin-top: 18px;
+        border-spacing: 0;
+      }
+
+      .two-col td {
+        width: 50%;
+        padding-right: 12px;
+        vertical-align: top;
+      }
+
+      .two-col td:last-child {
+        padding-right: 0;
+      }
+
+      .panel-title {
+        margin-top: 6px;
+        font-size: 18px;
+      }
+
+      .panel-subtitle {
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .chart {
+        margin-top: 14px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: #fff;
+        width: 100%;
+      }
+
+      .benchmark-table {
+        width: 100%;
+        margin-top: 14px;
+        border-collapse: collapse;
+      }
+
+      .benchmark-table th,
+      .benchmark-table td {
+        padding: 9px 0;
+        border-bottom: 1px solid #e2e8f0;
+        text-align: left;
+      }
+
+      .benchmark-table th {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        color: var(--muted);
+      }
+
+      .benchmark-table td:first-child {
+        font-weight: 700;
+      }
+
+      .radar-metrics {
+        width: 100%;
+        margin-top: 14px;
+        border-collapse: collapse;
+      }
+
+      .radar-metrics th,
+      .radar-metrics td {
+        padding: 8px 0;
+        border-bottom: 1px solid #e2e8f0;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .radar-metrics th {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        color: var(--muted);
+      }
+
+      .metric-note {
+        color: var(--muted);
+        font-size: 10px;
+        line-height: 1.35;
+      }
+
+      .empty-row {
+        color: var(--muted);
+      }
+
+      .alerts {
+        margin-top: 14px;
+      }
+
+      .alert {
+        padding: 12px 14px;
+        margin-bottom: 10px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: linear-gradient(180deg, #ffffff, #f8fafc);
+      }
+
+      .alert-title {
+        font-weight: 700;
+        font-size: 13px;
+      }
+
+      .alert-body {
+        margin-top: 5px;
+        color: #1e293b;
+      }
+
+      .alert-meta {
+        margin-top: 6px;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--muted);
+      }
+
+      .footer {
+        margin-top: 18px;
+        padding: 14px 18px;
+        border-radius: 14px;
+        background: #eaf2ff;
+        color: #1e3a8a;
+        font-size: 11px;
+      }
+
+      .footer strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="hero">
+      <div class="hero-eyebrow">Reporte local plan Growth</div>
+      <h1>Radar competitivo y alertas accionables</h1>
+      <p class="hero-subtitle">{{ business_name }} · generado localmente el {{ timestamp_label }}</p>
+      <p class="hero-meta">Resumen ejecutivo con benchmark de rivales, gap de reseñas y eventos detectados por el Hub.</p>
+    </section>
+
+    <table class="kpi-row" role="presentation">
+      <tr>
+        <td>
+          <section class="kpi-card">
+            <div class="kpi-label">Competidores activos</div>
+            <strong class="kpi-value">{{ headline_kpis.competitor_count }}</strong>
+          </section>
+        </td>
+        <td>
+          <section class="kpi-card">
+            <div class="kpi-label">Alertas en feed</div>
+            <strong class="kpi-value">{{ alert_count }}</strong>
+          </section>
+        </td>
+        <td>
+          <section class="kpi-card">
+            <div class="kpi-label">Workers online</div>
+            <strong class="kpi-value">{{ headline_kpis.worker_count }}</strong>
+          </section>
+        </td>
+      </tr>
+    </table>
+
+    <table class="two-col" role="presentation">
+      <tr>
+        <td>
+          <section class="panel">
+            <div class="panel-eyebrow">Radar de guerra</div>
+            <h2 class="panel-title">Cliente vs promedio de 5 rivales</h2>
+            <p class="panel-subtitle">Reputacion, actividad, respuesta, frescura y engagement en una sola lectura ejecutiva.</p>
+            <img class="chart" src="data:image/png;base64,{{ radar_chart }}" alt="Radar de Guerra" />
+            <table class="radar-metrics">
+              <thead>
+                <tr>
+                  <th>Dimension</th>
+                  <th>Tu negocio</th>
+                  <th>Promedio rival</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in war_radar_dimensions %}
+                <tr>
+                  <td>
+                    <div>{{ row.label }}</div>
+                    <div class="metric-note">{{ row.note }}</div>
+                  </td>
+                  <td>{{ row.client_value }} {{ row.unit }}</td>
+                  <td>{{ row.competitor_value }} {{ row.unit }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td class="empty-row" colspan="3">No hay datos suficientes para construir el radar.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </section>
+        </td>
+        <td>
+          <section class="panel">
+            <div class="panel-eyebrow">Gap de reseñas</div>
+            <h2 class="panel-title">Presion competitiva</h2>
+            <p class="panel-subtitle">Diferencia de volumen de reseñas frente a tus principales rivales.</p>
+            <img class="chart" src="data:image/png;base64,{{ gap_chart }}" alt="Gap de reseñas" />
+          </section>
+        </td>
+      </tr>
+    </table>
+
+    <table class="two-col" role="presentation">
+      <tr>
+        <td>
+          <section class="panel">
+            <div class="panel-eyebrow">Benchmark</div>
+            <h2 class="panel-title">Competidores priorizados</h2>
+            <p class="panel-subtitle">Lectura rapida de rating, volumen y gap de keyword.</p>
+            <table class="benchmark-table">
+              <thead>
+                <tr>
+                  <th>Competidor</th>
+                  <th>Rating</th>
+                  <th>Reseñas</th>
+                  <th>Gap reseñas</th>
+                  <th>Gap keyword</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in competitor_rows %}
+                <tr>
+                  <td>{{ row.name }}</td>
+                  <td>{{ row.rating_avg if row.rating_avg is not none else '-' }}</td>
+                  <td>{{ row.review_count_total if row.review_count_total is not none else '-' }}</td>
+                  <td>{{ row.review_gap if row.review_gap is not none else '-' }}</td>
+                  <td>{{ row.keyword_gap if row.keyword_gap is not none else '-' }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td class="empty-row" colspan="5">No hay benchmark disponible.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </section>
+        </td>
+        <td>
+          <section class="panel">
+            <div class="panel-eyebrow">Intel feed</div>
+            <h2 class="panel-title">Alertas inteligentes</h2>
+            <p class="panel-subtitle">Eventos detectados por scraping, ranking y automatizaciones.</p>
+            <div class="alerts">
+              {% for row in alert_rows %}
+              <article class="alert">
+                <div class="alert-title">{{ row.title }}</div>
+                <div class="alert-body">{{ row.message }}</div>
+                <div class="alert-meta">{{ row.source }} · {{ row.timestamp_label }}</div>
+              </article>
+              {% else %}
+              <article class="alert">
+                <div class="alert-title">Sin alertas activas</div>
+                <div class="alert-body">No hay alertas para este usuario en el periodo actual.</div>
+              </article>
+              {% endfor %}
+            </div>
+          </section>
+        </td>
+      </tr>
+    </table>
+
+    <section class="footer">
+      <strong>Entrega local</strong>
+      Archivo generado en {{ pdf_path }}.
+      Descarga disponible en {{ download_path }}.
+    </section>
+  </body>
+</html>

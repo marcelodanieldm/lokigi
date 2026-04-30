@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Lokigi · Voz de Marca</title>
+  <title>Lokigi Growth · Voz de Marca</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { darkMode: 'class' }</script>
   <script src="https://unpkg.com/htmx.org@1.9.12" integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2uodhyzR+nG5VhQ3TKo0YsFB7A6+8THZGB" crossorigin="anonymous"></script>
@@ -28,7 +28,7 @@
   <div class="mb-8 flex items-center gap-3">
     <div class="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center font-black text-lg shadow-lg">L</div>
     <span class="text-xl font-bold tracking-tight">Lokigi</span>
-    <span class="text-xs text-emerald-400 border border-emerald-500/40 rounded-full px-2 py-0.5 ml-1">Plan Starter</span>
+    <span class="text-xs text-sky-300 border border-sky-500/40 rounded-full px-2 py-0.5 ml-1">Growth Edition</span>
   </div>
 
   <!-- ── Stepper ── -->
@@ -40,17 +40,22 @@
     <div class="w-10 h-px bg-emerald-600"></div>
     <div class="flex items-center gap-2">
       <div class="step-done w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">✓</div>
-      <span class="text-sm text-emerald-400 hidden sm:inline">Tu negocio</span>
+      <span class="text-sm text-emerald-400 hidden sm:inline">Google Business</span>
     </div>
     <div class="w-10 h-px bg-emerald-600"></div>
     <div class="flex items-center gap-2">
-      <div class="step-active w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">3</div>
-      <span class="text-sm text-white font-semibold hidden sm:inline">Voz de Marca</span>
+      <div class="step-done w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">✓</div>
+      <span class="text-sm text-emerald-400 hidden sm:inline">Radar</span>
     </div>
-    <div class="w-10 h-px bg-white/10"></div>
+    <div class="w-10 h-px bg-emerald-600"></div>
     <div class="flex items-center gap-2">
-      <div class="step-pending w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white/40">4</div>
-      <span class="text-sm text-white/40 hidden sm:inline">Activar</span>
+      <div class="step-done w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">✓</div>
+      <span class="text-sm text-emerald-400 hidden sm:inline">Rivales</span>
+    </div>
+    <div class="w-10 h-px bg-emerald-600"></div>
+    <div class="flex items-center gap-2">
+      <div class="step-active w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">5</div>
+      <span class="text-sm text-white font-semibold hidden sm:inline">Voz de Marca</span>
     </div>
   </div>
 
@@ -99,7 +104,16 @@
     <form id="tone-form" class="space-y-4">
       <input type="hidden" name="user_id" value="{{ user_id }}" />
       <input type="hidden" name="place_id" value="{{ place_id }}" />
+      <input type="hidden" name="business_name" value="{{ business_name }}" />
+      <input type="hidden" name="keywords_csv" value="{{ keywords_csv }}" />
       <input type="hidden" id="selected-tone" name="tone" value="" />
+
+      <div class="mb-5 flex flex-wrap gap-2">
+        {% for keyword in focus_keywords %}
+        <span class="rounded-full border border-sky-400/20 bg-sky-400/10 px-3 py-1 text-xs font-semibold text-sky-100">{{ keyword }}</span>
+        {% endfor %}
+        <span class="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-100">{{ competitor_count }} competidores listos</span>
+      </div>
 
       {% for opt in tone_options %}
       <div

@@ -51,6 +51,7 @@ class GoogleConnection(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     google_account_name: Mapped[str] = mapped_column(String(255), nullable=False)
     business_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    google_profile_description: Mapped[str | None] = mapped_column(Text, nullable=True)
     location_id: Mapped[str] = mapped_column(String(128), nullable=False)
     preferred_tone: Mapped[str] = mapped_column(String(50), nullable=False, default="cercano")
     manual_approval_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
@@ -159,6 +160,10 @@ class StarterProfileSettings(Base):
 
     # CSV list entered by user. We keep raw text to preserve user intent and separators.
     forbidden_words: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    # Primary keywords chosen during onboarding for Growth-style radar setup.
+    focus_keywords: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    # Google Maps place_id used for daily local ranking tracking.
+    client_google_place_id: Mapped[str] = mapped_column(String(128), nullable=False, default="")
     # Allowed values: instant | delay_1h
     response_schedule: Mapped[str] = mapped_column(String(32), nullable=False, default="instant")
 

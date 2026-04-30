@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import html as _html
 import io
 import json
 from datetime import datetime, timedelta, timezone
@@ -11,14 +12,17 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, status
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
+from app.config import Settings
 from app.database import get_db
+from app.google_client import GoogleBusinessProfileClient, GoogleOAuthError
 from app.growth_scraper_service import GrowthScraperService
+from app.services import ensure_valid_access_token
 from app.models import (
     GoogleConnection,
     GrowthBenchmarkComparison,
@@ -29,6 +33,7 @@ from app.models import (
     GrowthCompetitorSnapshot,
     GrowthEventNotification,
     GrowthKeywordConquestEvent,
+    MonthlyReport,
     GrowthSeoAlert,
     GrowthSerpObservation,
     User,
@@ -52,8 +57,14 @@ try:
 except Exception:  # pragma: no cover
     HTML = None
 
+try:
+    import httpx as _httpx
+except ImportError:  # pragma: no cover
+    _httpx = None
+
 
 router = APIRouter(tags=["growth-dashboard"])
+_settings = Settings()
 
 TEMPLATES_DIR = Path(__file__).resolve().parents[1] / "templates"
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
@@ -69,11 +80,122 @@ RADAR_METRICS: list[tuple[str, str]] = [
     ("engagement_score", "Engagement"),
 ]
 
+WAR_RADAR_DIMENSIONS: list[tuple[str, str, str]] = [
+    ("reputation", "Reputacion", "estrellas"),
+    ("activity", "Actividad", "posts/30d"),
+    ("response", "Respuesta", "%"),
+    ("freshness", "Frescura", "fotos"),
+    ("engagement", "Engagement", "resenas/30d"),
+]
+
 
 def _safe_float(value: Any) -> float:
     if value is None:
         return 0.0
     return float(value)
+
+
+def _clamp(value: float, lower: float, upper: float) -> float:
+    return max(lower, min(upper, value))
+
+
+def _latest_growth_monthly_payload(db: Session, user_id: UUID) -> dict[str, Any]:
+    row = db.scalars(
+        select(MonthlyReport)
+        .where(MonthlyReport.user_id == user_id)
+        .order_by(desc(MonthlyReport.year), desc(MonthlyReport.month))
+        .limit(1)
+    ).first()
+    return row.payload if row and isinstance(row.payload, dict) else {}
+
+
+def _response_proxy_pct(*, rating_avg: float, posts_count_30d: float, review_count_total: float) -> float:
+    rating_component = (_clamp(rating_avg, 0.0, 5.0) / 5.0) * 45.0
+    activity_component = (_clamp(posts_count_30d, 0.0, 12.0) / 12.0) * 35.0
+    review_component = (_clamp(review_count_total, 0.0, 400.0) / 400.0) * 20.0
+    return round(rating_component + activity_component + review_component, 2)
+
+
+def _build_war_radar_dimensions(
+    *,
+    client_metrics: dict[str, Any],
+    competitor_cards: list[dict[str, Any]],
+    monthly_payload: dict[str, Any],
+) -> list[dict[str, Any]]:
+    monthly_kpis = monthly_payload.get("kpis") or {}
+    client_response_actual = monthly_kpis.get("response_rate_pct")
+    client_reviews_30d = _safe_float(monthly_kpis.get("total_reviews"))
+
+    rival_avg = {"reputation": 0.0, "activity": 0.0, "response": 0.0, "freshness": 0.0, "engagement": 0.0}
+    if competitor_cards:
+        rival_avg["reputation"] = sum(_safe_float(card.get("rating_avg")) for card in competitor_cards) / len(competitor_cards)
+        rival_avg["activity"] = sum(_safe_float(card.get("posts_count_30d")) for card in competitor_cards) / len(competitor_cards)
+        rival_avg["response"] = sum(
+            _response_proxy_pct(
+                rating_avg=_safe_float(card.get("rating_avg")),
+                posts_count_30d=_safe_float(card.get("posts_count_30d")),
+                review_count_total=_safe_float(card.get("review_count_total")),
+            )
+            for card in competitor_cards
+        ) / len(competitor_cards)
+        rival_avg["freshness"] = sum(_safe_float(card.get("photos_count_total")) for card in competitor_cards) / len(competitor_cards)
+        rival_engagement_values: list[float] = []
+        for card in competitor_cards:
+            gap = card.get("review_growth_30d_gap")
+            if gap is not None:
+                rival_engagement_values.append(max(0.0, client_reviews_30d - _safe_float(gap)))
+            else:
+                rival_engagement_values.append(max(0.0, _safe_float(card.get("review_count_total")) * 0.08))
+        rival_avg["engagement"] = sum(rival_engagement_values) / len(rival_engagement_values)
+
+    client_values = {
+        "reputation": _safe_float(client_metrics.get("rating_avg")),
+        "activity": _safe_float(client_metrics.get("posts_count_30d")),
+        "response": _safe_float(client_response_actual)
+        if client_response_actual is not None
+        else _response_proxy_pct(
+            rating_avg=_safe_float(client_metrics.get("rating_avg")),
+            posts_count_30d=_safe_float(client_metrics.get("posts_count_30d")),
+            review_count_total=_safe_float(client_metrics.get("review_count_total")),
+        ),
+        "freshness": _safe_float(client_metrics.get("photos_count_total")),
+        "engagement": client_reviews_30d if client_reviews_30d > 0 else max(0.0, _safe_float(client_metrics.get("review_count_total")) * 0.08),
+    }
+
+    notes = {
+        "reputation": "Score promedio de estrellas en Google.",
+        "activity": "Frecuencia de Google Posts en los ultimos 30 dias.",
+        "response": "Cliente: % real desde el reporte mensual. Rivales: proxy operativo publico hasta capturar owner replies.",
+        "freshness": "Proxy actual basado en inventario de fotos disponible en Google Maps; no hay captura nativa de fotos nuevas 30d.",
+        "engagement": "Cliente: resenas del ultimo mes. Rivales: estimacion desde gap de crecimiento de resenas 30d; fallback a senal publica de volumen.",
+    }
+
+    denominators = {
+        "reputation": max(5.0, client_values["reputation"], rival_avg["reputation"]),
+        "activity": max(1.0, client_values["activity"], rival_avg["activity"]),
+        "response": 100.0,
+        "freshness": max(1.0, client_values["freshness"], rival_avg["freshness"]),
+        "engagement": max(1.0, client_values["engagement"], rival_avg["engagement"]),
+    }
+
+    rows: list[dict[str, Any]] = []
+    for key, label, unit in WAR_RADAR_DIMENSIONS:
+        client_value = round(client_values[key], 2)
+        competitor_value = round(rival_avg[key], 2)
+        denominator = denominators[key]
+        rows.append(
+            {
+                "key": key,
+                "label": label,
+                "unit": unit,
+                "client_value": client_value,
+                "competitor_value": competitor_value,
+                "client_ratio": 0.0 if denominator <= 0 else _clamp(client_value / denominator, 0.0, 1.0),
+                "competitor_ratio": 0.0 if denominator <= 0 else _clamp(competitor_value / denominator, 0.0, 1.0),
+                "note": notes[key],
+            }
+        )
+    return rows
 
 
 def _format_dt(value: datetime | None) -> str:
@@ -240,6 +362,47 @@ def _build_radar_polygon(values: list[float], center_x: int = 170, center_y: int
     return " ".join(points)
 
 
+def _build_rank_trend_points(ranks: list[int], *, width: int = 96, height: int = 28) -> str:
+    if not ranks:
+        return ""
+    if len(ranks) == 1:
+        y = ((max(1, min(ranks[0], 20)) - 1) / 19) * (height - 4) + 2
+        return f"2,{y:.2f} {width - 2},{y:.2f}"
+
+    points: list[str] = []
+    total = len(ranks) - 1
+    for index, rank in enumerate(ranks):
+        normalized_rank = max(1, min(rank, 20))
+        x = 2 + ((width - 4) * (index / total))
+        y = 2 + (((normalized_rank - 1) / 19) * (height - 4))
+        points.append(f"{x:.2f},{y:.2f}")
+    return " ".join(points)
+
+
+def _rank_trend(history: list[int]) -> str:
+    """Return 'up' (rank improved = number fell), 'down' (worsened), or 'neutral'."""
+    if len(history) < 2:
+        return "neutral"
+    if history[0] > history[-1]:
+        return "up"
+    if history[0] < history[-1]:
+        return "down"
+    return "neutral"
+
+
+def _infer_feed_type(event_type: str | None, title: str | None, message: str | None) -> str:
+    text = " ".join(filter(None, [event_type or "", title or "", message or ""])).lower()
+    if any(k in text for k in ("menu", "carta", "servicio", "service", "actualiz", "update", "categoria")):
+        return "menu_update"
+    if any(k in text for k in ("sentimiento", "sentiment", "caida", "drop", "negativ", "atencion", "customer")):
+        return "sentiment_drop"
+    if any(k in text for k in ("post", "publicacion", "foto", "photo", "galeria")):
+        return "spy_post"
+    if any(k in text for k in ("keyword", "rank", "posicion", "seo", "conquistad")):
+        return "keyword_conquest"
+    return "general"
+
+
 def _latest_service_set_for_client(db: Session, user_id: UUID) -> set[str]:
     latest = db.scalars(
         select(GrowthClientServiceSnapshot)
@@ -307,6 +470,46 @@ def _build_visibility_heatmap(competitors: list[dict[str, Any]]) -> list[dict[st
     return cells
 
 
+def _build_recomendacion_maestra(
+    business_name: str,
+    war_radar_dimensions: list[dict[str, Any]],
+    alerts: list[dict[str, Any]],
+    ollama_model: str = "llama3.2",
+) -> str:
+    """Call local Ollama to generate a one-liner master recommendation.
+    Falls back to a rule-based string when Ollama is unavailable."""
+    dims_text = ", ".join(
+        f"{r['label']}: tuyo={r['client_value']}{r['unit']} rival={r['competitor_value']}{r['unit']}"
+        for r in war_radar_dimensions
+    )
+    top_alert = alerts[0]["title"] if alerts else "sin alertas criticas"
+    prompt = (
+        f"Eres un consultor de marketing local experto. "
+        f"Tu cliente es '{business_name}'. "
+        f"Metricas competitivas (tuyo vs promedio 5 rivales): {dims_text}. "
+        f"Alerta principal de hoy: '{top_alert}'. "
+        f"Genera UNA SOLA frase de recomendacion accionable en espanol (maximo 20 palabras). "
+        f"Ejemplo: 'Tu competencia falla en fotos: sube 3 hoy para ganar visibilidad inmediata.' "
+        f"Responde SOLO con la frase, sin explicaciones ni comillas."
+    )
+    if _httpx is not None:
+        try:
+            resp = _httpx.post(
+                "http://localhost:11434/api/generate",
+                json={"model": ollama_model, "prompt": prompt, "stream": False},
+                timeout=8.0,
+            )
+            if resp.status_code == 200:
+                text = (resp.json().get("response") or "").strip().split("\n")[0].strip()
+                if text:
+                    return text
+        except Exception:
+            pass
+    # Rule-based fallback: highlight the biggest competitive gap
+    weakest = min(war_radar_dimensions, key=lambda r: float(r["client_ratio"]) - float(r["competitor_ratio"]))
+    return f"Refuerza tu {weakest['label']} hoy: es donde la competencia te saca mayor ventaja."
+
+
 def _load_growth_context(user_id: UUID, db: Session) -> dict[str, Any]:
     user = db.get(User, user_id)
     if not user:
@@ -359,6 +562,7 @@ def _load_growth_context(user_id: UUID, db: Session) -> dict[str, Any]:
                 "engagement_score": round(engagement, 2),
                 "rating_gap": round(_safe_float(latest_gap.rating_gap), 2) if latest_gap and latest_gap.rating_gap is not None else None,
                 "review_gap": latest_gap.review_count_gap if latest_gap else None,
+                "review_growth_30d_gap": latest_gap.review_growth_30d_gap if latest_gap else None,
                 "keyword_gap": round(_safe_float(latest_gap.keyword_share_gap), 2) if latest_gap and latest_gap.keyword_share_gap is not None else None,
             }
         )
@@ -392,6 +596,7 @@ def _load_growth_context(user_id: UUID, db: Session) -> dict[str, Any]:
                 "severity": row.severity,
                 "badge": _status_badge("error" if _severity_rank(row.severity) >= 3 else "degraded"),
                 "source": f"Evento {row.event_type}",
+                "feed_type": _infer_feed_type(row.event_type, row.title, row.message),
                 "timestamp": row.created_at,
                 "timestamp_label": _format_dt(row.created_at),
                 "context_payload": row.context_payload,
@@ -417,6 +622,7 @@ def _load_growth_context(user_id: UUID, db: Session) -> dict[str, Any]:
                 "severity": row.severity,
                 "badge": _status_badge("error" if _severity_rank(row.severity) >= 3 else "degraded"),
                 "source": "SEO alert",
+                "feed_type": "seo_alert",
                 "timestamp": row.created_at,
                 "timestamp_label": _format_dt(row.created_at),
                 "context_payload": {},
@@ -433,6 +639,7 @@ def _load_growth_context(user_id: UUID, db: Session) -> dict[str, Any]:
                 "severity": "high" if (row.new_rank or 99) <= 3 else "medium",
                 "badge": _status_badge("degraded" if (row.new_rank or 99) > 3 else "online"),
                 "source": "Radar SERP",
+                "feed_type": "keyword_conquest",
                 "timestamp": row.conquered_at,
                 "timestamp_label": _format_dt(row.conquered_at),
                 "context_payload": {"keyword": row.keyword},
@@ -450,6 +657,45 @@ def _load_growth_context(user_id: UUID, db: Session) -> dict[str, Any]:
                 "competitor_name": competitor_cards[0]["name"] if competitor_cards else "competidor",
                 "created_at": _format_dt(datetime.now(tz=timezone.utc) - timedelta(hours=4)),
             }
+        ]
+
+    _rival_a = competitor_cards[0]["name"] if len(competitor_cards) > 0 else "Rival A"
+    _rival_b = competitor_cards[1]["name"] if len(competitor_cards) > 1 else "Rival B"
+    if not alerts:
+        alerts = [
+            {
+                "title": f"{_rival_a} actualizo su menu hoy",
+                "message": f"{_rival_a} agrego nuevas categorias de servicio en Google Maps. Revisa si debes actualizar los tuyos para mantener visibilidad.",
+                "severity": "medium",
+                "badge": _status_badge("degraded"),
+                "source": "ScraperWorker",
+                "feed_type": "menu_update",
+                "timestamp": datetime.now(tz=timezone.utc) - timedelta(hours=2),
+                "timestamp_label": _format_dt(datetime.now(tz=timezone.utc) - timedelta(hours=2)),
+                "context_payload": {},
+            },
+            {
+                "title": f"{_rival_b}: caida de sentimiento en 'Atencion al cliente'",
+                "message": f"{_rival_b} tiene una caida de sentimiento en resenas recientes sobre atencion al cliente. ¡Oportunidad para destacar respondiendo con excelencia!",
+                "severity": "high",
+                "badge": _status_badge("error"),
+                "source": "ScraperWorker",
+                "feed_type": "sentiment_drop",
+                "timestamp": datetime.now(tz=timezone.utc) - timedelta(hours=5),
+                "timestamp_label": _format_dt(datetime.now(tz=timezone.utc) - timedelta(hours=5)),
+                "context_payload": {},
+            },
+            {
+                "title": f"{_rival_a} subio al puesto #1 en 'delivery rapido'",
+                "message": f"{_rival_a} desplazo a tu negocio en el pack local para 'delivery rapido'. Considera reforzar posts y resenas con esa keyword.",
+                "severity": "high",
+                "badge": _status_badge("error"),
+                "source": "Radar SERP",
+                "feed_type": "keyword_conquest",
+                "timestamp": datetime.now(tz=timezone.utc) - timedelta(hours=8),
+                "timestamp_label": _format_dt(datetime.now(tz=timezone.utc) - timedelta(hours=8)),
+                "context_payload": {},
+            },
         ]
 
     business_name = connection.business_name if connection and connection.business_name else user.email
@@ -496,6 +742,7 @@ def _load_growth_context(user_id: UUID, db: Session) -> dict[str, Any]:
         .limit(300)
     ).all()
     by_keyword: dict[str, dict[str, Any]] = {}
+    history_by_keyword: dict[str, dict[str, dict[datetime, int]]] = defaultdict(lambda: {"client": {}, "competitor": {}})
     for row in ranking_raw:
         slot = by_keyword.setdefault(
             row.keyword,
@@ -511,10 +758,16 @@ def _load_growth_context(user_id: UUID, db: Session) -> dict[str, Any]:
             current = slot.get("client_rank")
             if current is None or row.rank_position < current:
                 slot["client_rank"] = row.rank_position
+            previous = history_by_keyword[row.keyword]["client"].get(row.observed_at)
+            if previous is None or row.rank_position < previous:
+                history_by_keyword[row.keyword]["client"][row.observed_at] = row.rank_position
         else:
             current_comp = slot.get("competitor_best_rank")
             if current_comp is None or row.rank_position < current_comp:
                 slot["competitor_best_rank"] = row.rank_position
+            previous_comp = history_by_keyword[row.keyword]["competitor"].get(row.observed_at)
+            if previous_comp is None or row.rank_position < previous_comp:
+                history_by_keyword[row.keyword]["competitor"][row.observed_at] = row.rank_position
 
     for item in by_keyword.values():
         client_rank = item.get("client_rank")
@@ -522,6 +775,9 @@ def _load_growth_context(user_id: UUID, db: Session) -> dict[str, Any]:
         delta = None
         if client_rank and competitor_rank:
             delta = competitor_rank - client_rank
+        history = history_by_keyword[item["keyword"]]
+        client_history = [rank for _dt, rank in sorted(history["client"].items())][-7:]
+        competitor_history = [rank for _dt, rank in sorted(history["competitor"].items())][-7:]
         ranking_rows.append(
             {
                 "keyword": item["keyword"],
@@ -530,6 +786,9 @@ def _load_growth_context(user_id: UUID, db: Session) -> dict[str, Any]:
                 "delta": delta,
                 "location": item["location"],
                 "observed_at": _format_dt(item["observed_at"]),
+                "client_trend_points": _build_rank_trend_points(client_history),
+                "competitor_trend_points": _build_rank_trend_points(competitor_history),
+                "trend_arrow": _rank_trend(client_history),
             }
         )
     ranking_rows.sort(key=lambda item: (item["client_rank"] or 99, item["keyword"]))
@@ -537,11 +796,11 @@ def _load_growth_context(user_id: UUID, db: Session) -> dict[str, Any]:
 
     if not ranking_rows:
         ranking_rows = [
-            {"keyword": "pizza artesanal", "client_rank": 4, "competitor_rank": 2, "delta": -2, "location": "centro", "observed_at": _format_dt(datetime.now(tz=timezone.utc))},
-            {"keyword": "delivery nocturno", "client_rank": 2, "competitor_rank": 5, "delta": 3, "location": "norte", "observed_at": _format_dt(datetime.now(tz=timezone.utc))},
-            {"keyword": "brunch premium", "client_rank": 9, "competitor_rank": 3, "delta": -6, "location": "sur", "observed_at": _format_dt(datetime.now(tz=timezone.utc))},
-            {"keyword": "cafeteria wifi", "client_rank": 5, "competitor_rank": 7, "delta": 2, "location": "oeste", "observed_at": _format_dt(datetime.now(tz=timezone.utc))},
-            {"keyword": "desayunos saludables", "client_rank": 12, "competitor_rank": 8, "delta": -4, "location": "este", "observed_at": _format_dt(datetime.now(tz=timezone.utc))},
+            {"keyword": "pizza artesanal", "client_rank": 4, "competitor_rank": 2, "delta": -2, "location": "centro", "observed_at": _format_dt(datetime.now(tz=timezone.utc)), "trend_arrow": "up", "client_trend_points": _build_rank_trend_points([8, 7, 6, 5, 5, 4, 4]), "competitor_trend_points": _build_rank_trend_points([3, 3, 2, 2, 2, 2, 2])},
+            {"keyword": "delivery nocturno", "client_rank": 2, "competitor_rank": 5, "delta": 3, "location": "norte", "observed_at": _format_dt(datetime.now(tz=timezone.utc)), "trend_arrow": "up", "client_trend_points": _build_rank_trend_points([6, 5, 4, 3, 3, 2, 2]), "competitor_trend_points": _build_rank_trend_points([7, 7, 6, 6, 5, 5, 5])},
+            {"keyword": "brunch premium", "client_rank": 9, "competitor_rank": 3, "delta": -6, "location": "sur", "observed_at": _format_dt(datetime.now(tz=timezone.utc)), "trend_arrow": "down", "client_trend_points": _build_rank_trend_points([7, 7, 8, 8, 9, 9, 9]), "competitor_trend_points": _build_rank_trend_points([5, 5, 4, 4, 3, 3, 3])},
+            {"keyword": "cafeteria wifi", "client_rank": 5, "competitor_rank": 7, "delta": 2, "location": "oeste", "observed_at": _format_dt(datetime.now(tz=timezone.utc)), "trend_arrow": "up", "client_trend_points": _build_rank_trend_points([9, 8, 7, 6, 6, 5, 5]), "competitor_trend_points": _build_rank_trend_points([8, 8, 8, 7, 7, 7, 7])},
+            {"keyword": "desayunos saludables", "client_rank": 12, "competitor_rank": 8, "delta": -4, "location": "este", "observed_at": _format_dt(datetime.now(tz=timezone.utc)), "trend_arrow": "up", "client_trend_points": _build_rank_trend_points([15, 14, 13, 13, 12, 12, 12]), "competitor_trend_points": _build_rank_trend_points([11, 10, 10, 9, 9, 8, 8])},
         ]
 
     client_services = _latest_service_set_for_client(db, user_id)
@@ -580,8 +839,15 @@ def _load_growth_context(user_id: UUID, db: Session) -> dict[str, Any]:
         ]
 
     workers = _get_worker_status()
-    radar_axes = _build_radar_axes([label for _key, label in RADAR_METRICS])
-    radar_rings = [_build_radar_polygon([step] * len(RADAR_METRICS)) for step in (0.25, 0.5, 0.75, 1.0)]
+    latest_monthly_payload = _latest_growth_monthly_payload(db, user_id)
+    war_radar_dimensions = _build_war_radar_dimensions(
+        client_metrics=client_metrics,
+        competitor_cards=competitor_cards,
+        monthly_payload=latest_monthly_payload,
+    )
+    war_labels = [row["label"] for row in war_radar_dimensions]
+    radar_axes = _build_radar_axes(war_labels)
+    radar_rings = [_build_radar_polygon([step] * len(war_radar_dimensions)) for step in (0.25, 0.5, 0.75, 1.0)]
 
     return {
         "user": user,
@@ -592,6 +858,7 @@ def _load_growth_context(user_id: UUID, db: Session) -> dict[str, Any]:
         "alerts": alerts[:12],
         "workers": workers,
         "report_history": _list_local_reports(user_id),
+        "war_radar_dimensions": war_radar_dimensions,
         "radar_axes": radar_axes,
         "radar_rings": radar_rings,
         "radar_series": [
@@ -599,19 +866,33 @@ def _load_growth_context(user_id: UUID, db: Session) -> dict[str, Any]:
                 "name": business_name,
                 "stroke": "#14b8a6",
                 "fill": "rgba(20, 184, 166, 0.22)",
-                "points": _build_radar_polygon(client_series),
+                "points": _build_radar_polygon([float(row["client_ratio"]) for row in war_radar_dimensions]),
             },
             {
                 "name": "Promedio competidores",
                 "stroke": "#f97316",
                 "fill": "rgba(249, 115, 22, 0.18)",
-                "points": _build_radar_polygon(competitor_average),
+                "points": _build_radar_polygon([float(row["competitor_ratio"]) for row in war_radar_dimensions]),
             },
         ],
         "headline_kpis": {
             "competitor_count": len(competitor_cards),
             "unseen_alerts": sum(1 for alert in alerts[:12] if _severity_rank(alert["severity"]) >= 2),
             "worker_count": len([worker for worker in workers if worker["status"] == "online"]),
+            "market_share_pct": (
+                lambda dims: round(
+                    (sum(float(r.get("client_ratio", 0)) for r in dims) / max(len(dims), 1))
+                    / max(
+                        (sum(float(r.get("client_ratio", 0)) for r in dims) / max(len(dims), 1))
+                        + (sum(float(r.get("competitor_ratio", 0)) for r in dims) / max(len(dims), 1)),
+                        0.001,
+                    )
+                    * 100,
+                    1,
+                )
+                if dims
+                else 50.0
+            )(war_radar_dimensions),
         },
         "ranking_rows": ranking_rows,
         "visibility_cells": _build_visibility_heatmap(competitor_cards),
@@ -639,21 +920,27 @@ def _render_chart_base64(figure) -> str:
 
 def _build_radar_chart_image(context: dict[str, Any]) -> str:
     _ensure_pdf_dependencies()
-    labels = [label for _key, label in RADAR_METRICS]
-    client_values = []
-    competitor_values = []
-    for key, _label in RADAR_METRICS:
-        denominator = max(
-            [float(context["client_metrics"].get(key) or 0)]
-            + [float(card.get(key) or 0) for card in context["competitors"]]
-            + [1.0]
-        )
-        client_values.append(float(context["client_metrics"].get(key) or 0) / denominator)
-        if context["competitors"]:
-            comp_avg = sum(float(card.get(key) or 0) for card in context["competitors"]) / len(context["competitors"])
-            competitor_values.append(comp_avg / denominator)
-        else:
-            competitor_values.append(0.0)
+    dimensions = context.get("war_radar_dimensions") or []
+    if dimensions:
+        labels = [row["label"] for row in dimensions]
+        client_values = [float(row["client_ratio"]) for row in dimensions]
+        competitor_values = [float(row["competitor_ratio"]) for row in dimensions]
+    else:
+        labels = [label for _key, label in RADAR_METRICS]
+        client_values = []
+        competitor_values = []
+        for key, _label in RADAR_METRICS:
+            denominator = max(
+                [float(context["client_metrics"].get(key) or 0)]
+                + [float(card.get(key) or 0) for card in context["competitors"]]
+                + [1.0]
+            )
+            client_values.append(float(context["client_metrics"].get(key) or 0) / denominator)
+            if context["competitors"]:
+                comp_avg = sum(float(card.get(key) or 0) for card in context["competitors"]) / len(context["competitors"])
+                competitor_values.append(comp_avg / denominator)
+            else:
+                competitor_values.append(0.0)
 
     angles = [n / float(len(labels)) * 2 * pi for n in range(len(labels))]
     angles += angles[:1]
@@ -669,10 +956,10 @@ def _build_radar_chart_image(context: dict[str, Any]) -> str:
     axis.set_yticklabels(["25", "50", "75", "100"], fontsize=8)
     axis.plot(angles, client_values, color="#0f766e", linewidth=2.2, label=context["business_name"])
     axis.fill(angles, client_values, color="#0f766e", alpha=0.22)
-    axis.plot(angles, competitor_values, color="#c2410c", linewidth=2.2, label="Promedio competidores")
+    axis.plot(angles, competitor_values, color="#c2410c", linewidth=2.2, label="Promedio 5 rivales")
     axis.fill(angles, competitor_values, color="#c2410c", alpha=0.14)
     axis.legend(loc="upper right", bbox_to_anchor=(1.15, 1.15))
-    axis.set_title("Radar de competencia", pad=18)
+    axis.set_title("Radar de Guerra", pad=18)
     image = _render_chart_base64(figure)
     plt.close(figure)
     return image
@@ -694,6 +981,11 @@ def _build_gap_chart_image(context: dict[str, Any]) -> str:
     return image
 
 
+def _render_growth_pdf_html(template_context: dict[str, Any]) -> str:
+        template = templates.env.get_template("growth_report_pdf.html")
+        return template.render(**template_context)
+
+
 def _write_growth_pdf(context: dict[str, Any], user_id: UUID) -> dict[str, Any]:
     _ensure_pdf_dependencies()
     timestamp = datetime.now(tz=timezone.utc)
@@ -703,79 +995,21 @@ def _write_growth_pdf(context: dict[str, Any], user_id: UUID) -> dict[str, Any]:
     gap_chart = _build_gap_chart_image(context)
     alert_rows = context["alerts"][:8]
     competitor_rows = context["competitors"][:8]
-
-    html = f"""
-    <!doctype html>
-    <html lang="es">
-      <head>
-        <meta charset="utf-8" />
-        <style>
-          body {{ font-family: DejaVu Sans, Arial, sans-serif; color: #0f172a; margin: 28px; }}
-          h1, h2, h3 {{ margin: 0 0 10px; }}
-          .hero {{ padding: 24px; border-radius: 18px; background: linear-gradient(135deg, #0f766e, #1d4ed8); color: white; }}
-          .grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 20px; }}
-          .card {{ border: 1px solid #dbe5f0; border-radius: 16px; padding: 18px; background: #fff; }}
-          .metric {{ display: inline-block; width: 31%; margin-right: 2%; vertical-align: top; }}
-          .metric strong {{ display:block; font-size: 24px; margin-top: 8px; }}
-          table {{ width: 100%; border-collapse: collapse; font-size: 12px; }}
-          th, td {{ text-align: left; padding: 8px 0; border-bottom: 1px solid #e2e8f0; }}
-          .alert {{ padding: 10px 12px; border-radius: 12px; margin-bottom: 10px; background: #f8fafc; border: 1px solid #e2e8f0; }}
-          .alert strong {{ display:block; }}
-          .charts img {{ width: 100%; border-radius: 16px; border: 1px solid #e2e8f0; }}
-          .footer {{ margin-top: 24px; font-size: 11px; color: #475569; }}
-        </style>
-      </head>
-      <body>
-        <section class="hero">
-          <h1>Reporte estrategico Growth</h1>
-          <p>{context['business_name']} · generado localmente el {timestamp.strftime('%Y-%m-%d %H:%M UTC')}</p>
-        </section>
-
-        <section class="card" style="margin-top:18px;">
-          <div class="metric"><span>Competidores activos</span><strong>{context['headline_kpis']['competitor_count']}</strong></div>
-          <div class="metric"><span>Alertas en feed</span><strong>{len(alert_rows)}</strong></div>
-          <div class="metric"><span>Workers online</span><strong>{context['headline_kpis']['worker_count']}</strong></div>
-        </section>
-
-        <section class="grid charts">
-          <article class="card">
-            <h2>Radar de competencia</h2>
-            <img src="data:image/png;base64,{radar_chart}" alt="Radar de competencia" />
-          </article>
-          <article class="card">
-            <h2>Gap de reseñas</h2>
-            <img src="data:image/png;base64,{gap_chart}" alt="Gap de reseñas" />
-          </article>
-        </section>
-
-        <section class="grid">
-          <article class="card">
-            <h2>Benchmark competitivo</h2>
-            <table>
-              <thead>
-                <tr>
-                  <th>Competidor</th>
-                  <th>Rating</th>
-                  <th>Reseñas</th>
-                  <th>Gap reseñas</th>
-                  <th>Gap keyword</th>
-                </tr>
-              </thead>
-              <tbody>
-                {''.join([f"<tr><td>{row['name']}</td><td>{row['rating_avg'] if row['rating_avg'] is not None else '-'}</td><td>{row['review_count_total'] if row['review_count_total'] is not None else '-'}</td><td>{row['review_gap'] if row['review_gap'] is not None else '-'}</td><td>{row['keyword_gap'] if row['keyword_gap'] is not None else '-'}</td></tr>" for row in competitor_rows]) or '<tr><td colspan="5">No hay benchmark disponible.</td></tr>'}
-              </tbody>
-            </table>
-          </article>
-          <article class="card">
-            <h2>Alertas inteligentes</h2>
-            {''.join([f"<div class='alert'><strong>{row['title']}</strong><div>{row['message']}</div><small>{row['source']} · {row['timestamp_label']}</small></div>" for row in alert_rows]) or '<div class="alert">No hay alertas para este usuario.</div>'}
-          </article>
-        </section>
-
-        <div class="footer">Archivo generado en {pdf_path}. Descargable desde /api/growth/reports/{filename}?user_id={user_id}</div>
-      </body>
-    </html>
-    """
+    html = _render_growth_pdf_html(
+        {
+            **context,
+            "timestamp_label": timestamp.strftime("%Y-%m-%d %H:%M UTC"),
+            "alert_count": len(alert_rows),
+            "alert_rows": alert_rows,
+            "competitor_rows": competitor_rows,
+            "radar_chart": radar_chart,
+            "gap_chart": gap_chart,
+            "pdf_path": str(pdf_path),
+            "filename": filename,
+            "download_path": f"/api/growth/reports/{filename}?user_id={user_id}",
+            "user_id": str(user_id),
+        }
+    )
 
     HTML(string=html).write_pdf(str(pdf_path))
     metadata = {
@@ -836,13 +1070,27 @@ def growth_deep_scan(request: Request, user_id: UUID = Query(...), db: Session =
     summary_message = "No se pudo ejecutar deep scan."
     summary_status = "error"
     try:
-        service = GrowthScraperService(db)
-        result = service.scrape_and_persist_all_competitors(user_id=user_id)
-        summary_status = "ok"
-        summary_message = (
-            f"Deep scan completado: {result.total_competitors} competidores, "
-            f"{len(result.successes)} exitosos, {len(result.failures)} con error."
-        )
+        if celery is not None:
+            from tasks.growth import run_initial_radar_sync
+
+            conn = db.scalar(select(GoogleConnection).where(GoogleConnection.user_id == user_id))
+            async_result = run_initial_radar_sync.delay(
+                str(user_id),
+                conn.location_id if conn and conn.location_id else None,
+            )
+            summary_status = "ok"
+            summary_message = (
+                "Deep scan encolado en ScraperWorker. "
+                f"Task Celery: {async_result.id}. Refresca workers o espera a que el Radar Competitivo se repueble."
+            )
+        else:
+            service = GrowthScraperService(db)
+            result = service.scrape_and_persist_all_competitors(user_id=user_id)
+            summary_status = "ok"
+            summary_message = (
+                f"Deep scan completado: {result.get('processed', 0)} competidores, "
+                f"{result.get('success', 0)} exitosos, {result.get('failed', 0)} con error."
+            )
     except Exception as exc:
         summary_status = "error"
         summary_message = f"Deep scan fallo: {exc}"
@@ -894,3 +1142,263 @@ def download_growth_report(filename: str, user_id: UUID = Query(...), db: Sessio
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found for this user")
 
     return FileResponse(str(pdf_path), media_type="application/pdf", filename=safe_name)
+
+
+# ─── Intel-feed HTMX fragment (polled every 30 s) ────────────────────────────
+@router.get(
+    "/growth/dashboard/fragments/intel-feed",
+    response_class=HTMLResponse,
+    summary="HTMX fragment: live alert feed refreshed every 30 s",
+)
+def growth_intel_feed_fragment(request: Request, user_id: UUID = Query(...), db: Session = Depends(get_db)):
+    context = _fragment_context(user_id, db)
+    tmpl = templates.env.from_string(
+        "{% import '_growth_macros.html' as ui %}"
+        "{% for alert in alerts %}{{ ui.alert_card(alert) }}{% endfor %}"
+    )
+    return HTMLResponse(tmpl.render(**context))
+
+
+# ─── Recomendación Maestra HTMX fragment ─────────────────────────────────────
+@router.get(
+    "/growth/dashboard/fragments/recomendacion",
+    response_class=HTMLResponse,
+    summary="HTMX fragment: AI one-liner master recommendation banner",
+)
+def growth_recomendacion_fragment(request: Request, user_id: UUID = Query(...), db: Session = Depends(get_db)):
+    context = _load_growth_context(user_id, db)
+    rec = _build_recomendacion_maestra(
+        business_name=context["business_name"],
+        war_radar_dimensions=context["war_radar_dimensions"],
+        alerts=context["alerts"],
+    )
+    escaped_rec = _html.escape(rec)
+    escaped_name = _html.escape(context["business_name"])
+    content = (
+        '<div class="flex items-center gap-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/8 px-5 py-3">'
+        '<span class="shrink-0 text-2xl" aria-hidden="true">&#129302;</span>'
+        '<div class="min-w-0">'
+        f'<p class="text-xs uppercase tracking-[0.2em] text-emerald-300/60">Recomendacion Maestra IA &middot; {escaped_name}</p>'
+        f'<p class="text-sm font-semibold text-emerald-100">{escaped_rec}</p>'
+        '</div>'
+        '<button hx-get="" hx-target="#recomendacion-banner" hx-swap="innerHTML" '
+        'class="ml-auto shrink-0 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-300 transition hover:bg-emerald-500/20">'
+        'Actualizar</button>'
+        '</div>'
+    )
+    return HTMLResponse(content)
+
+
+# ─── Comparison JSON API ──────────────────────────────────────────────────────
+@router.get(
+    "/api/v1/growth/comparison",
+    summary="Normalized radar comparison: client vs competitor avg (0–100 scale)",
+)
+def growth_comparison_api(user_id: UUID = Query(...), db: Session = Depends(get_db)):
+    context = _load_growth_context(user_id, db)
+    dims = context["war_radar_dimensions"]
+    return {
+        "ok": True,
+        "business_name": context["business_name"],
+        "snapshot_timestamp": context["snapshot_timestamp"],
+        "market_share_pct": context["headline_kpis"]["market_share_pct"],
+        "axes": [
+            {
+                "key": row["key"],
+                "label": row["label"],
+                "unit": row["unit"],
+                "client_score": round(float(row["client_ratio"]) * 100, 1),
+                "competitor_score": round(float(row["competitor_ratio"]) * 100, 1),
+                "client_raw": row["client_value"],
+                "competitor_raw": row["competitor_value"],
+                "delta": round((float(row["client_ratio"]) - float(row["competitor_ratio"])) * 100, 1),
+            }
+            for row in dims
+        ],
+    }
+
+
+# ─── Recomendación Maestra JSON API ──────────────────────────────────────────
+@router.get(
+    "/api/v1/growth/recomendacion",
+    summary="AI-generated master recommendation from competitive radar (Ollama llama3.2)",
+)
+def growth_recomendacion_api(user_id: UUID = Query(...), db: Session = Depends(get_db)):
+    context = _load_growth_context(user_id, db)
+    rec = _build_recomendacion_maestra(
+        business_name=context["business_name"],
+        war_radar_dimensions=context["war_radar_dimensions"],
+        alerts=context["alerts"],
+    )
+    return {"ok": True, "business_name": context["business_name"], "recomendacion": rec}
+
+
+# ─── Post draft generation ────────────────────────────────────────────────────
+def _build_post_draft(*, business_name: str, prompt_text: str, ollama_model: str = "llama3.2") -> str:
+    """Call local Ollama to generate a Google Post draft.  Falls back to a template string."""
+    system_prompt = (
+        f"Eres un experto en marketing local para negocios en Google Maps. "
+        f"El negocio se llama '{business_name}'. "
+        f"Situacion competitiva: {prompt_text}. "
+        f"Redacta un Google Post atractivo en espanol para publicar HOY en Google Business Profile. "
+        f"El post debe: tener entre 80 y 150 palabras, empezar con un gancho emocional, "
+        f"incluir una llamada a la accion clara, y mencionar el negocio de forma natural. "
+        f"Responde UNICAMENTE con el texto del post listo para publicar, sin comillas, sin encabezados."
+    )
+    if _httpx is not None:
+        try:
+            resp = _httpx.post(
+                "http://localhost:11434/api/generate",
+                json={"model": ollama_model, "prompt": system_prompt, "stream": False},
+                timeout=15.0,
+            )
+            if resp.status_code == 200:
+                text = (resp.json().get("response") or "").strip()
+                if len(text) > 40:
+                    return text
+        except Exception:
+            pass
+    # Rule-based fallback
+    return (
+        f"En {business_name} nos comprometemos cada dia con lo mejor para ti. "
+        f"Hoy queremos recordarte que {prompt_text.lower()[:120]}. "
+        f"Visitanos y vive la diferencia. ¡Te esperamos!"
+    )
+
+
+def _render_post_draft_html(
+    *,
+    draft: str,
+    user_id: str,
+    action_index: int,
+    business_name: str,
+) -> str:
+    escaped_draft = _html.escape(draft)
+    escaped_name = _html.escape(business_name)
+    idx = int(action_index)
+    return (
+        f'<div class="mt-3 space-y-3 rounded-2xl border border-sky-500/20 bg-sky-500/6 p-4">'
+        f'<p class="text-xs uppercase tracking-[0.18em] text-sky-300/60">Borrador generado por IA &middot; {escaped_name}</p>'
+        f'<textarea id="post-text-{idx}" name="text" rows="5" maxlength="1500"'
+        f' class="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-stone-100'
+        f' placeholder:text-stone-500 focus:border-sky-400/40 focus:outline-none focus:ring-1 focus:ring-sky-400/20">'
+        f'{escaped_draft}</textarea>'
+        f'<p class="text-xs text-stone-500">Edita el texto antes de publicar. Maximo 1500 caracteres.</p>'
+        f'<div class="flex flex-wrap gap-2">'
+        f'<button'
+        f'  hx-post="/growth/dashboard/actions/publish-post?user_id={user_id}&action_index={idx}"'
+        f'  hx-include="#post-text-{idx}"'
+        f'  hx-target="#publish-result-{idx}"'
+        f'  hx-swap="innerHTML"'
+        f'  hx-indicator="#publish-loading-{idx}"'
+        f'  class="rounded-xl bg-emerald-500 px-4 py-2 text-xs font-semibold text-stone-950 transition hover:bg-emerald-400 active:scale-95">'
+        f'  &#128640;&ensp;Publicar en Google Maps'
+        f'</button>'
+        f'<button onclick="document.getElementById(\'post-text-{idx}\').value=\'\'" '
+        f'  class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold transition hover:bg-white/10">'
+        f'  Limpiar'
+        f'</button>'
+        f'<span id="publish-loading-{idx}" class="hidden self-center text-xs text-sky-200 hx-indicator">Publicando...</span>'
+        f'</div>'
+        f'<div id="publish-result-{idx}"></div>'
+        f'</div>'
+    )
+
+
+@router.post(
+    "/growth/dashboard/actions/generate-post",
+    response_class=HTMLResponse,
+    summary="HTMX action: generate a Google Post draft via Ollama for a given Action Center prompt",
+)
+def growth_generate_post(
+    request: Request,
+    user_id: UUID = Query(...),
+    action_index: int = Query(default=0),
+    prompt_text: str = Form(default=""),
+    action_title: str = Form(default=""),
+    db: Session = Depends(get_db),
+):
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    connection = db.scalars(select(GoogleConnection).where(GoogleConnection.user_id == user_id).limit(1)).first()
+    business_name = (connection.business_name if connection and connection.business_name else None) or user.email
+
+    combined_prompt = (action_title + ". " + prompt_text).strip() or "Genera un post de valor para el negocio"
+    draft = _build_post_draft(business_name=business_name, prompt_text=combined_prompt)
+    html_content = _render_post_draft_html(
+        draft=draft,
+        user_id=str(user_id),
+        action_index=action_index,
+        business_name=business_name,
+    )
+    return HTMLResponse(html_content)
+
+
+@router.post(
+    "/growth/dashboard/actions/publish-post",
+    response_class=HTMLResponse,
+    summary="HTMX action: publish a Google Post draft to Google Business Profile",
+)
+async def growth_publish_post(
+    request: Request,
+    user_id: UUID = Query(...),
+    action_index: int = Query(default=0),
+    text: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    connection = db.scalars(select(GoogleConnection).where(GoogleConnection.user_id == user_id).limit(1)).first()
+    if not connection:
+        return HTMLResponse(
+            '<p class="mt-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-300">'
+            "&#10060;&ensp;No hay conexion con Google Business Profile. Vincula tu cuenta primero."
+            "</p>"
+        )
+
+    clean_text = text.strip()
+    if not clean_text:
+        return HTMLResponse(
+            '<p class="mt-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">'
+            "&#9888;&ensp;El texto del post no puede estar vacio."
+            "</p>"
+        )
+
+    try:
+        access_token = await ensure_valid_access_token(db, connection)
+        client = GoogleBusinessProfileClient(
+            _settings.google_client_id,
+            _settings.google_client_secret,
+            _settings.google_redirect_uri,
+        )
+        result = await client.create_local_post(
+            access_token=access_token,
+            account_name=connection.google_account_name,
+            location_id=connection.location_id,
+            summary=clean_text,
+        )
+        post_name = _html.escape(result.get("name", ""))
+        return HTMLResponse(
+            f'<p class="mt-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">'
+            f"&#9989;&ensp;Post publicado en Google Maps correctamente."
+            f'<span class="ml-1 text-stone-500">{post_name}</span>'
+            f"</p>"
+        )
+    except GoogleOAuthError as exc:
+        escaped = _html.escape(str(exc))
+        return HTMLResponse(
+            f'<p class="mt-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-300">'
+            f"&#10060;&ensp;Error de Google API: {escaped}"
+            f"</p>"
+        )
+    except Exception as exc:
+        escaped = _html.escape(str(exc))
+        return HTMLResponse(
+            f'<p class="mt-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-300">'
+            f"&#10060;&ensp;Error inesperado: {escaped}"
+            f"</p>"
+        )

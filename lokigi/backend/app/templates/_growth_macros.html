@@ -30,14 +30,45 @@
 {%- endmacro %}
 
 {% macro alert_card(alert) -%}
-<article class="rounded-2xl border border-white/10 bg-black/20 p-4">
-  <div class="mb-2 flex items-center justify-between gap-3">
-    {{ severity_badge(alert.severity) }}
-    <span class="text-xs text-stone-500">{{ alert.timestamp_label }}</span>
+{% set ft = alert.feed_type or 'general' %}
+<article class="flex gap-3 rounded-2xl border border-white/10 bg-black/20 p-4{% if (alert.severity or '') | lower in ['critical', 'high'] %} alert-animate alert-urgent{% endif %}">
+  <div class="mt-0.5 shrink-0">
+    {% if ft == 'menu_update' %}
+    <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500/20 text-sky-300" title="Actualizacion de menu/servicios">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-5 w-5"><path d="M3.5 2A1.5 1.5 0 0 0 2 3.5v13A1.5 1.5 0 0 0 3.5 18h13a1.5 1.5 0 0 0 1.5-1.5V8.621a1.5 1.5 0 0 0-.44-1.06l-4.12-4.122A1.5 1.5 0 0 0 12.378 3H3.5ZM6 10.75a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 0 1.5h-6.5a.75.75 0 0 1-.75-.75Zm.75 2.25h6.5a.75.75 0 0 1 0 1.5h-6.5a.75.75 0 0 1 0-1.5Z"/></svg>
+    </span>
+    {% elif ft == 'sentiment_drop' %}
+    <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-500/20 text-rose-300" title="Caida de sentimiento">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-5 w-5"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm-1.5-5.25a.75.75 0 0 0 1.5 0V8.56l.97.97a.75.75 0 1 0 1.06-1.06l-2.25-2.25a.75.75 0 0 0-1.06 0L6.47 8.47a.75.75 0 0 0 1.06 1.06l.97-.97v4.19Z" clip-rule="evenodd"/></svg>
+    </span>
+    {% elif ft == 'keyword_conquest' %}
+    <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/20 text-amber-300" title="Movimiento en keywords">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-5 w-5"><path d="M9.653 16.915l-.005-.003-.019-.01a20.759 20.759 0 0 1-1.162-.682 22.045 22.045 0 0 1-2.582-2.089c-1.36-1.334-2.885-3.235-2.885-5.631a5 5 0 0 1 9.754-1.555 5.003 5.003 0 0 1 4.746 1.555 5 5 0 0 1 .245 5.63c0 .003 0 .005-.002.006a22.04 22.04 0 0 1-2.582 2.09 20.76 20.76 0 0 1-1.162.68l-.019.01-.005.003h-.002a.739.739 0 0 1-.69 0h-.002Z"/></svg>
+    </span>
+    {% elif ft == 'seo_alert' %}
+    <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/20 text-violet-300" title="Alerta SEO">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-5 w-5"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" clip-rule="evenodd"/></svg>
+    </span>
+    {% else %}
+    <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-stone-500/20 text-stone-400" title="Alerta general">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-5 w-5"><path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd"/></svg>
+    </span>
+    {% endif %}
   </div>
-  <h3 class="text-base font-semibold text-white">{{ alert.title }}</h3>
-  <p class="mt-2 text-sm text-stone-300">{{ alert.message }}</p>
-  <p class="mt-2 text-xs uppercase tracking-[0.16em] text-stone-500">{{ alert.source }}</p>
+  <div class="min-w-0 flex-1">
+    <div class="mb-1 flex flex-wrap items-center justify-between gap-2">
+      <span class="flex items-center gap-1.5">
+        {% if (alert.severity or '') | lower in ['critical', 'high'] %}<span class="text-base leading-none text-amber-400" title="Accion inmediata requerida">&#9889;</span>{% endif %}
+        <h3 class="text-sm font-semibold text-white">{{ alert.title }}</h3>
+      </span>
+      <span class="text-xs text-stone-500">{{ alert.timestamp_label }}</span>
+    </div>
+    <p class="text-sm text-stone-300">{{ alert.message }}</p>
+    {% if ft == 'sentiment_drop' %}
+    <p class="mt-2 rounded-lg bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300">&#161;Oportunidad para destacar respondiendo con excelencia!</p>
+    {% endif %}
+    <p class="mt-2 text-xs uppercase tracking-[0.14em] text-stone-500">{{ alert.source }}</p>
+  </div>
 </article>
 {%- endmacro %}
 

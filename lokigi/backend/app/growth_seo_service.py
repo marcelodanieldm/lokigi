@@ -96,6 +96,9 @@ class GrowthSeoService:
         suggestion.applied_at = now
         suggestion.updated_at = now
         self.db.add(suggestion)
+        connection.google_profile_description = suggestion.suggested_text
+        connection.updated_at = now
+        self.db.add(connection)
 
         self._create_action(
             suggestion=suggestion,
@@ -293,7 +296,7 @@ class GrowthSeoService:
         candidates.sort(key=lambda item: (item["priority"], item["gap_share"], item["support"]), reverse=True)
 
         connection = self.db.scalar(select(GoogleConnection).where(GoogleConnection.user_id == user_id))
-        current_description = connection.business_name if connection and connection.business_name else ""
+        current_description = (connection.google_profile_description or "") if connection else ""
 
         created: list[GrowthSeoSuggestion] = []
         count_by_type = {"description_update": 0, "service_update": 0}

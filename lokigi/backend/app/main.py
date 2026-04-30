@@ -8,7 +8,7 @@ from typing import Any
 from uuid import UUID
 
 from fastapi import Depends, FastAPI, Header, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -21,8 +21,10 @@ from .billing_service import (
   list_subscription_invoices,
 )
 from .config import settings
+from .cancellation_service import CancellationService
 from .database import Base, get_db
-from .models import GoogleConnection, Review, StarterProfileSettings
+from .growth_seo_service import GrowthSeoService
+from .models import GoogleConnection, GrowthSeoSuggestion, Review, StarterProfileSettings, User
 from pydantic import BaseModel
 from .google_client import GoogleBusinessProfileClient, GoogleOAuthError
 
@@ -59,6 +61,7 @@ from .routes import (
   onboarding_routes,
   starter_inbox_routes,
 )
+from .routes.cancellation_routes import build_reviews_export_response
 
 
 logger = logging.getLogger(__name__)
@@ -136,6 +139,202 @@ def _tone_badge_class(tone: str | None) -> str:
     "moderno": "tone-moderno",
   }
   return mapping.get((tone or "cercano").lower(), "tone-cercano")
+
+
+def _highlight_keyword_html(text: str | None, keyword: str | None) -> str:
+  safe_text = _esc(text).replace("\n", "<br />")
+  if not safe_text or not keyword:
+    return safe_text
+
+  needle = keyword.strip()
+  if not needle:
+    return safe_text
+
+  lower_text = safe_text.lower()
+  lower_needle = needle.lower()
+  start = lower_text.find(lower_needle)
+  if start == -1:
+    return safe_text
+
+  end = start + len(needle)
+  return f"{safe_text[:start]}<mark>{safe_text[start:end]}</mark>{safe_text[end:]}"
+
+
+async def _sync_google_profile_snapshot(db: Session, connection: GoogleConnection) -> dict[str, Any]:
+  profile_name = f"{connection.google_account_name}/locations/{connection.location_id}"
+  access_token = await ensure_valid_access_token(db, connection)
+  client = GoogleBusinessProfileClient(
+    settings.google_client_id,
+    settings.google_client_secret,
+    settings.google_redirect_uri,
+  )
+  location_data = await client.get_location_metadata(access_token=access_token, location_name=profile_name)
+
+  connection.business_name = location_data.get("title") or connection.business_name or connection.google_account_name
+  profile_payload = location_data.get("profile") or {}
+  description = profile_payload.get("description") if isinstance(profile_payload, dict) else None
+  connection.google_profile_description = description.strip() if isinstance(description, str) and description.strip() else None
+  db.add(connection)
+  db.commit()
+  db.refresh(connection)
+  return location_data
+
+
+def render_optimization_center_html(
+  user_id: UUID,
+  suggestion: GrowthSeoSuggestion | None,
+  *,
+  notice: str | None = None,
+  notice_tone: str = "info",
+) -> str:
+  if not suggestion:
+    return ""
+
+  keyword = _esc(suggestion.keyword)
+  suggestion_type = "Descripcion" if suggestion.suggestion_type == "description_update" else "Servicio destacado"
+  current_text_raw = (suggestion.current_text or "").strip()
+  suggested_text_raw = (suggestion.suggested_text or "").strip()
+  current_text_html = (
+    _highlight_keyword_html(current_text_raw, suggestion.keyword)
+    if current_text_raw
+    else '<span class="muted">Tu perfil no tiene una descripcion publicada en Google o aun no hay una copia local disponible. La sugerencia usa esta oportunidad como nueva base recomendada.</span>'
+  )
+  suggested_text_html = _highlight_keyword_html(suggested_text_raw, suggestion.keyword)
+
+  justification = suggestion.justification_payload or {}
+  support = int(justification.get("support") or 0)
+  comp_share = float(justification.get("comp_share") or 0.0) * 100
+  client_share = float(justification.get("client_share") or 0.0) * 100
+  gap_share = float(justification.get("gap_share") or 0.0) * 100
+  priority_score = int(suggestion.priority_score or 0)
+  modal_id = f"optimization-confirm-{suggestion.id}"
+
+  notice_html = ""
+  if notice:
+    notice_class = "optimization-notice ok" if notice_tone == "ok" else "optimization-notice error" if notice_tone == "error" else "optimization-notice"
+    notice_html = f'<div class="{notice_class}">{_esc(notice)}</div>'
+
+  return f"""
+    <section class=\"card optimization-card\" id=\"optimization-center\">
+      <div class=\"optimization-head\">
+        <div>
+          <div class=\"optimization-kicker\">Sección SEO</div>
+          <h2>Tu competencia está ganando terreno con '{keyword}'</h2>
+          <p class=\"muted\">¿Quieres añadirlo a tu descripción? Lokigi ya preparó un cambio para que compares tu texto actual con una versión nueva optimizada.</p>
+        </div>
+        <div class=\"optimization-priority\">Prioridad {priority_score}/100</div>
+      </div>
+
+      {notice_html}
+
+      <div class=\"optimization-explainer\">
+        <strong>Lectura de IA</strong>
+        <p>Detectamos una brecha de <strong>{gap_share:.1f}%</strong> entre tu presencia y la de competidores locales para esta keyword. En la muestra analizada, ellos concentran <strong>{comp_share:.1f}%</strong> de las menciones frente a tu <strong>{client_share:.1f}%</strong>, con <strong>{support}</strong> apariciones de soporte.</p>
+      </div>
+
+      <div class=\"optimization-metrics\">
+        <div class=\"optimization-metric\"><span>Keyword ganadora</span><strong>{keyword}</strong></div>
+        <div class=\"optimization-metric\"><span>Tipo</span><strong>{_esc(suggestion_type)}</strong></div>
+        <div class=\"optimization-metric\"><span>Riesgo</span><strong>{_esc(suggestion.risk_level.title())}</strong></div>
+      </div>
+
+      <div class=\"optimization-explainer\">
+        <strong>Revisión</strong>
+        <p>Compara tu texto viejo con el nuevo propuesto por Lokigi antes de confirmar el cambio.</p>
+      </div>
+
+      <div class=\"optimization-compare\">
+        <article class=\"optimization-pane before\">
+          <span class=\"optimization-label\">Antes</span>
+          <div class=\"optimization-text\">{current_text_html}</div>
+        </article>
+        <article class=\"optimization-pane after\">
+          <span class=\"optimization-label\">Despues</span>
+          <div class=\"optimization-text\">{suggested_text_html}</div>
+        </article>
+      </div>
+
+      <div class=\"cta-row\">
+        <button
+          class="btn"
+          hx-post="/starter/optimization-center/refresh?user_id={user_id}"
+          hx-target="#optimization-center"
+          hx-swap="outerHTML swap:180ms"
+        >Buscar nuevas oportunidades</button>
+        <button
+          class=\"btn primary\"
+          type=\"button\"
+          onclick=\"document.getElementById('optimization-confirm-{suggestion.id}').hidden = false\"
+        >Revisar y aceptar</button>
+        <button
+          class=\"btn\"
+          hx-post=\"/starter/optimization-center/{suggestion.id}/dismiss?user_id={user_id}\"
+          hx-target=\"#optimization-center\"
+          hx-swap="outerHTML swap:180ms"
+        >Ahora no</button>
+      </div>
+
+      <div
+        class=\"optimization-modal-backdrop\"
+        id=\"optimization-confirm-{suggestion.id}\"
+        hidden
+        onclick=\"if (event.target === this) this.hidden = true\"
+      >
+        <div class=\"optimization-modal\" role=\"dialog\" aria-modal=\"true\" aria-labelledby=\"optimization-confirm-title-{suggestion.id}\">
+          <div class=\"optimization-modal-kicker\">Confirmación</div>
+          <h3 id=\"optimization-confirm-title-{suggestion.id}\">Confirmar actualización del perfil</h3>
+          <p>Si aceptas, Lokigi enviará a Google tu nueva descripción con la keyword <strong>{keyword}</strong>. El cambio quedará aplicado para medir su impacto en el próximo reporte mensual.</p>
+          <div class=\"cta-row\">
+            <button class=\"btn\" type=\"button\" onclick=\"document.getElementById('optimization-confirm-{suggestion.id}').hidden = true\">Cancelar</button>
+            <button
+              class=\"btn primary\"
+              hx-post=\"/starter/optimization-center/{suggestion.id}/apply?user_id={user_id}\"
+              hx-target=\"#optimization-center\"
+              hx-swap="outerHTML swap:180ms"
+              hx-disabled-elt=\"this\"
+              hx-on:htmx:before-request=\"this.dataset.originalText = this.textContent; this.textContent = 'Enviando a Google...'; this.disabled = true;\"
+            >Aceptar</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  """
+
+
+def render_optimization_success_html(user_id: UUID, keyword: str) -> str:
+  safe_keyword = _esc(keyword)
+  return f"""
+    <section class=\"card optimization-success\" id=\"optimization-center\">
+      <div class=\"optimization-success-icon\">OK</div>
+      <div class=\"optimization-kicker\">Perfil actualizado</div>
+      <h2>¡Perfil Actualizado!</h2>
+      <p>¡Listo! Google ya tiene tu nueva información. Verás el impacto en el próximo reporte mensual.</p>
+      <div class=\"cta-row\">
+        <button
+          class=\"btn\"
+          hx-post=\"/starter/optimization-center/refresh?user_id={user_id}\"
+          hx-target=\"#optimization-center\"
+          hx-swap="outerHTML swap:180ms"
+        >Buscar nuevas oportunidades</button>
+      </div>
+    </section>
+  """
+
+
+def render_optimization_hub_tab_html(has_alert: bool, *, oob: bool = False) -> str:
+  active_class = " active" if has_alert else ""
+  dot_html = '<span class="hub-tab-dot" aria-hidden="true"></span>' if has_alert else ""
+  oob_attr = ' hx-swap-oob="outerHTML"' if oob else ""
+  aria_current = ' aria-current="page"' if has_alert else ""
+  return (
+    f'<a class="hub-tab{active_class}" id="optimization-hub-tab" href="#optimization-section" '
+    f'onclick="document.getElementById(\'optimization-section\')?.scrollIntoView({{behavior:\'smooth\', block:\'start\'}}); return false;"{aria_current}{oob_attr}>'
+    f'Optimización{dot_html}</a>'
+  )
+
+
+def render_optimization_partial_response(content_html: str, *, has_alert: bool) -> str:
+  return f"{content_html}{render_optimization_hub_tab_html(has_alert=has_alert, oob=True)}"
 
 
 def render_starter_tone_selector_html(
@@ -299,11 +498,11 @@ def render_starter_tone_selector_html(
           <label class="check-row">
             <input id="whatsapp-alerts" type="checkbox" {'checked' if whatsapp_negative_alerts_enabled else ''} />
             <div class="check-copy">
-              <strong>Notificarme por WhatsApp cuando llegue una reseña negativa</strong>
-              <span>Dejamos el canal marcado para que tu equipo pueda reaccionar antes ante fricción reputacional.</span>
+              <strong>Activar alertas tempranas para reseñas negativas</strong>
+              <span>Opcional. Te avisa rápido cuando aparece una reseña sensible para que actúes antes de que escale.</span>
             </div>
           </label>
-          <button class="btn btn-primary" id="activate-btn" onclick="activateStarter()">
+          <button id="activate-btn" class="btn btn-primary" onclick="activateStarter()">
             <span class="loading-spinner" id="spinner" style="display:none;"></span>
             Activar mi cuenta Starter
           </button>
@@ -853,6 +1052,7 @@ def render_starter_dashboard_html(
     keyword_concepts: list[dict[str, Any]],
     starter_tip: dict[str, Any],
     report_history: list[dict[str, Any]],
+    optimization_center_html: str,
 ) -> str:
     status_text = "Conectado" if connection else "Sin conectar"
     status_color = "#0f766e" if connection else "#b91c1c"
@@ -865,6 +1065,7 @@ def render_starter_dashboard_html(
     business_name = _esc(connection.business_name or connection.google_account_name) if connection else "Sin negocio conectado"
     current_tone = _tone_label(connection.preferred_tone if connection else "cercano")
     tone_class = _tone_badge_class(connection.preferred_tone if connection else "cercano")
+    has_optimization_alert = bool((optimization_center_html or "").strip())
 
     hours_saved = round(minutes_saved_month / 60, 1)
     hero_time_text = f"{hours_saved} h" if minutes_saved_month >= 60 else f"{minutes_saved_month} min"
@@ -1023,6 +1224,7 @@ def render_starter_dashboard_html(
     <meta charset=\"utf-8\" />
     <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
     <title>Dashboard Starter | Lokigi</title>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
     <style>
       :root {{
         --bg: #eff3f8;
@@ -1055,6 +1257,7 @@ def render_starter_dashboard_html(
       }}
       .status {{ display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; color: #fff; background: {status_color}; }}
       .subtitle {{ color: var(--muted); font-size: 14px; margin-top: 5px; }}
+      html {{ scroll-behavior: smooth; }}
       .hero {{
         margin-top: 14px;
         background: linear-gradient(135deg, #0f62fe, #0b4fd4);
@@ -1094,6 +1297,11 @@ def render_starter_dashboard_html(
       .keyword-chip {{ display:inline-flex; align-items:center; padding:7px 12px; border-radius:999px; background:#eef5ff; color:#1d4ed8; font-size:13px; font-weight:700; }}
 
       .tip-card {{ margin-top: 14px; border: 1px solid #bfdbfe; background: linear-gradient(180deg, #f8fbff, #eef5ff); }}
+      .hub-tabs {{ display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }}
+      .hub-tab {{ display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:999px; border:1px solid var(--border); background:#fff; color:#0f172a; text-decoration:none; font-weight:700; font-size:14px; }}
+      .hub-tab.active {{ border-color:#bfdbfe; background:#eff6ff; color:#0f62fe; }}
+      .hub-tab-dot {{ width:9px; height:9px; border-radius:999px; background:#ef4444; box-shadow:0 0 0 4px rgba(239, 68, 68, 0.14); }}
+      .optimization-section {{ scroll-margin-top: 18px; min-height: 1px; }}
       .tip-header {{ display: flex; justify-content: space-between; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }}
       .tip-badge {{ display: inline-flex; border-radius: 999px; padding: 6px 10px; font-size: 12px; font-weight: 700; color: #0f62fe; background: rgba(15, 98, 254, 0.12); }}
       .tip-badge.fallback {{ color: #b45309; background: rgba(245, 158, 11, 0.22); }}
@@ -1101,6 +1309,40 @@ def render_starter_dashboard_html(
       .tip-meta {{ display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }}
       .tip-chip {{ display: inline-flex; border-radius: 999px; padding: 6px 10px; border: 1px solid #dbe3ee; background: #fff; font-size: 12px; color: #334155; }}
       .tip-signals {{ margin: 0; padding-left: 18px; color: #475569; font-size: 13px; line-height: 1.45; }}
+
+      .optimization-card {{ margin-top: 14px; border: 1px solid #bfdbfe; background: linear-gradient(180deg, #ffffff, #f8fbff); }}
+      .optimization-head {{ display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap:wrap; }}
+      .optimization-kicker {{ font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: #0f62fe; font-weight: 700; margin-bottom: 6px; }}
+      .optimization-priority {{ display:inline-flex; align-items:center; border-radius:999px; padding:8px 12px; background:#e0ecff; color:#0f62fe; font-size:12px; font-weight:700; }}
+      .optimization-explainer {{ margin-top: 12px; border:1px solid #dbeafe; border-radius:12px; padding:12px; background:#eff6ff; }}
+      .optimization-explainer p {{ margin:6px 0 0; color:#334155; line-height:1.5; }}
+      .optimization-metrics {{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; margin-top:12px; }}
+      .optimization-metric {{ border:1px solid var(--border); border-radius:12px; padding:10px 12px; background:#fff; }}
+      .optimization-metric span {{ display:block; color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px; }}
+      .optimization-metric strong {{ font-size:16px; }}
+      .optimization-compare {{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px; }}
+      .optimization-pane {{ border-radius:14px; padding:14px; border:1px solid var(--border); }}
+      .optimization-pane.before {{ background:#fff; }}
+      .optimization-pane.after {{ background:linear-gradient(180deg, #eef5ff, #ffffff); border-color:#bfdbfe; }}
+      .optimization-label {{ display:inline-flex; margin-bottom:8px; border-radius:999px; padding:5px 9px; background:#e2e8f0; color:#334155; font-size:11px; text-transform:uppercase; font-weight:700; letter-spacing:.05em; }}
+      .optimization-text {{ color:#0f172a; line-height:1.6; font-size:14px; }}
+      .optimization-text mark {{ background:#fde68a; color:#713f12; padding:0 3px; border-radius:4px; }}
+      .optimization-notice {{ margin-top:12px; border-radius:12px; padding:10px 12px; border:1px solid #cbd5e1; background:#fff; color:#334155; }}
+      .optimization-notice.ok {{ border-color:#86efac; background:#ecfdf5; color:#166534; }}
+      .optimization-notice.error {{ border-color:#fecaca; background:#fef2f2; color:#991b1b; }}
+      .optimization-modal-backdrop {{ position:fixed; inset:0; background:rgba(15, 23, 42, .48); display:flex; align-items:center; justify-content:center; padding:18px; z-index:50; animation: optimization-fade-in .18s ease-out; }}
+      .optimization-modal {{ width:min(520px, 100%); background:#fff; border:1px solid #dbeafe; border-radius:18px; padding:20px; box-shadow:0 24px 60px rgba(15, 23, 42, .22); animation: optimization-modal-in .22s cubic-bezier(.2,.8,.2,1); transform-origin:center; }}
+      .optimization-modal h3 {{ margin:6px 0 10px; font-size:24px; }}
+      .optimization-modal p {{ margin:0; color:#475569; line-height:1.6; }}
+      .optimization-modal-kicker {{ font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:#0f62fe; font-weight:700; }}
+      .optimization-success {{ margin-top:14px; border:1px solid #86efac; background:linear-gradient(180deg, #ecfdf5, #ffffff); text-align:center; animation: optimization-success-in .28s cubic-bezier(.16,1,.3,1); }}
+      .optimization-success h2 {{ margin:10px 0 8px; font-size:30px; }}
+      .optimization-success p {{ margin:0 auto; max-width:620px; color:#166534; line-height:1.6; }}
+      .optimization-success-icon {{ width:64px; height:64px; border-radius:999px; margin:0 auto; display:flex; align-items:center; justify-content:center; background:#16a34a; color:#fff; font-size:18px; font-weight:800; letter-spacing:.05em; }}
+      .htmx-swapping#optimization-center {{ opacity:0; transform:translateY(8px) scale(.985); transition:opacity .2s ease, transform .2s ease; }}
+      @keyframes optimization-fade-in {{ from {{ opacity:0; }} to {{ opacity:1; }} }}
+      @keyframes optimization-modal-in {{ from {{ opacity:0; transform:translateY(16px) scale(.96); }} to {{ opacity:1; transform:translateY(0) scale(1); }} }}
+      @keyframes optimization-success-in {{ from {{ opacity:0; transform:translateY(12px) scale(.98); }} to {{ opacity:1; transform:translateY(0) scale(1); }} }}
 
       .pending-list, .reviews {{ list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }}
       .pending-item, .review-item {{ border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; background: #fbfcff; }}
@@ -1141,7 +1383,7 @@ def render_starter_dashboard_html(
       .tone-formal {{ background: rgba(13, 110, 253, 0.12); color: #0a58ca; }}
       .tone-moderno {{ background: rgba(255, 193, 7, 0.24); color: #92400e; }}
 
-      @media (max-width: 900px) {{ .hero-grid, .grid, .value-grid {{ grid-template-columns: 1fr; }} .velocity-grid {{ grid-template-columns: 1fr; }} }}
+      @media (max-width: 900px) {{ .hero-grid, .grid, .value-grid, .optimization-compare, .optimization-metrics {{ grid-template-columns: 1fr; }} .velocity-grid {{ grid-template-columns: 1fr; }} }}
     </style>
   </head>
   <body>
@@ -1169,7 +1411,13 @@ def render_starter_dashboard_html(
         </div>
       </section>
 
-      <section class=\"grid\">
+      <nav class=\"hub-tabs\" aria-label=\"Secciones del dashboard\">
+        <a class=\"hub-tab\" href=\"#resumen\">Resumen</a>
+        {render_optimization_hub_tab_html(has_optimization_alert)}
+        <a class=\"hub-tab\" href=\"#reviews-section\">Reseñas</a>
+      </nav>
+
+      <section class=\"grid\" id=\"resumen\">
         <article class=\"card\">
           <h2>Reputación en Google Maps</h2>
           <div class=\"rep-score\">{avg_rating_text}</div>
@@ -1211,6 +1459,8 @@ def render_starter_dashboard_html(
         <ul class=\"tip-signals\">{tip_signals_html}</ul>
       </section>
 
+      <section class=\"optimization-section\" id=\"optimization-section\">{optimization_center_html}</section>
+
       <section class=\"value-grid\">
         <article class=\"value-card\">
           <div class=\"value-title\">Response Velocity</div>
@@ -1231,7 +1481,7 @@ def render_starter_dashboard_html(
         </article>
       </section>
 
-      <section class=\"card\" style=\"margin-top:14px\">
+      <section class=\"card\" style=\"margin-top:14px\" id=\"reviews-section\">
         <h2>Últimas reseñas</h2>
         <ul class=\"reviews\">{recent_reviews_html}</ul>
         <div class=\"cta-row\">
@@ -1293,6 +1543,157 @@ def _format_minutes_compact(value: float | None) -> str:
     if value < 1440:
         return f"{value / 60:.1f} h"
     return f"{value / 1440:.1f} d"
+
+
+def render_subscription_cancel_choice_html(user_id: UUID) -> str:
+    return f"""
+    <div class=\"cancel-flow-backdrop\" onclick=\"if (event.target === this) document.getElementById('subscription-cancel-shell').innerHTML = '';\">
+      <div class=\"cancel-flow-card\" role=\"dialog\" aria-modal=\"true\" aria-labelledby=\"cancel-flow-title\">
+        <div class=\"cancel-flow-kicker\">Retención inteligente</div>
+        <h2 id=\"cancel-flow-title\">¿Necesitas un respiro?</h2>
+        <p class=\"cancel-flow-copy\">Antes de cancelar, te ofrecemos una pausa ligera para conservar el valor que ya construiste en Lokigi.</p>
+        <section class=\"pause-offer\">
+          <div class=\"pause-offer-badge\">Recomendada</div>
+          <h3>Pausar mi cuenta</h3>
+          <p>Mantendremos tus datos a salvo y tus reportes activos por solo $5/mes. Vuelve cuando quieras.</p>
+          <button class=\"btn primary\" hx-post=\"/starter/subscription/cancel-flow/pause?user_id={user_id}\" hx-target=\"#subscription-cancel-shell\" hx-swap=\"innerHTML\">Pausar mi cuenta</button>
+        </section>
+        <div class=\"cancel-flow-actions\">
+          <button class=\"btn\" type=\"button\" onclick=\"document.getElementById('subscription-cancel-shell').innerHTML = '';\">Seguir con mi plan</button>
+          <button class=\"link-btn\" hx-get=\"/starter/subscription/cancel-flow/survey?user_id={user_id}\" hx-target=\"#subscription-cancel-shell\" hx-swap=\"innerHTML\">No, prefiero cancelar mi suscripción</button>
+        </div>
+      </div>
+    </div>
+    """
+
+
+def render_subscription_cancel_survey_html(
+  user_id: UUID,
+  *,
+  selected_reason: str | None = None,
+  confirmed: bool = False,
+) -> str:
+  reason_copy = {
+    "price": ("$", "Es caro"),
+    "difficulty": ("Config", "Dificil de usar"),
+    "business_closed": ("Cierre", "Cerre mi local"),
+  }
+  button_chunks: list[str] = []
+  for key, (icon, label) in reason_copy.items():
+    selected_class = " selected" if selected_reason == key else ""
+    if confirmed:
+      attrs = 'type="button" disabled'
+    else:
+      attrs = (
+        f'type="button" '
+        f'hx-post="/starter/subscription/cancel-flow/confirm?user_id={user_id}" '
+        f'hx-vals=\'{{"churn_reason":"{key}"}}\' '
+        'hx-target="#subscription-cancel-shell" '
+        'hx-swap="innerHTML"'
+      )
+    button_chunks.append(
+      f'''<button class="reason-btn{selected_class}" {attrs}><span class="reason-icon">{_esc(icon)}</span><span>{_esc(label)}</span></button>'''
+    )
+  buttons_html = "".join(button_chunks)
+
+  selected_html = ""
+  download_button_html = '<button class="btn primary" type="button" disabled>Generar y Descargar mi historial (.CSV)</button>'
+  logout_button_html = '<button class="btn" type="button" disabled>Cerrar Sesion definitiva</button>'
+
+  if confirmed and selected_reason in reason_copy:
+    _, label = reason_copy[selected_reason]
+    selected_html = f"""
+    <div class="notice ok" style="margin-top:14px">Motivo registrado: <strong>{_esc(label)}</strong>. Ya puedes descargar tu CSV y cerrar la sesion definitiva cuando quieras.</div>
+    """
+    download_button_html = f'<a class="btn primary" href="/subscription/export-csv?user_id={user_id}">Generar y Descargar mi historial (.CSV)</a>'
+    logout_button_html = '<a class="btn" href="/api/cancellation/logout">Cerrar Sesion definitiva</a>'
+
+  return f"""
+  <div class="cancel-flow-backdrop" onclick="if (event.target === this) document.getElementById('subscription-cancel-shell').innerHTML = '';">
+    <div class="cancel-flow-card" role="dialog" aria-modal="true" aria-labelledby="cancel-survey-title">
+      <div class="cancel-flow-kicker">Encuesta de salida</div>
+      <h2 id="cancel-survey-title">Cuentanos por que te vas</h2>
+      <p class="cancel-flow-copy">Cada motivo se registra via HTMX sin recargar la pagina. Despues habilitamos tu regalo y el cierre definitivo.</p>
+      <div class="reason-grid">{buttons_html}</div>
+      <section class="data-gift">
+        <h3>Antes de irte, llevate tu historial</h3>
+        <p>Hemos preparado un archivo con tus resenas y las respuestas que Lokigi genero para tu negocio. Primero registra el motivo y luego habilitamos la descarga.</p>
+        <div class="cancel-confirm-form">{download_button_html}</div>
+      </section>
+      {selected_html}
+      <div class="cancel-flow-actions">
+        <button class="btn" hx-get="/starter/subscription/cancel-flow?user_id={user_id}" hx-target="#subscription-cancel-shell" hx-swap="innerHTML">Volver</button>
+        {logout_button_html}
+      </div>
+    </div>
+  </div>
+  """
+
+
+def render_subscription_pause_success_html(user_id: UUID, message: str) -> str:
+  return f"""
+  <div class="cancel-flow-backdrop" onclick="if (event.target === this) window.location.href = '/starter/subscription?user_id={user_id}';">
+    <div class="cancel-flow-card" role="dialog" aria-modal="true" aria-labelledby="pause-success-title">
+      <div class="cancel-flow-kicker">Cuenta pausada</div>
+      <h2 id="pause-success-title">Tu Plan Pausa ya esta activo</h2>
+      <p class="cancel-flow-copy">{_esc(message)}</p>
+      <div class="notice ok">Tus datos, historico de IA y reportes siguen disponibles. Solo se suspende la automatizacion de respuestas.</div>
+      <div class="cancel-flow-actions">
+        <a class="btn primary" href="/starter/subscription?user_id={user_id}">Volver a Suscripcion</a>
+      </div>
+    </div>
+  </div>
+  """
+
+
+def render_subscription_goodbye_html(*, business_name: str, csv_url: str, logout_url: str) -> str:
+    safe_business_name = _esc(business_name)
+    return f"""
+<!doctype html>
+<html lang=\"es\">
+  <head>
+    <meta charset=\"utf-8\" />
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
+    <title>Hasta pronto | Lokigi</title>
+    <style>
+      body {{ margin:0; font-family:Arial, \"Helvetica Neue\", sans-serif; color:#0f172a; background:linear-gradient(180deg,#ffffff,#eef5ff); }}
+      .farewell {{ max-width:760px; margin:0 auto; padding:42px 20px; }}
+      .farewell-card {{ background:#fff; border:1px solid #dbe3ee; border-radius:24px; padding:30px; box-shadow:0 24px 60px rgba(15,23,42,.12); text-align:center; }}
+      .farewell-kicker {{ display:inline-flex; padding:7px 12px; border-radius:999px; background:#ecfdf5; color:#166534; font-size:12px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }}
+      h1 {{ margin:16px 0 10px; font-size:clamp(30px,5vw,44px); }}
+      p {{ color:#475569; line-height:1.6; }}
+      .download-note {{ margin-top:18px; padding:14px 16px; border-radius:16px; background:#eff6ff; border:1px solid #bfdbfe; color:#1e3a8a; }}
+      .btn {{ display:inline-flex; align-items:center; justify-content:center; text-decoration:none; padding:12px 16px; border-radius:12px; border:1px solid #dbe3ee; background:#fff; color:#0f172a; font-weight:700; margin-top:18px; }}
+      .btn.primary {{ background:#0f62fe; border-color:#0f62fe; color:#fff; }}
+    </style>
+  </head>
+  <body>
+    <main class=\"farewell\">
+      <section class=\"farewell-card\">
+        <div class=\"farewell-kicker\">Último paso</div>
+        <h1>Gracias por todo, {safe_business_name}</h1>
+        <p>En unos segundos descargaremos automáticamente tu historial en CSV y luego te llevaremos al landing page.</p>
+        <div class=\"download-note\">El archivo incluye las reseñas gestionadas y las respuestas de IA que Lokigi preparó por ti.</div>
+        <a class=\"btn primary\" href=\"{_esc(csv_url)}\">Descargar CSV ahora</a>
+        <a class=\"btn\" href=\"{_esc(logout_url)}\">Ir al landing ahora</a>
+      </section>
+    </main>
+    <script>
+      (function () {{
+        const csvUrl = {json.dumps(csv_url)};
+        const logoutUrl = {json.dumps(logout_url)};
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = csvUrl;
+        document.body.appendChild(iframe);
+        window.setTimeout(function () {{
+          window.location.href = logoutUrl;
+        }}, 2200);
+      }})();
+    </script>
+  </body>
+</html>
+"""
 
 
 def render_starter_subscription_html(
@@ -1364,6 +1765,7 @@ def render_starter_subscription_html(
     <meta charset=\"utf-8\" />
     <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
     <title>Gestión de Suscripción | Lokigi</title>
+    <script src=\"https://unpkg.com/htmx.org@1.9.12\"></script>
     <style>
       :root {{ --bg:#f2f6fb; --card:#fff; --text:#0f172a; --muted:#64748b; --border:#dbe3ee; --primary:#0f62fe; }}
       * {{ box-sizing:border-box; }}
@@ -1380,7 +1782,7 @@ def render_starter_subscription_html(
       .btn {{ display:inline-flex; align-items:center; justify-content:center; text-decoration:none; padding:10px 14px; border-radius:10px; border:1px solid var(--border); background:#fff; color:var(--text); font-weight:700; cursor:pointer; }}
       .btn.primary {{ background:var(--primary); border-color:var(--primary); color:#fff; }}
       .btn.small {{ padding:8px 10px; font-size:13px; }}
-      .cta-row {{ display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }}
+      .cta-row, .subscription-actions {{ display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }}
       table {{ width:100%; border-collapse:collapse; }}
       th, td {{ text-align:left; padding:12px 10px; border-bottom:1px solid var(--border); font-size:14px; }}
       th {{ color:#475569; font-size:12px; text-transform:uppercase; letter-spacing:.04em; }}
@@ -1393,7 +1795,28 @@ def render_starter_subscription_html(
       .modal-card h2 {{ margin:0 0 10px; }}
       .modal-card p {{ color:#475569; line-height:1.5; }}
       .modal-actions {{ display:flex; gap:10px; justify-content:flex-end; margin-top:18px; flex-wrap:wrap; }}
-      @media (max-width:900px) {{ .grid {{ grid-template-columns:1fr; }} }}
+      .cancel-flow-backdrop {{ position:fixed; inset:0; background:rgba(15,23,42,.55); display:flex; align-items:center; justify-content:center; padding:18px; z-index:70; animation:fadeIn .18s ease-out; }}
+      .cancel-flow-card {{ width:min(760px,100%); background:#fff; border-radius:24px; padding:24px; box-shadow:0 28px 60px rgba(15,23,42,.28); animation:slideUp .24s cubic-bezier(.2,.8,.2,1); }}
+      .cancel-flow-kicker {{ display:inline-flex; padding:6px 10px; border-radius:999px; background:#eef5ff; color:#0f62fe; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; }}
+      .cancel-flow-card h2 {{ margin:12px 0 8px; font-size:30px; }}
+      .cancel-flow-copy {{ color:#475569; line-height:1.6; margin:0; }}
+      .pause-offer {{ margin-top:18px; border:1px solid #bfdbfe; background:linear-gradient(180deg,#f8fbff,#eef5ff); border-radius:18px; padding:18px; }}
+      .pause-offer-badge {{ display:inline-flex; padding:5px 9px; border-radius:999px; background:#0f62fe; color:#fff; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; }}
+      .pause-offer h3 {{ margin:12px 0 8px; }}
+      .pause-offer p {{ margin:0 0 14px; color:#334155; line-height:1.55; }}
+      .cancel-flow-actions {{ display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top:18px; }}
+      .link-btn {{ border:none; background:transparent; color:#475569; font-weight:700; text-decoration:underline; cursor:pointer; padding:0; }}
+      .reason-grid {{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:18px; }}
+      .reason-btn {{ display:flex; flex-direction:column; gap:10px; align-items:flex-start; justify-content:flex-start; min-height:118px; border:1px solid var(--border); border-radius:18px; background:#fff; padding:16px; font:inherit; font-weight:700; color:#0f172a; cursor:pointer; text-align:left; }}
+      .reason-btn.selected {{ border-color:#0f62fe; background:#eef5ff; box-shadow:0 0 0 3px rgba(15,98,254,.12); }}
+      .reason-icon {{ font-size:26px; line-height:1; }}
+      .data-gift {{ margin-top:18px; border:1px dashed #94a3b8; border-radius:18px; padding:18px; background:#f8fafc; }}
+      .data-gift h3 {{ margin:0 0 8px; }}
+      .data-gift p {{ margin:0 0 14px; color:#475569; line-height:1.55; }}
+      .cancel-confirm-form {{ margin-top:12px; }}
+      @keyframes fadeIn {{ from {{ opacity:0; }} to {{ opacity:1; }} }}
+      @keyframes slideUp {{ from {{ opacity:0; transform:translateY(18px) scale(.98); }} to {{ opacity:1; transform:translateY(0) scale(1); }} }}
+      @media (max-width:900px) {{ .grid {{ grid-template-columns:1fr; }} .reason-grid {{ grid-template-columns:1fr; }} }}
     </style>
   </head>
   <body>
@@ -1417,8 +1840,9 @@ def render_starter_subscription_html(
           <div class=\"metric\" style=\"font-size:26px\">{business_name}</div>
           <div class=\"muted\">Plan actual: {_esc(subscription_summary.get('plan') or 'starter').title()}</div>
           <div class=\"muted\" style=\"margin-top:6px\">Renovación / fin de ciclo: {renewal_copy}</div>
-          <div class=\"cta-row\">
+          <div class=\"subscription-actions\">
             <button class=\"btn primary\" type=\"button\" onclick=\"startGrowthUpgrade()\">Actualizar a Growth</button>
+            <button class=\"btn\" hx-get=\"/starter/subscription/cancel-flow?user_id={user_id}\" hx-target=\"#subscription-cancel-shell\" hx-swap=\"innerHTML\">Gestionar Suscripción</button>
           </div>
         </article>
 
@@ -1439,6 +1863,8 @@ def render_starter_subscription_html(
           </table>
         </article>
       </section>
+
+      <div id=\"subscription-cancel-shell\"></div>
     </div>
 
     {upsell_modal}
@@ -1802,7 +2228,7 @@ def starter_tone_selector(user_id: UUID, db: Session = Depends(get_db)) -> HTMLR
 
 
 @app.get("/starter/dashboard", response_class=HTMLResponse)
-def starter_dashboard(user_id: UUID, db: Session = Depends(get_db)) -> HTMLResponse:
+async def starter_dashboard(user_id: UUID, db: Session = Depends(get_db)) -> HTMLResponse:
     from .models import MonthlyReport as MonthlyReportModel
 
     connection = db.scalar(select(GoogleConnection).where(GoogleConnection.user_id == user_id))
@@ -1936,6 +2362,23 @@ def starter_dashboard(user_id: UUID, db: Session = Depends(get_db)) -> HTMLRespo
       for row in history_rows
     ]
 
+    optimization_center_html = ""
+    if connection:
+      try:
+        await _sync_google_profile_snapshot(db, connection)
+      except GoogleOAuthError:
+        pass
+
+      seo_service = GrowthSeoService(db)
+      active_suggestions = seo_service.list_or_generate_suggestions(user_id=user_id)
+      effective_description = connection.google_profile_description or ""
+      should_force_refresh = any((item.current_text or "") != effective_description for item in active_suggestions)
+      seo_suggestions = seo_service.list_or_generate_suggestions(user_id=user_id, force_refresh=True) if should_force_refresh else active_suggestions
+      optimization_center_html = render_optimization_center_html(
+        user_id=user_id,
+        suggestion=seo_suggestions[0] if seo_suggestions else None,
+      )
+
     return HTMLResponse(
         render_starter_dashboard_html(
             user_id=user_id,
@@ -1953,7 +2396,106 @@ def starter_dashboard(user_id: UUID, db: Session = Depends(get_db)) -> HTMLRespo
             keyword_concepts=sentiment_report.get("top_concepts", []),
             starter_tip=starter_tip,
             report_history=report_history,
+            optimization_center_html=optimization_center_html,
         )
+    )
+
+
+@app.post("/starter/optimization-center/{suggestion_id}/apply", response_class=HTMLResponse)
+async def starter_optimization_center_apply(
+    suggestion_id: UUID,
+    user_id: UUID,
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    service = GrowthSeoService(db)
+    try:
+      await service.apply_suggestion(user_id=user_id, suggestion_id=suggestion_id)
+    except ValueError as exc:
+      return HTMLResponse(render_optimization_partial_response(render_optimization_center_html(user_id=user_id, suggestion=None, notice=str(exc), notice_tone="error"), has_alert=False))
+    except RuntimeError as exc:
+      suggestion = db.get(GrowthSeoSuggestion, suggestion_id)
+      failed_suggestion = suggestion if suggestion and suggestion.user_id == user_id and suggestion.status == "active" else None
+      return HTMLResponse(
+        render_optimization_partial_response(
+          render_optimization_center_html(
+            user_id=user_id,
+            suggestion=failed_suggestion,
+            notice=f"No se pudo aplicar el cambio en Google: {exc}",
+            notice_tone="error",
+          ),
+          has_alert=bool(failed_suggestion),
+        )
+      )
+
+    suggestion = db.get(GrowthSeoSuggestion, suggestion_id)
+    keyword = suggestion.keyword if suggestion else "tu keyword objetivo"
+    return HTMLResponse(render_optimization_partial_response(render_optimization_success_html(user_id=user_id, keyword=keyword), has_alert=False))
+
+
+@app.post("/starter/optimization-center/refresh", response_class=HTMLResponse)
+async def starter_optimization_center_refresh(
+    user_id: UUID,
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    connection = db.scalar(select(GoogleConnection).where(GoogleConnection.user_id == user_id))
+    if not connection:
+      return HTMLResponse(render_optimization_partial_response(render_optimization_center_html(user_id=user_id, suggestion=None, notice="Google connection not found.", notice_tone="error"), has_alert=False))
+
+    try:
+      await _sync_google_profile_snapshot(db, connection)
+    except GoogleOAuthError as exc:
+      suggestions = GrowthSeoService(db).list_or_generate_suggestions(user_id=user_id)
+      active_suggestion = suggestions[0] if suggestions else None
+      return HTMLResponse(
+        render_optimization_partial_response(
+          render_optimization_center_html(
+            user_id=user_id,
+            suggestion=active_suggestion,
+            notice=f"No se pudo sincronizar el perfil desde Google: {exc}",
+            notice_tone="error",
+          ),
+          has_alert=bool(active_suggestion),
+        )
+      )
+
+    suggestions = GrowthSeoService(db).list_or_generate_suggestions(user_id=user_id, force_refresh=True)
+    active_suggestion = suggestions[0] if suggestions else None
+    return HTMLResponse(
+      render_optimization_partial_response(
+        render_optimization_center_html(
+          user_id=user_id,
+          suggestion=active_suggestion,
+          notice="Oportunidades recalculadas con la descripcion real del perfil.",
+          notice_tone="ok",
+        ),
+        has_alert=bool(active_suggestion),
+      )
+    )
+
+
+@app.post("/starter/optimization-center/{suggestion_id}/dismiss", response_class=HTMLResponse)
+def starter_optimization_center_dismiss(
+    suggestion_id: UUID,
+    user_id: UUID,
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    service = GrowthSeoService(db)
+    try:
+      service.dismiss_suggestion(user_id=user_id, suggestion_id=suggestion_id, reason="starter_dashboard")
+    except ValueError as exc:
+      return HTMLResponse(render_optimization_partial_response(render_optimization_center_html(user_id=user_id, suggestion=None, notice=str(exc), notice_tone="error"), has_alert=False))
+
+    remaining = service.list_or_generate_suggestions(user_id=user_id)
+    active_suggestion = remaining[0] if remaining else None
+    return HTMLResponse(
+      render_optimization_partial_response(
+        render_optimization_center_html(
+          user_id=user_id,
+          suggestion=active_suggestion,
+          notice="Oportunidad descartada. Te mostraremos la siguiente sugerencia disponible.",
+        ),
+        has_alert=bool(active_suggestion),
+      )
     )
 
 
@@ -1967,15 +2509,8 @@ async def starter_profile(user_id: UUID, db: Session = Depends(get_db)) -> HTMLR
     location_address = "No disponible"
     location_hours: list[str] = []
 
-    profile_name = f"{connection.google_account_name}/locations/{connection.location_id}"
     try:
-        access_token = await ensure_valid_access_token(db, connection)
-        client = GoogleBusinessProfileClient(
-            settings.google_client_id,
-            settings.google_client_secret,
-            settings.google_redirect_uri,
-        )
-        location_data = await client.get_location_metadata(access_token=access_token, location_name=profile_name)
+        location_data = await _sync_google_profile_snapshot(db, connection)
         location_title = location_data.get("title") or location_title
         location_address = _format_storefront_address(location_data.get("storefrontAddress"))
         weekday_lines = (location_data.get("regularHours") or {}).get("weekdayDescriptions") or []
@@ -2068,6 +2603,99 @@ def starter_subscription_page(
     )
 
 
+@app.get("/starter/subscription/cancel-flow", response_class=HTMLResponse)
+def starter_subscription_cancel_flow(user_id: UUID, db: Session = Depends(get_db)) -> HTMLResponse:
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return HTMLResponse(render_subscription_cancel_choice_html(user_id))
+
+
+@app.get("/starter/subscription/cancel-flow/survey", response_class=HTMLResponse)
+def starter_subscription_cancel_survey(
+    user_id: UUID,
+    reason: str = "",
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    selected_reason = reason if reason in CancellationService.allowed_feedback_reasons() else None
+    return HTMLResponse(render_subscription_cancel_survey_html(user_id, selected_reason=selected_reason))
+
+
+@app.post("/starter/subscription/cancel-flow/confirm", response_class=HTMLResponse)
+async def starter_subscription_cancel_confirm(
+    user_id: UUID,
+    churn_reason: str,
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    if churn_reason not in CancellationService.allowed_feedback_reasons():
+        raise HTTPException(status_code=400, detail="Invalid churn reason")
+
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    await CancellationService.confirm_cancellation(
+        db=db,
+        user_id=user_id,
+        churn_reason=churn_reason,
+        churn_detail=None,
+    )
+    return HTMLResponse(
+        render_subscription_cancel_survey_html(
+            user_id,
+            selected_reason=churn_reason,
+            confirmed=True,
+        )
+    )
+
+
+@app.post("/starter/subscription/cancel-flow/pause", response_class=HTMLResponse)
+def starter_subscription_pause_flow(user_id: UUID, db: Session = Depends(get_db)) -> HTMLResponse:
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    result = CancellationService.activate_plan_pausa(db=db, user_id=user_id, duration_days=90)
+    return HTMLResponse(render_subscription_pause_success_html(user_id, result.get("message") or "Cuenta pausada correctamente."))
+
+
+@app.post("/starter/subscription/cancel-flow/farewell", response_class=HTMLResponse)
+async def starter_subscription_cancel_farewell(
+    user_id: UUID,
+    churn_reason: str,
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    if churn_reason not in CancellationService.allowed_feedback_reasons():
+        raise HTTPException(status_code=400, detail="Invalid churn reason")
+
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    connection = db.scalar(select(GoogleConnection).where(GoogleConnection.user_id == user_id))
+    result = await CancellationService.confirm_cancellation(
+        db=db,
+        user_id=user_id,
+        churn_reason=churn_reason,
+        churn_detail=None,
+    )
+    business_name = connection.business_name or connection.google_account_name if connection else user.email
+    return HTMLResponse(
+        render_subscription_goodbye_html(
+            business_name=business_name,
+            csv_url=result["reviews_csv_url"],
+            logout_url=result["logout_url"],
+        )
+    )
+
+
+@app.get("/subscription/export-csv")
+def subscription_export_csv(user_id: UUID, db: Session = Depends(get_db)) -> Response:
+    return build_reviews_export_response(db, user_id)
+
+
 @app.get("/api/subscription/status")
 def api_subscription_status(user_id: UUID, db: Session = Depends(get_db)) -> dict[str, Any]:
     return get_subscription_summary(db, user_id)
@@ -2118,21 +2746,20 @@ def api_locations(user_id: UUID, db: Session = Depends(get_db)) -> dict[str, Any
     """List available Google Business Profile locations for onboarding.
 
     Returns:
-      - status='not-found': User does not exist
-      - status='need-oauth': User exists but not linked to Google. Includes oauth_url.
-      - status='connected': User is linked. Includes location details.
-    """
-    return list_locations_for_user(db, str(user_id))
-
-
-# ── Review Approval API ──────────────────────────────────────────────────────
-
-@app.get("/api/reviews/pending")
-def api_reviews_pending(user_id: UUID, db: Session = Depends(get_db)) -> list[dict[str, Any]]:
-    """List AUTO_REPLY reviews pending human approval for the given user."""
-    reviews = get_pending_approvals(db, str(user_id))
-    profile_settings = db.scalar(select(StarterProfileSettings).where(StarterProfileSettings.user_id == user_id))
-    response_schedule = profile_settings.response_schedule if profile_settings else "instant"
+    <div class="cancel-flow-card" role="dialog" aria-modal="true" aria-labelledby="cancel-flow-title">
+      <div class="cancel-flow-kicker">Retencion inteligente</div>
+      <h2 id="cancel-flow-title">Necesitas un respiro?</h2>
+      <p class="cancel-flow-copy">Antes de cancelar, te ofrecemos una pausa ligera para conservar el valor que ya construiste en Lokigi y salir sin friccion.</p>
+      <section class="pause-offer">
+        <div class="pause-offer-badge">Recomendada</div>
+        <h3>Pausar mi cuenta</h3>
+        <p>Mantendremos tus datos a salvo y tus reportes activos por solo $5/mes. Vuelve cuando quieras.</p>
+        <button class="btn primary" hx-post="/starter/subscription/cancel-flow/pause?user_id={user_id}" hx-target="#subscription-cancel-shell" hx-swap="innerHTML">Pausar mi cuenta</button>
+      </section>
+      <div class="cancel-flow-actions">
+        <button class="btn" type="button" onclick="document.getElementById('subscription-cancel-shell').innerHTML = '';">Seguir con mi plan</button>
+        <button class="link-btn" hx-get="/starter/subscription/cancel-flow/survey?user_id={user_id}" hx-target="#subscription-cancel-shell" hx-swap="innerHTML">No, quiero ir a la encuesta de salida</button>
+      </div>
 
     return [
         {
