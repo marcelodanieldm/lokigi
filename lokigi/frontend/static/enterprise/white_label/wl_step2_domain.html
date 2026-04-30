@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mapeo de Dominio | White Label · Lokigi Enterprise</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Arial, "Helvetica Neue", sans-serif; }
+    .no-underline { text-decoration: none; }
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(14px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .fade-up { animation: fadeUp .35s ease both; }
+    @keyframes pulse-dot {
+      0%,100% { opacity:1; } 50% { opacity:.4; }
+    }
+    .pulse { animation: pulse-dot 1.8s ease-in-out infinite; }
+    /* Inputs */
+    input[type=text], input[type=url], input[type=email], select, textarea {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      color: #f1f5f9;
+      padding: 9px 13px;
+      font-size: 13px;
+      outline: none;
+      width: 100%;
+    }
+    input[type=color] {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: 8px;
+      padding: 2px;
+      height: 40px;
+      width: 48px;
+      cursor: pointer;
+    }
+    select option { background: #1c1917; }
+    /* Step indicator */
+    .step-done  { background: #22c55e; color: #052e16; }
+    .step-active{ background: #7c3aed; color: #fff; }
+    .step-todo  { background: rgba(255,255,255,.08); color: #78716c; }
+    /* Code block */
+    pre {
+      background: rgba(0,0,0,.4);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 12px;
+      color: #a3e635;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    /* PDF mockup */
+    .pdf-page {
+      background: #fff;
+      border-radius: 12px;
+      padding: 32px;
+      color: #1c1917;
+      font-family: 'Georgia', serif;
+      max-width: 540px;
+    }
+    /* Tag badge */
+    .badge-ok  { background:#16a34a22; color:#86efac; border:1px solid #16a34a40; }
+    .badge-warn{ background:#d9770622; color:#fcd34d; border:1px solid #d9770640; }
+    .badge-err { background:#dc262622; color:#fca5a5; border:1px solid #dc262640; }
+  </style>
+</head>
+<body class="min-h-screen bg-stone-950 text-stone-100">
+
+<nav class="sticky top-0 z-50 flex items-center gap-1 px-5 h-14
+     bg-stone-950/95 backdrop-blur-sm border-b border-white/10 shadow-md flex-wrap">
+  <div class="flex items-center gap-2.5 mr-4">
+    <a href="../enterprise_landing.html"
+       class="flex items-center justify-center w-8 h-8 rounded-lg
+              bg-gradient-to-br from-violet-500 to-indigo-600
+              text-white font-black text-sm no-underline">L</a>
+    <a href="../enterprise_landing.html"
+       class="font-bold text-white text-base no-underline">Lokigi</a>
+    <span class="px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300
+                 text-xs font-bold uppercase tracking-wider">Enterprise</span>
+    <span class="text-stone-600">·</span>
+    <span class="text-stone-400 text-xs font-semibold">White Label</span>
+  </div>
+  <a href="wl_hub.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">🏷️ White Label</a>
+<a href="wl_step1_identity.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">1 · Identidad</a>
+<a href="wl_step2_domain.html" class="px-3 py-2 rounded-lg text-sm font-semibold text-violet-200 bg-violet-500/20 border border-violet-400/20 no-underline">2 · Dominio</a>
+<a href="wl_step3_reports.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">3 · Reportes PDF</a>
+<a href="wl_step4_preview.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">4 · Preview</a>
+<a href="wl_step5_activate.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">5 · Activar</a>
+
+</nav>
+
+<div class="mx-auto max-w-4xl px-4 py-10 sm:px-6 pb-20 fade-up">
+
+  <p class="text-xs uppercase tracking-[.2em] text-violet-300/70 mb-1">White Label · Paso 2</p>
+  <h1 class="text-3xl font-bold text-white mb-2">Mapeo de Dominio</h1>
+  <p class="text-stone-400 text-sm mb-6 max-w-2xl">
+    Cuando un cliente visita <strong class="text-white">clientes.marketingpro.com</strong>, el servidor
+    FastAPI detecta el header <code class="text-violet-300">Host</code> y aplica automáticamente
+    el tema de tu agencia. Sin redirecciones visibles, sin rastro de Lokigi.
+  </p>
+
+  
+    <div class="flex items-center gap-1 mb-8 px-1">
+      
+        <div class="flex items-center gap-2 ">
+          <div class="w-7 h-7 rounded-full step-done flex items-center justify-center
+                      text-xs font-black flex-shrink-0">✓</div>
+          <span class="text-xs font-semibold text-stone-400 hidden sm:block">Identidad Visual</span>
+        </div>
+        <div class="flex-1 h-px bg-white/10 hidden sm:block"></div>
+        <div class="flex items-center gap-2 ">
+          <div class="w-7 h-7 rounded-full step-active flex items-center justify-center
+                      text-xs font-black flex-shrink-0">2</div>
+          <span class="text-xs font-semibold text-white hidden sm:block">Mapeo de Dominio</span>
+        </div>
+        <div class="flex-1 h-px bg-white/10 hidden sm:block"></div>
+        <div class="flex items-center gap-2 opacity-40">
+          <div class="w-7 h-7 rounded-full step-todo flex items-center justify-center
+                      text-xs font-black flex-shrink-0">3</div>
+          <span class="text-xs font-semibold text-stone-400 hidden sm:block">Reportes PDF</span>
+        </div>
+        <div class="flex-1 h-px bg-white/10 hidden sm:block"></div>
+        <div class="flex items-center gap-2 opacity-40">
+          <div class="w-7 h-7 rounded-full step-todo flex items-center justify-center
+                      text-xs font-black flex-shrink-0">4</div>
+          <span class="text-xs font-semibold text-stone-400 hidden sm:block">Preview</span>
+        </div>
+        <div class="flex-1 h-px bg-white/10 hidden sm:block"></div>
+        <div class="flex items-center gap-2 opacity-40">
+          <div class="w-7 h-7 rounded-full step-todo flex items-center justify-center
+                      text-xs font-black flex-shrink-0">5</div>
+          <span class="text-xs font-semibold text-stone-400 hidden sm:block">Activar</span>
+        </div>
+        
+    </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <!-- Config form -->
+    <div class="space-y-5">
+
+      <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
+        <h2 class="text-sm font-bold text-white uppercase tracking-wider mb-4">Dominio personalizado</h2>
+        <div class="space-y-4">
+          <div>
+            <label class="text-xs text-stone-400 block mb-1.5">Subdominio de tu agencia</label>
+            <div class="flex gap-2">
+              <input type="text" value="clientes.marketingpro.com" class="flex-1" />
+              <button class="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-stone-300 text-xs font-semibold hover:bg-white/10 flex-shrink-0">
+                Verificar
+              </button>
+            </div>
+            <p class="text-xs text-stone-500 mt-1.5">Puede ser un subdominio tuyo o un dominio propio completo.</p>
+          </div>
+
+          <!-- CNAME instructions -->
+          <div class="p-4 rounded-2xl border border-indigo-500/20 bg-indigo-500/5">
+            <p class="text-xs font-bold text-indigo-300 uppercase tracking-wider mb-3">Instrucciones DNS — Registro CNAME</p>
+            <div class="space-y-2 font-mono text-xs">
+              <div class="grid grid-cols-3 gap-2 text-stone-500">
+                <span>Tipo</span><span>Host</span><span>Valor</span>
+              </div>
+              <div class="grid grid-cols-3 gap-2 bg-black/25 rounded-lg p-2 text-stone-300">
+                <span class="text-emerald-400">CNAME</span>
+                <span>clientes</span>
+                <span class="text-violet-300 break-all">enterprise.lokigi.io</span>
+              </div>
+            </div>
+            <p class="text-xs text-stone-500 mt-3">TTL recomendado: 300 s. La propagación puede tardar entre 5 y 60 minutos.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- SSL Status -->
+      <div class="rounded-3xl border border-amber-500/20 bg-amber-500/5 p-6">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <h2 class="text-sm font-bold text-amber-200 uppercase tracking-wider">Certificado SSL / TLS</h2>
+          <span class="px-2.5 py-1 rounded-full badge-warn text-xs font-bold">⏳ Aprovisionando</span>
+        </div>
+        <div class="space-y-3">
+          <div class="flex items-center gap-3">
+            <div class="w-5 h-5 rounded-full border-2 border-amber-400 flex items-center justify-center flex-shrink-0">
+              <div class="w-2 h-2 rounded-full bg-amber-400 pulse"></div>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-amber-200">Let's Encrypt · Wildcard</p>
+              <p class="text-xs text-stone-500">Emitido por Lokigi · Renovación automática cada 90 días</p>
+            </div>
+          </div>
+          <div class="mt-2 pl-8">
+            <div class="flex items-center gap-2 text-xs text-stone-400 mb-1">
+              <span class="text-emerald-400">✓</span> CNAME propagado (verificado)
+            </div>
+            <div class="flex items-center gap-2 text-xs text-stone-400 mb-1">
+              <span class="text-amber-400">⏳</span> Desafío ACME HTTP-01 en curso
+            </div>
+            <div class="flex items-center gap-2 text-xs text-stone-400">
+              <span class="text-stone-600">○</span> Certificado activo (pendiente)
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Multiple domains -->
+      <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
+        <h2 class="text-sm font-bold text-white uppercase tracking-wider mb-4">Múltiples dominios</h2>
+        <p class="text-xs text-stone-500 mb-3">Cada dominio puede apuntar a un tenant diferente.</p>
+        <div class="space-y-2">
+          <div class="flex items-center gap-3 p-3 rounded-xl bg-black/15 border border-white/8">
+            <span class="text-emerald-400 text-xs">🟢</span>
+            <span class="text-sm text-stone-300 flex-1 font-mono">clientes.marketingpro.com</span>
+            <span class="text-xs text-stone-500">→ org_7f3a2b</span>
+          </div>
+          <div class="flex items-center gap-3 p-3 rounded-xl bg-black/15 border border-white/8">
+            <span class="text-emerald-400 text-xs">🟢</span>
+            <span class="text-sm text-stone-300 flex-1 font-mono">reputacion.agenciaxyz.com</span>
+            <span class="text-xs text-stone-500">→ org_a1b2c3</span>
+          </div>
+          <button class="w-full p-3 rounded-xl border border-dashed border-white/15 text-stone-500 text-xs hover:border-white/25 hover:text-stone-400">
+            + Agregar dominio
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Technical diagram -->
+    <div class="space-y-5">
+
+      <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
+        <h2 class="text-sm font-bold text-stone-300 uppercase tracking-wider mb-4">
+          Arquitectura de detección
+        </h2>
+
+        <!-- Request flow diagram -->
+        <div class="space-y-2 text-xs font-mono mb-5">
+          <div class="flex items-center gap-2 p-2.5 rounded-lg bg-black/25">
+            <span class="text-blue-400 flex-shrink-0">①</span>
+            <span class="text-stone-400">Browser:</span>
+            <span class="text-stone-200">GET / HTTP/1.1</span>
+          </div>
+          <div class="flex items-center gap-2 p-2.5 rounded-lg bg-black/15 ml-4">
+            <span class="text-stone-600 flex-shrink-0">↓</span>
+            <span class="text-violet-400">Host: clientes.marketingpro.com</span>
+          </div>
+          <div class="flex items-center gap-2 p-2.5 rounded-lg bg-black/25">
+            <span class="text-blue-400 flex-shrink-0">②</span>
+            <span class="text-stone-400">ThemeMiddleware</span>
+            <span class="text-stone-500 ml-auto">FastAPI</span>
+          </div>
+          <div class="ml-4 p-2.5 rounded-lg bg-black/15 space-y-1">
+            <div><span class="text-stone-600">L1:</span> <span class="text-emerald-400">_LOCAL_CACHE</span> <span class="text-stone-500">(miss)</span></div>
+            <div><span class="text-stone-600">L2:</span> <span class="text-amber-400">Redis</span> <span class="text-stone-500">theme:clientes.marketingpro.com</span></div>
+            <div><span class="text-stone-600">L3:</span> <span class="text-rose-400">Postgres</span> <span class="text-stone-500">WHERE domain = host</span></div>
+          </div>
+          <div class="flex items-center gap-2 p-2.5 rounded-lg bg-black/25">
+            <span class="text-blue-400 flex-shrink-0">③</span>
+            <span class="text-stone-400">request.state.theme</span>
+            <span class="text-emerald-400 ml-auto">BrandTheme ✓</span>
+          </div>
+          <div class="flex items-center gap-2 p-2.5 rounded-lg bg-black/25">
+            <span class="text-blue-400 flex-shrink-0">④</span>
+            <span class="text-stone-400">Respuesta con CSS vars</span>
+            <span class="text-violet-400 ml-auto">--color-primary: #2563EB</span>
+          </div>
+        </div>
+
+        <!-- Code snippet -->
+        <pre># backend/app/enterprise/white_label.py
+class ThemeMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        host = request.headers.get("host", "").split(":")[0]
+        with SessionLocal() as db:
+            request.state.theme = theme_service.get_theme(
+                domain=host, db=db
+            )
+        return await call_next(request)</pre>
+      </div>
+
+      <!-- Navegación -->
+      <div class="flex gap-3">
+        <a href="wl_step1_identity.html"
+           class="flex-1 px-4 py-3 rounded-2xl border border-white/10 bg-white/5
+                  text-stone-300 font-semibold text-sm text-center hover:bg-white/10 no-underline">
+          ← Identidad
+        </a>
+        <a href="wl_step3_reports.html"
+           class="flex-1 px-4 py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600
+                  text-white font-bold text-sm text-center hover:from-violet-500 hover:to-indigo-500 no-underline">
+          Siguiente: Reportes →
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Activar Marca Blanca | White Label · Lokigi Enterprise</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Arial, "Helvetica Neue", sans-serif; }
+    .no-underline { text-decoration: none; }
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(14px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .fade-up { animation: fadeUp .35s ease both; }
+    @keyframes pulse-dot {
+      0%,100% { opacity:1; } 50% { opacity:.4; }
+    }
+    .pulse { animation: pulse-dot 1.8s ease-in-out infinite; }
+    /* Inputs */
+    input[type=text], input[type=url], input[type=email], select, textarea {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      color: #f1f5f9;
+      padding: 9px 13px;
+      font-size: 13px;
+      outline: none;
+      width: 100%;
+    }
+    input[type=color] {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: 8px;
+      padding: 2px;
+      height: 40px;
+      width: 48px;
+      cursor: pointer;
+    }
+    select option { background: #1c1917; }
+    /* Step indicator */
+    .step-done  { background: #22c55e; color: #052e16; }
+    .step-active{ background: #7c3aed; color: #fff; }
+    .step-todo  { background: rgba(255,255,255,.08); color: #78716c; }
+    /* Code block */
+    pre {
+      background: rgba(0,0,0,.4);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 12px;
+      color: #a3e635;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    /* PDF mockup */
+    .pdf-page {
+      background: #fff;
+      border-radius: 12px;
+      padding: 32px;
+      color: #1c1917;
+      font-family: 'Georgia', serif;
+      max-width: 540px;
+    }
+    /* Tag badge */
+    .badge-ok  { background:#16a34a22; color:#86efac; border:1px solid #16a34a40; }
+    .badge-warn{ background:#d9770622; color:#fcd34d; border:1px solid #d9770640; }
+    .badge-err { background:#dc262622; color:#fca5a5; border:1px solid #dc262640; }
+  </style>
+</head>
+<body class="min-h-screen bg-stone-950 text-stone-100">
+
+<nav class="sticky top-0 z-50 flex items-center gap-1 px-5 h-14
+     bg-stone-950/95 backdrop-blur-sm border-b border-white/10 shadow-md flex-wrap">
+  <div class="flex items-center gap-2.5 mr-4">
+    <a href="../enterprise_landing.html"
+       class="flex items-center justify-center w-8 h-8 rounded-lg
+              bg-gradient-to-br from-violet-500 to-indigo-600
+              text-white font-black text-sm no-underline">L</a>
+    <a href="../enterprise_landing.html"
+       class="font-bold text-white text-base no-underline">Lokigi</a>
+    <span class="px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300
+                 text-xs font-bold uppercase tracking-wider">Enterprise</span>
+    <span class="text-stone-600">·</span>
+    <span class="text-stone-400 text-xs font-semibold">White Label</span>
+  </div>
+  <a href="wl_hub.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">🏷️ White Label</a>
+<a href="wl_step1_identity.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">1 · Identidad</a>
+<a href="wl_step2_domain.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">2 · Dominio</a>
+<a href="wl_step3_reports.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">3 · Reportes PDF</a>
+<a href="wl_step4_preview.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">4 · Preview</a>
+<a href="wl_step5_activate.html" class="px-3 py-2 rounded-lg text-sm font-semibold text-violet-200 bg-violet-500/20 border border-violet-400/20 no-underline">5 · Activar</a>
+
+</nav>
+
+<div class="mx-auto max-w-3xl px-4 py-10 sm:px-6 pb-20 fade-up">
+
+  <p class="text-xs uppercase tracking-[.2em] text-violet-300/70 mb-1">White Label · Paso 5</p>
+  <h1 class="text-3xl font-bold text-white mb-2">Activar Marca Blanca</h1>
+  <p class="text-stone-400 text-sm mb-6">
+    Revisa la configuración final y activa la marca blanca para todos tus clientes.
+    El cambio es instantáneo gracias al caché Redis.
+  </p>
+
+  
+    <div class="flex items-center gap-1 mb-8 px-1">
+      
+        <div class="flex items-center gap-2 ">
+          <div class="w-7 h-7 rounded-full step-done flex items-center justify-center
+                      text-xs font-black flex-shrink-0">✓</div>
+          <span class="text-xs font-semibold text-stone-400 hidden sm:block">Identidad Visual</span>
+        </div>
+        <div class="flex-1 h-px bg-white/10 hidden sm:block"></div>
+        <div class="flex items-center gap-2 ">
+          <div class="w-7 h-7 rounded-full step-done flex items-center justify-center
+                      text-xs font-black flex-shrink-0">✓</div>
+          <span class="text-xs font-semibold text-stone-400 hidden sm:block">Mapeo de Dominio</span>
+        </div>
+        <div class="flex-1 h-px bg-white/10 hidden sm:block"></div>
+        <div class="flex items-center gap-2 ">
+          <div class="w-7 h-7 rounded-full step-done flex items-center justify-center
+                      text-xs font-black flex-shrink-0">✓</div>
+          <span class="text-xs font-semibold text-stone-400 hidden sm:block">Reportes PDF</span>
+        </div>
+        <div class="flex-1 h-px bg-white/10 hidden sm:block"></div>
+        <div class="flex items-center gap-2 ">
+          <div class="w-7 h-7 rounded-full step-done flex items-center justify-center
+                      text-xs font-black flex-shrink-0">✓</div>
+          <span class="text-xs font-semibold text-stone-400 hidden sm:block">Preview</span>
+        </div>
+        <div class="flex-1 h-px bg-white/10 hidden sm:block"></div>
+        <div class="flex items-center gap-2 ">
+          <div class="w-7 h-7 rounded-full step-active flex items-center justify-center
+                      text-xs font-black flex-shrink-0">5</div>
+          <span class="text-xs font-semibold text-white hidden sm:block">Activar</span>
+        </div>
+        
+    </div>
+
+  <!-- Final summary -->
+  <div class="rounded-3xl border border-white/10 bg-white/5 p-6 mb-6">
+    <h2 class="text-sm font-bold text-stone-300 uppercase tracking-wider mb-5">Resumen final de configuración</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+      <div class="space-y-3">
+        <div class="flex items-start gap-3 p-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5">
+          <span class="text-emerald-400 text-lg flex-shrink-0">🎨</span>
+          <div>
+            <p class="text-xs font-bold text-emerald-300 uppercase tracking-wide mb-2">Identidad Visual</p>
+            <p class="text-xs text-stone-400">Logo: marketing_pro_logo.svg</p>
+            <p class="text-xs text-stone-400">Color: <span class="text-blue-400 font-mono">#2563EB</span></p>
+            <p class="text-xs text-stone-400">Fuente: Inter, sans-serif</p>
+            <p class="text-xs text-stone-400">Agencia: Marketing Pro SL</p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-3 p-4 rounded-2xl border border-amber-500/20 bg-amber-500/5">
+          <span class="text-amber-400 text-lg flex-shrink-0">🌐</span>
+          <div>
+            <p class="text-xs font-bold text-amber-300 uppercase tracking-wide mb-2">Dominio</p>
+            <p class="text-xs text-stone-400 font-mono">clientes.marketingpro.com</p>
+            <p class="text-xs text-stone-400">CNAME: ✓ Propagado</p>
+            <p class="text-xs text-amber-400">SSL: ⏳ En propagación</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <div class="flex items-start gap-3 p-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5">
+          <span class="text-emerald-400 text-lg flex-shrink-0">📄</span>
+          <div>
+            <p class="text-xs font-bold text-emerald-300 uppercase tracking-wide mb-2">Reportes PDF</p>
+            <p class="text-xs text-stone-400">Cabecera: logo izquierda</p>
+            <p class="text-xs text-stone-400">Pie: Marketing Pro SL</p>
+            <p class="text-xs text-stone-400">Lokigi: oculto ✓</p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-3 p-4 rounded-2xl border border-violet-500/20 bg-violet-500/5">
+          <span class="text-violet-400 text-lg flex-shrink-0">⚡</span>
+          <div>
+            <p class="text-xs font-bold text-violet-300 uppercase tracking-wide mb-2">Rendimiento</p>
+            <p class="text-xs text-stone-400">Cache: Redis L1+L2+L3</p>
+            <p class="text-xs text-stone-400">TTL: 300 s</p>
+            <p class="text-xs text-stone-400">Latencia tema: &lt; 2 ms</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- What happens on activation -->
+  <div class="rounded-3xl border border-white/10 bg-white/5 p-6 mb-6">
+    <h2 class="text-sm font-bold text-stone-300 uppercase tracking-wider mb-4">¿Qué ocurre al activar?</h2>
+    <div class="space-y-3">
+      <div class="flex items-start gap-3">
+        <div class="w-6 h-6 rounded-full bg-violet-500/20 flex items-center justify-center
+                    text-violet-300 text-xs font-black flex-shrink-0 mt-0.5">1</div>
+        <div>
+          <p class="text-sm font-semibold text-white">BrandTheme escrito en Postgres</p>
+          <p class="text-xs text-stone-500">Se actualiza la fila de Organization con primary_color, logo_url, agency_name, domain.</p>
+        </div>
+      </div>
+      <div class="flex items-start gap-3">
+        <div class="w-6 h-6 rounded-full bg-violet-500/20 flex items-center justify-center
+                    text-violet-300 text-xs font-black flex-shrink-0 mt-0.5">2</div>
+        <div>
+          <p class="text-sm font-semibold text-white">Cache Redis invalidado</p>
+          <p class="text-xs text-stone-500">ThemeService.invalidate(domain) borra L1+L2 para forzar relecture inmediata.</p>
+        </div>
+      </div>
+      <div class="flex items-start gap-3">
+        <div class="w-6 h-6 rounded-full bg-violet-500/20 flex items-center justify-center
+                    text-violet-300 text-xs font-black flex-shrink-0 mt-0.5">3</div>
+        <div>
+          <p class="text-sm font-semibold text-white">ThemeMiddleware activo en todos los requests</p>
+          <p class="text-xs text-stone-500">Cada request al dominio personalizado recibe el BrandTheme correcto en &lt; 2 ms (Redis hit).</p>
+        </div>
+      </div>
+      <div class="flex items-start gap-3">
+        <div class="w-6 h-6 rounded-full bg-violet-500/20 flex items-center justify-center
+                    text-violet-300 text-xs font-black flex-shrink-0 mt-0.5">4</div>
+        <div>
+          <p class="text-sm font-semibold text-white">PDFs generados con tu marca</p>
+          <p class="text-xs text-stone-500">BrandedPDFRenderer inyecta logo_url + colores en la plantilla Jinja2 antes de pasarla a WeasyPrint.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Warning about SSL -->
+  <div class="rounded-3xl border border-amber-500/20 bg-amber-500/5 p-5 mb-6 flex items-start gap-4">
+    <span class="text-2xl flex-shrink-0">⚠️</span>
+    <div>
+      <p class="text-sm font-bold text-amber-300 mb-1">SSL pendiente — activación parcial</p>
+      <p class="text-xs text-stone-400">
+        Puedes activar la configuración ahora. El dominio personalizado funcionará
+        en cuanto el certificado SSL termine de propagarse (estimado: 15 min).
+        Mientras tanto, la configuración estará activa en el dominio de staging.
+      </p>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="flex gap-3">
+    <a href="wl_step4_preview.html"
+       class="flex-1 px-5 py-3.5 rounded-2xl border border-white/10 bg-white/5
+              text-stone-300 font-semibold text-sm text-center hover:bg-white/10 no-underline">
+      ← Preview
+    </a>
+    <button
+       class="flex-1 px-5 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600
+              text-white font-bold text-sm text-center hover:from-emerald-500 hover:to-teal-500 cursor-pointer border-0">
+      🚀 Activar Marca Blanca
+    </button>
+  </div>
+
+  <!-- Post-activation state (would show after click) -->
+  <div class="mt-5 p-5 rounded-3xl border border-emerald-500/30 bg-emerald-950/30">
+    <div class="flex items-center gap-3 mb-3">
+      <span class="text-2xl">🎉</span>
+      <p class="text-sm font-bold text-emerald-300">¡Marca blanca activada con éxito!</p>
+    </div>
+    <p class="text-xs text-stone-400 mb-3">
+      La configuración se ha guardado y el cache Redis ha sido invalidado.
+      Tus 12 clientes ahora ven el panel con la identidad de Marketing Pro SL.
+    </p>
+    <div class="flex gap-3 flex-wrap">
+      <a href="wl_hub.html"
+         class="px-4 py-2 rounded-xl border border-emerald-500/30 text-emerald-300 text-xs font-semibold no-underline hover:bg-emerald-500/10">
+        Ver estado del tenant →
+      </a>
+      <a href="../enterprise_hub.html"
+         class="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-stone-300 text-xs font-semibold no-underline hover:bg-white/10">
+        Ir al Dashboard Hub →
+      </a>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

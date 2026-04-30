@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>White Label Hub | White Label · Lokigi Enterprise</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Arial, "Helvetica Neue", sans-serif; }
+    .no-underline { text-decoration: none; }
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(14px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .fade-up { animation: fadeUp .35s ease both; }
+    @keyframes pulse-dot {
+      0%,100% { opacity:1; } 50% { opacity:.4; }
+    }
+    .pulse { animation: pulse-dot 1.8s ease-in-out infinite; }
+    /* Inputs */
+    input[type=text], input[type=url], input[type=email], select, textarea {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      color: #f1f5f9;
+      padding: 9px 13px;
+      font-size: 13px;
+      outline: none;
+      width: 100%;
+    }
+    input[type=color] {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: 8px;
+      padding: 2px;
+      height: 40px;
+      width: 48px;
+      cursor: pointer;
+    }
+    select option { background: #1c1917; }
+    /* Step indicator */
+    .step-done  { background: #22c55e; color: #052e16; }
+    .step-active{ background: #7c3aed; color: #fff; }
+    .step-todo  { background: rgba(255,255,255,.08); color: #78716c; }
+    /* Code block */
+    pre {
+      background: rgba(0,0,0,.4);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 12px;
+      color: #a3e635;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    /* PDF mockup */
+    .pdf-page {
+      background: #fff;
+      border-radius: 12px;
+      padding: 32px;
+      color: #1c1917;
+      font-family: 'Georgia', serif;
+      max-width: 540px;
+    }
+    /* Tag badge */
+    .badge-ok  { background:#16a34a22; color:#86efac; border:1px solid #16a34a40; }
+    .badge-warn{ background:#d9770622; color:#fcd34d; border:1px solid #d9770640; }
+    .badge-err { background:#dc262622; color:#fca5a5; border:1px solid #dc262640; }
+  </style>
+</head>
+<body class="min-h-screen bg-stone-950 text-stone-100">
+
+<nav class="sticky top-0 z-50 flex items-center gap-1 px-5 h-14
+     bg-stone-950/95 backdrop-blur-sm border-b border-white/10 shadow-md flex-wrap">
+  <div class="flex items-center gap-2.5 mr-4">
+    <a href="../enterprise_landing.html"
+       class="flex items-center justify-center w-8 h-8 rounded-lg
+              bg-gradient-to-br from-violet-500 to-indigo-600
+              text-white font-black text-sm no-underline">L</a>
+    <a href="../enterprise_landing.html"
+       class="font-bold text-white text-base no-underline">Lokigi</a>
+    <span class="px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300
+                 text-xs font-bold uppercase tracking-wider">Enterprise</span>
+    <span class="text-stone-600">·</span>
+    <span class="text-stone-400 text-xs font-semibold">White Label</span>
+  </div>
+  <a href="wl_hub.html" class="px-3 py-2 rounded-lg text-sm font-semibold text-violet-200 bg-violet-500/20 border border-violet-400/20 no-underline">🏷️ White Label</a>
+<a href="wl_step1_identity.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">1 · Identidad</a>
+<a href="wl_step2_domain.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">2 · Dominio</a>
+<a href="wl_step3_reports.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">3 · Reportes PDF</a>
+<a href="wl_step4_preview.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">4 · Preview</a>
+<a href="wl_step5_activate.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">5 · Activar</a>
+
+</nav>
+
+<div class="mx-auto max-w-5xl px-4 py-10 sm:px-6 pb-20 fade-up">
+
+  <div class="flex items-start justify-between gap-4 mb-8 flex-wrap">
+    <div>
+      <p class="text-xs uppercase tracking-[.2em] text-violet-300/70 mb-1">Enterprise · Plan Agencia</p>
+      <h1 class="text-3xl font-bold text-white">Configuración White-Label</h1>
+      <p class="mt-1 text-stone-400 text-sm max-w-2xl">
+        Convierte Lokigi en tu propia plataforma de reputación.
+        Tu logo, tus colores, tu dominio — sin rastro de Lokigi en la experiencia cliente.
+      </p>
+    </div>
+    <a href="wl_step1_identity.html"
+       class="px-6 py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600
+              text-white font-bold text-sm hover:from-violet-500 hover:to-indigo-500 no-underline flex-shrink-0">
+      Comenzar configuración →
+    </a>
+  </div>
+
+  <!-- 3 Pilares -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-10">
+
+    <!-- Pilar 1: Identidad Visual -->
+    <a href="wl_step1_identity.html" class="no-underline group">
+      <div class="rounded-3xl border border-violet-500/20 bg-violet-500/5 p-6
+                  hover:border-violet-400/30 hover:bg-violet-500/8 transition-all">
+        <div class="flex items-center justify-between mb-4">
+          <div class="w-11 h-11 rounded-2xl bg-violet-500/20 flex items-center justify-center text-xl">🎨</div>
+          <span class="px-2.5 py-1 rounded-full badge-ok text-xs font-bold">Configurado</span>
+        </div>
+        <h2 class="text-base font-bold text-white mb-2">Identidad Visual</h2>
+        <p class="text-stone-400 text-sm mb-4">
+          Logo de la agencia, colores institucionales y tipografía aplicados
+          en todo el panel de cliente y las notificaciones.
+        </p>
+        <div class="space-y-2 text-xs">
+          <div class="flex items-center gap-2">
+            <span class="text-emerald-400">✓</span>
+            <span class="text-stone-400">Logo subido (marketing_pro_logo.svg)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-emerald-400">✓</span>
+            <span class="text-stone-400">Color primario: #2563EB</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-emerald-400">✓</span>
+            <span class="text-stone-400">Tipografía: Inter (sans-serif)</span>
+          </div>
+        </div>
+        <p class="text-xs text-violet-400 mt-4 group-hover:text-violet-300">Editar →</p>
+      </div>
+    </a>
+
+    <!-- Pilar 2: Mapeo de Dominio -->
+    <a href="wl_step2_domain.html" class="no-underline group">
+      <div class="rounded-3xl border border-amber-500/15 bg-amber-500/5 p-6
+                  hover:border-amber-400/25 hover:bg-amber-500/8 transition-all">
+        <div class="flex items-center justify-between mb-4">
+          <div class="w-11 h-11 rounded-2xl bg-amber-500/20 flex items-center justify-center text-xl">🌐</div>
+          <span class="px-2.5 py-1 rounded-full badge-warn text-xs font-bold">SSL pendiente</span>
+        </div>
+        <h2 class="text-base font-bold text-white mb-2">Mapeo de Dominio</h2>
+        <p class="text-stone-400 text-sm mb-4">
+          El servidor FastAPI detecta el <code class="text-violet-300">Host</code> header
+          y carga automáticamente el tema de la agencia correcta.
+        </p>
+        <div class="space-y-2 text-xs">
+          <div class="flex items-center gap-2">
+            <span class="text-emerald-400">✓</span>
+            <span class="text-stone-400">CNAME creado: clientes.marketingpro.com</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-amber-400">⏳</span>
+            <span class="text-stone-400">SSL en propagación (≈ 15 min)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-emerald-400">✓</span>
+            <span class="text-stone-400">ThemeMiddleware detectando host</span>
+          </div>
+        </div>
+        <p class="text-xs text-amber-400 mt-4 group-hover:text-amber-300">Ver estado →</p>
+      </div>
+    </a>
+
+    <!-- Pilar 3: Reportes PDF -->
+    <a href="wl_step3_reports.html" class="no-underline group">
+      <div class="rounded-3xl border border-rose-500/15 bg-rose-500/5 p-6
+                  hover:border-rose-400/25 hover:bg-rose-500/8 transition-all">
+        <div class="flex items-center justify-between mb-4">
+          <div class="w-11 h-11 rounded-2xl bg-rose-500/20 flex items-center justify-center text-xl">📄</div>
+          <span class="px-2.5 py-1 rounded-full badge-err text-xs font-bold">Sin configurar</span>
+        </div>
+        <h2 class="text-base font-bold text-white mb-2">Personalización de Reportes</h2>
+        <p class="text-stone-400 text-sm mb-4">
+          PDFs generados con WeasyPrint sin rastro de Lokigi:
+          logo de la agencia en cabecera, colores institucionales y pie de página propio.
+        </p>
+        <div class="space-y-2 text-xs">
+          <div class="flex items-center gap-2">
+            <span class="text-rose-400">✗</span>
+            <span class="text-stone-400">Plantilla PDF no personalizada</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-rose-400">✗</span>
+            <span class="text-stone-400">Pie de página de agencia pendiente</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-rose-400">✗</span>
+            <span class="text-stone-400">Email de contacto no configurado</span>
+          </div>
+        </div>
+        <p class="text-xs text-rose-400 mt-4 group-hover:text-rose-300">Configurar →</p>
+      </div>
+    </a>
+  </div>
+
+  <!-- Status overview -->
+  <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
+    <div class="flex items-center justify-between mb-5 flex-wrap gap-2">
+      <h2 class="text-sm font-bold text-stone-300 uppercase tracking-wider">Estado general del tenant</h2>
+      <span class="text-xs text-stone-500">Tenant: Marketing Pro SL · ID: org_7f3a2b</span>
+    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div class="text-center">
+        <p class="text-2xl font-black text-violet-300">12</p>
+        <p class="text-xs text-stone-500 mt-1">Clientes bajo marca blanca</p>
+      </div>
+      <div class="text-center">
+        <p class="text-2xl font-black text-emerald-300">2/3</p>
+        <p class="text-xs text-stone-500 mt-1">Pilares configurados</p>
+      </div>
+      <div class="text-center">
+        <p class="text-2xl font-black text-amber-300">15 min</p>
+        <p class="text-xs text-stone-500 mt-1">Tiempo estimado SSL</p>
+      </div>
+      <div class="text-center">
+        <p class="text-2xl font-black text-stone-400">Inactivo</p>
+        <p class="text-xs text-stone-500 mt-1">Estado de activación</p>
+      </div>
+    </div>
+    <div class="mt-5 p-4 rounded-2xl border border-amber-500/20 bg-amber-500/5">
+      <p class="text-sm text-amber-300 font-semibold mb-1">⚠️ Acción requerida antes de activar</p>
+      <p class="text-xs text-stone-400">Completa la configuración de Reportes PDF (Pilar 3) para poder publicar la marca blanca a tus clientes.</p>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

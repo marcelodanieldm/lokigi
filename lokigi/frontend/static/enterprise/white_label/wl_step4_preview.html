@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Preview Branded | White Label · Lokigi Enterprise</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Arial, "Helvetica Neue", sans-serif; }
+    .no-underline { text-decoration: none; }
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(14px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .fade-up { animation: fadeUp .35s ease both; }
+    @keyframes pulse-dot {
+      0%,100% { opacity:1; } 50% { opacity:.4; }
+    }
+    .pulse { animation: pulse-dot 1.8s ease-in-out infinite; }
+    /* Inputs */
+    input[type=text], input[type=url], input[type=email], select, textarea {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      color: #f1f5f9;
+      padding: 9px 13px;
+      font-size: 13px;
+      outline: none;
+      width: 100%;
+    }
+    input[type=color] {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: 8px;
+      padding: 2px;
+      height: 40px;
+      width: 48px;
+      cursor: pointer;
+    }
+    select option { background: #1c1917; }
+    /* Step indicator */
+    .step-done  { background: #22c55e; color: #052e16; }
+    .step-active{ background: #7c3aed; color: #fff; }
+    .step-todo  { background: rgba(255,255,255,.08); color: #78716c; }
+    /* Code block */
+    pre {
+      background: rgba(0,0,0,.4);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 12px;
+      color: #a3e635;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    /* PDF mockup */
+    .pdf-page {
+      background: #fff;
+      border-radius: 12px;
+      padding: 32px;
+      color: #1c1917;
+      font-family: 'Georgia', serif;
+      max-width: 540px;
+    }
+    /* Tag badge */
+    .badge-ok  { background:#16a34a22; color:#86efac; border:1px solid #16a34a40; }
+    .badge-warn{ background:#d9770622; color:#fcd34d; border:1px solid #d9770640; }
+    .badge-err { background:#dc262622; color:#fca5a5; border:1px solid #dc262640; }
+  </style>
+</head>
+<body class="min-h-screen bg-stone-950 text-stone-100">
+
+<nav class="sticky top-0 z-50 flex items-center gap-1 px-5 h-14
+     bg-stone-950/95 backdrop-blur-sm border-b border-white/10 shadow-md flex-wrap">
+  <div class="flex items-center gap-2.5 mr-4">
+    <a href="../enterprise_landing.html"
+       class="flex items-center justify-center w-8 h-8 rounded-lg
+              bg-gradient-to-br from-violet-500 to-indigo-600
+              text-white font-black text-sm no-underline">L</a>
+    <a href="../enterprise_landing.html"
+       class="font-bold text-white text-base no-underline">Lokigi</a>
+    <span class="px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300
+                 text-xs font-bold uppercase tracking-wider">Enterprise</span>
+    <span class="text-stone-600">·</span>
+    <span class="text-stone-400 text-xs font-semibold">White Label</span>
+  </div>
+  <a href="wl_hub.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">🏷️ White Label</a>
+<a href="wl_step1_identity.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">1 · Identidad</a>
+<a href="wl_step2_domain.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">2 · Dominio</a>
+<a href="wl_step3_reports.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">3 · Reportes PDF</a>
+<a href="wl_step4_preview.html" class="px-3 py-2 rounded-lg text-sm font-semibold text-violet-200 bg-violet-500/20 border border-violet-400/20 no-underline">4 · Preview</a>
+<a href="wl_step5_activate.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">5 · Activar</a>
+
+</nav>
+
+<div class="mx-auto max-w-4xl px-4 py-10 sm:px-6 pb-20 fade-up">
+
+  <p class="text-xs uppercase tracking-[.2em] text-violet-300/70 mb-1">White Label · Paso 4</p>
+  <h1 class="text-3xl font-bold text-white mb-2">Preview de la Experiencia Branded</h1>
+  <p class="text-stone-400 text-sm mb-6">
+    Así verá tu cliente el panel cuando acceda a
+    <strong class="text-violet-300">clientes.marketingpro.com</strong>.
+    Zero rastros de Lokigi.
+  </p>
+
+  
+    <div class="flex items-center gap-1 mb-8 px-1">
+      
+        <div class="flex items-center gap-2 ">
+          <div class="w-7 h-7 rounded-full step-done flex items-center justify-center
+                      text-xs font-black flex-shrink-0">✓</div>
+          <span class="text-xs font-semibold text-stone-400 hidden sm:block">Identidad Visual</span>
+        </div>
+        <div class="flex-1 h-px bg-white/10 hidden sm:block"></div>
+        <div class="flex items-center gap-2 ">
+          <div class="w-7 h-7 rounded-full step-done flex items-center justify-center
+                      text-xs font-black flex-shrink-0">✓</div>
+          <span class="text-xs font-semibold text-stone-400 hidden sm:block">Mapeo de Dominio</span>
+        </div>
+        <div class="flex-1 h-px bg-white/10 hidden sm:block"></div>
+        <div class="flex items-center gap-2 ">
+          <div class="w-7 h-7 rounded-full step-done flex items-center justify-center
+                      text-xs font-black flex-shrink-0">✓</div>
+          <span class="text-xs font-semibold text-stone-400 hidden sm:block">Reportes PDF</span>
+        </div>
+        <div class="flex-1 h-px bg-white/10 hidden sm:block"></div>
+        <div class="flex items-center gap-2 ">
+          <div class="w-7 h-7 rounded-full step-active flex items-center justify-center
+                      text-xs font-black flex-shrink-0">4</div>
+          <span class="text-xs font-semibold text-white hidden sm:block">Preview</span>
+        </div>
+        <div class="flex-1 h-px bg-white/10 hidden sm:block"></div>
+        <div class="flex items-center gap-2 opacity-40">
+          <div class="w-7 h-7 rounded-full step-todo flex items-center justify-center
+                      text-xs font-black flex-shrink-0">5</div>
+          <span class="text-xs font-semibold text-stone-400 hidden sm:block">Activar</span>
+        </div>
+        
+    </div>
+
+  <!-- Approval checklist -->
+  <div class="rounded-3xl border border-white/10 bg-white/5 p-5 mb-6">
+    <h2 class="text-sm font-bold text-stone-300 uppercase tracking-wider mb-4">Checklist pre-activación</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div class="flex items-center gap-3 p-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/5">
+        <span class="text-emerald-400 text-lg">✓</span>
+        <div><p class="text-xs font-bold text-emerald-300">Identidad Visual</p><p class="text-xs text-stone-500">Logo + colores configurados</p></div>
+      </div>
+      <div class="flex items-center gap-3 p-3 rounded-2xl border border-amber-500/20 bg-amber-500/5">
+        <span class="text-amber-400 text-lg">⏳</span>
+        <div><p class="text-xs font-bold text-amber-300">Dominio</p><p class="text-xs text-stone-500">SSL en propagación</p></div>
+      </div>
+      <div class="flex items-center gap-3 p-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/5">
+        <span class="text-emerald-400 text-lg">✓</span>
+        <div><p class="text-xs font-bold text-emerald-300">Reportes PDF</p><p class="text-xs text-stone-500">Plantilla configurada</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Full branded preview mockup -->
+  <div class="rounded-3xl border border-white/10 overflow-hidden">
+
+    <!-- Branded top bar -->
+    <div class="flex items-center gap-4 px-5 py-3" style="background:#2563EB">
+      <div class="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center font-black text-white text-sm">MP</div>
+      <span class="font-bold text-white">Marketing Pro SL</span>
+      <span class="ml-auto text-xs text-white/70">Panel de Reputación</span>
+      <div class="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-white text-xs">👤</div>
+    </div>
+
+    <!-- Sidebar + content -->
+    <div class="flex" style="background:#0f172a; min-height:480px">
+      <!-- Sidebar -->
+      <div class="w-44 flex-shrink-0 border-r border-white/8 p-4 space-y-1">
+        <div class="px-3 py-2 rounded-lg text-xs font-semibold text-white" style="background:#2563EB22; border:1px solid #2563EB44">📊 Dashboard</div>
+        <div class="px-3 py-2 rounded-lg text-xs text-stone-400 hover:bg-white/5">⭐ Reseñas</div>
+        <div class="px-3 py-2 rounded-lg text-xs text-stone-400 hover:bg-white/5">💬 Respuestas</div>
+        <div class="px-3 py-2 rounded-lg text-xs text-stone-400 hover:bg-white/5">📄 Informes</div>
+        <div class="px-3 py-2 rounded-lg text-xs text-stone-400 hover:bg-white/5">⚙️ Ajustes</div>
+        <div class="pt-6 mt-6 border-t border-white/10">
+          <p class="text-xs text-stone-600 px-2">Restaurante La Pepita</p>
+          <p class="text-xs text-stone-700 px-2 mt-0.5">ID: usr_abc123</p>
+        </div>
+      </div>
+
+      <!-- Main content -->
+      <div class="flex-1 p-6">
+        <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+          <div>
+            <p class="text-xs text-stone-500">Buenos días,</p>
+            <p class="text-lg font-bold text-white">Restaurante La Pepita 🍽️</p>
+          </div>
+          <button class="px-4 py-2 rounded-xl text-white text-xs font-bold" style="background:#2563EB">
+            + Nueva respuesta
+          </button>
+        </div>
+
+        <!-- KPI grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+          <div class="rounded-xl p-3 text-center" style="background:#1e293b">
+            <p class="text-xl font-black text-white">4.7★</p>
+            <p class="text-xs text-stone-400 mt-0.5">Nota media</p>
+          </div>
+          <div class="rounded-xl p-3 text-center" style="background:#1e293b">
+            <p class="text-xl font-black" style="color:#2563EB">142</p>
+            <p class="text-xs text-stone-400 mt-0.5">Total reseñas</p>
+          </div>
+          <div class="rounded-xl p-3 text-center" style="background:#1e293b">
+            <p class="text-xl font-black text-emerald-400">+12</p>
+            <p class="text-xs text-stone-400 mt-0.5">Este mes</p>
+          </div>
+          <div class="rounded-xl p-3 text-center" style="background:#1e293b">
+            <p class="text-xl font-black text-white">96%</p>
+            <p class="text-xs text-stone-400 mt-0.5">Respondidas</p>
+          </div>
+        </div>
+
+        <!-- Recent reviews -->
+        <p class="text-xs font-bold text-stone-400 uppercase tracking-wider mb-3">Últimas reseñas</p>
+        <div class="space-y-2">
+          <div class="flex items-start gap-3 p-3 rounded-xl" style="background:#1e293b">
+            <div class="w-7 h-7 rounded-full bg-emerald-500/20 flex items-center justify-center text-xs flex-shrink-0">👤</div>
+            <div class="flex-1 min-w-0">
+              <div class="flex justify-between gap-2">
+                <p class="text-xs font-semibold text-white">María García</p>
+                <p class="text-xs text-yellow-400">⭐⭐⭐⭐⭐</p>
+              </div>
+              <p class="text-xs text-stone-400 mt-0.5 truncate">Increíble experiencia, volveré sin duda...</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-3 p-3 rounded-xl" style="background:#1e293b">
+            <div class="w-7 h-7 rounded-full bg-rose-500/20 flex items-center justify-center text-xs flex-shrink-0">👤</div>
+            <div class="flex-1 min-w-0">
+              <div class="flex justify-between gap-2">
+                <p class="text-xs font-semibold text-white">Carlos M.</p>
+                <p class="text-xs text-yellow-400">⭐⭐</p>
+              </div>
+              <p class="text-xs text-stone-400 mt-0.5 truncate">Tardaron demasiado, no recomiendo...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Branded footer -->
+    <div class="flex items-center justify-center py-3 border-t border-white/8" style="background:#0a0f1a">
+      <p class="text-xs text-stone-700">© 2026 Marketing Pro SL · hola@marketingpro.es</p>
+    </div>
+  </div>
+
+  <div class="mt-4 flex items-center gap-2 p-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5">
+    <span class="text-emerald-400 text-xl">✓</span>
+    <p class="text-sm text-emerald-300 font-semibold">
+      Lokigi completamente oculto — el cliente solo ve la marca de <strong>Marketing Pro SL</strong>.
+    </p>
+  </div>
+
+  <div class="flex gap-3 mt-6">
+    <a href="wl_step3_reports.html"
+       class="flex-1 px-4 py-3 rounded-2xl border border-white/10 bg-white/5
+              text-stone-300 font-semibold text-sm text-center hover:bg-white/10 no-underline">
+      ← Reportes
+    </a>
+    <a href="wl_step5_activate.html"
+       class="flex-1 px-4 py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600
+              text-white font-bold text-sm text-center hover:from-violet-500 hover:to-indigo-500 no-underline">
+      Activar marca blanca →
+    </a>
+  </div>
+
+</div>
+</body>
+</html>

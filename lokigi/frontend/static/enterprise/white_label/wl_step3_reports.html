@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Reportes PDF | White Label · Lokigi Enterprise</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Arial, "Helvetica Neue", sans-serif; }
+    .no-underline { text-decoration: none; }
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(14px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .fade-up { animation: fadeUp .35s ease both; }
+    @keyframes pulse-dot {
+      0%,100% { opacity:1; } 50% { opacity:.4; }
+    }
+    .pulse { animation: pulse-dot 1.8s ease-in-out infinite; }
+    /* Inputs */
+    input[type=text], input[type=url], input[type=email], select, textarea {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      color: #f1f5f9;
+      padding: 9px 13px;
+      font-size: 13px;
+      outline: none;
+      width: 100%;
+    }
+    input[type=color] {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: 8px;
+      padding: 2px;
+      height: 40px;
+      width: 48px;
+      cursor: pointer;
+    }
+    select option { background: #1c1917; }
+    /* Step indicator */
+    .step-done  { background: #22c55e; color: #052e16; }
+    .step-active{ background: #7c3aed; color: #fff; }
+    .step-todo  { background: rgba(255,255,255,.08); color: #78716c; }
+    /* Code block */
+    pre {
+      background: rgba(0,0,0,.4);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 12px;
+      color: #a3e635;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    /* PDF mockup */
+    .pdf-page {
+      background: #fff;
+      border-radius: 12px;
+      padding: 32px;
+      color: #1c1917;
+      font-family: 'Georgia', serif;
+      max-width: 540px;
+    }
+    /* Tag badge */
+    .badge-ok  { background:#16a34a22; color:#86efac; border:1px solid #16a34a40; }
+    .badge-warn{ background:#d9770622; color:#fcd34d; border:1px solid #d9770640; }
+    .badge-err { background:#dc262622; color:#fca5a5; border:1px solid #dc262640; }
+  </style>
+</head>
+<body class="min-h-screen bg-stone-950 text-stone-100">
+
+<nav class="sticky top-0 z-50 flex items-center gap-1 px-5 h-14
+     bg-stone-950/95 backdrop-blur-sm border-b border-white/10 shadow-md flex-wrap">
+  <div class="flex items-center gap-2.5 mr-4">
+    <a href="../enterprise_landing.html"
+       class="flex items-center justify-center w-8 h-8 rounded-lg
+              bg-gradient-to-br from-violet-500 to-indigo-600
+              text-white font-black text-sm no-underline">L</a>
+    <a href="../enterprise_landing.html"
+       class="font-bold text-white text-base no-underline">Lokigi</a>
+    <span class="px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300
+                 text-xs font-bold uppercase tracking-wider">Enterprise</span>
+    <span class="text-stone-600">·</span>
+    <span class="text-stone-400 text-xs font-semibold">White Label</span>
+  </div>
+  <a href="wl_hub.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">🏷️ White Label</a>
+<a href="wl_step1_identity.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">1 · Identidad</a>
+<a href="wl_step2_domain.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">2 · Dominio</a>
+<a href="wl_step3_reports.html" class="px-3 py-2 rounded-lg text-sm font-semibold text-violet-200 bg-violet-500/20 border border-violet-400/20 no-underline">3 · Reportes PDF</a>
+<a href="wl_step4_preview.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">4 · Preview</a>
+<a href="wl_step5_activate.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">5 · Activar</a>
+
+</nav>
+
+<div class="mx-auto max-w-5xl px-4 py-10 sm:px-6 pb-20 fade-up">
+
+  <p class="text-xs uppercase tracking-[.2em] text-violet-300/70 mb-1">White Label · Paso 3</p>
+  <h1 class="text-3xl font-bold text-white mb-2">Personalización de Reportes PDF</h1>
+  <p class="text-stone-400 text-sm mb-6 max-w-2xl">
+    Configura cómo WeasyPrint genera los PDFs para tus clientes.
+    El logo de Lokigi desaparece — solo aparece el de tu agencia.
+  </p>
+
+  
+    <div class="flex items-center gap-1 mb-8 px-1">
+      
+        <div class="flex items-center gap-2 ">
+          <div class="w-7 h-7 rounded-full step-done flex items-center justify-center
+                      text-xs font-black flex-shrink-0">✓</div>
+          <span class="text-xs font-semibold text-stone-400 hidden sm:block">Identidad Visual</span>
+        </div>
+        <div class="flex-1 h-px bg-white/10 hidden sm:block"></div>
+        <div class="flex items-center gap-2 ">
+          <div class="w-7 h-7 rounded-full step-done flex items-center justify-center
+                      text-xs font-black flex-shrink-0">✓</div>
+          <span class="text-xs font-semibold text-stone-400 hidden sm:block">Mapeo de Dominio</span>
+        </div>
+        <div class="flex-1 h-px bg-white/10 hidden sm:block"></div>
+        <div class="flex items-center gap-2 ">
+          <div class="w-7 h-7 rounded-full step-active flex items-center justify-center
+                      text-xs font-black flex-shrink-0">3</div>
+          <span class="text-xs font-semibold text-white hidden sm:block">Reportes PDF</span>
+        </div>
+        <div class="flex-1 h-px bg-white/10 hidden sm:block"></div>
+        <div class="flex items-center gap-2 opacity-40">
+          <div class="w-7 h-7 rounded-full step-todo flex items-center justify-center
+                      text-xs font-black flex-shrink-0">4</div>
+          <span class="text-xs font-semibold text-stone-400 hidden sm:block">Preview</span>
+        </div>
+        <div class="flex-1 h-px bg-white/10 hidden sm:block"></div>
+        <div class="flex items-center gap-2 opacity-40">
+          <div class="w-7 h-7 rounded-full step-todo flex items-center justify-center
+                      text-xs font-black flex-shrink-0">5</div>
+          <span class="text-xs font-semibold text-stone-400 hidden sm:block">Activar</span>
+        </div>
+        
+    </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <!-- PDF config -->
+    <div class="space-y-5">
+
+      <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
+        <h2 class="text-sm font-bold text-white uppercase tracking-wider mb-4">Cabecera del PDF</h2>
+        <div class="space-y-4">
+          <div>
+            <label class="text-xs text-stone-400 block mb-1.5">Logo en la cabecera</label>
+            <div class="flex gap-2 items-center">
+              <div class="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center
+                          text-white font-black text-sm flex-shrink-0">MP</div>
+              <div class="flex-1">
+                <input type="text" value="marketing_pro_logo.svg" class="text-xs" />
+              </div>
+            </div>
+          </div>
+          <div>
+            <label class="text-xs text-stone-400 block mb-1.5">Posición del logo</label>
+            <select>
+              <option selected>Izquierda (recomendado)</option>
+              <option>Centro</option>
+              <option>Derecha</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs text-stone-400 block mb-1.5">Ancho máximo del logo (px)</label>
+            <input type="text" value="160" />
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
+        <h2 class="text-sm font-bold text-white uppercase tracking-wider mb-4">Pie de Página</h2>
+        <div class="space-y-3">
+          <div>
+            <label class="text-xs text-stone-400 block mb-1.5">Texto del pie (izquierda)</label>
+            <input type="text" value="Marketing Pro SL · hola@marketingpro.es" />
+          </div>
+          <div>
+            <label class="text-xs text-stone-400 block mb-1.5">Texto del pie (derecha)</label>
+            <input type="text" value="Informe generado el {fecha} · Confidencial" />
+          </div>
+          <div class="flex items-center gap-3 p-3 rounded-xl border border-white/8 bg-black/15">
+            <input type="checkbox" checked class="w-4 h-4" />
+            <label class="text-xs text-stone-300">Mostrar numeración de página (Página X de Y)</label>
+          </div>
+          <div class="flex items-center gap-3 p-3 rounded-xl border border-white/8 bg-black/15">
+            <input type="checkbox" class="w-4 h-4" />
+            <label class="text-xs text-stone-300">Incluir referencia "Powered by Lokigi" (desactivado por defecto en Enterprise)</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
+        <h2 class="text-sm font-bold text-white uppercase tracking-wider mb-4">Colores y Estilo</h2>
+        <div class="space-y-3">
+          <div class="flex items-center gap-3">
+            <input type="color" value="#2563EB" />
+            <div class="flex-1">
+              <label class="text-xs text-stone-400 block mb-1">Color de cabecera del PDF</label>
+              <input type="text" value="#2563EB" class="text-xs" />
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <input type="color" value="#1E3A8A" />
+            <div class="flex-1">
+              <label class="text-xs text-stone-400 block mb-1">Color de acento en tablas</label>
+              <input type="text" value="#1E3A8A" class="text-xs" />
+            </div>
+          </div>
+          <div>
+            <label class="text-xs text-stone-400 block mb-1.5">Tipo de informe por defecto</label>
+            <select>
+              <option selected>Informe mensual completo</option>
+              <option>Resumen ejecutivo (2 páginas)</option>
+              <option>Informe de red (multi-local)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Backend code -->
+      <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
+        <h2 class="text-sm font-bold text-stone-300 uppercase tracking-wider mb-3">Servicio backend</h2>
+        <pre>from app.enterprise.pdf_branding import BrandedPDFRenderer
+
+renderer = BrandedPDFRenderer(theme=request.state.theme)
+pdf_bytes = renderer.render_monthly_report(
+    location=connection,
+    reviews=reviews,
+    period="Abril 2026",
+)
+# → PDF sin rastro de Lokigi ✓</pre>
+      </div>
+
+    </div>
+
+    <!-- PDF preview -->
+    <div class="sticky top-20 space-y-5">
+      <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
+        <h2 class="text-sm font-bold text-stone-300 uppercase tracking-wider mb-4">Preview del PDF</h2>
+
+        <!-- PDF mockup -->
+        <div class="pdf-page shadow-2xl mx-auto text-sm">
+          <!-- PDF Header -->
+          <div class="flex items-start justify-between pb-4 mb-4" style="border-bottom: 3px solid #2563EB">
+            <div>
+              <div class="w-28 h-7 rounded flex items-center justify-center font-black text-white text-xs"
+                   style="background:#2563EB">Marketing Pro SL</div>
+              <p class="text-xs mt-1" style="color:#6b7280">Gestión de reputación online</p>
+            </div>
+            <div class="text-right">
+              <p class="text-xs font-bold" style="color:#1f2937">INFORME DE REPUTACIÓN</p>
+              <p class="text-xs" style="color:#6b7280">Abril 2026</p>
+              <p class="text-xs" style="color:#6b7280">Restaurante La Pepita</p>
+            </div>
+          </div>
+          <!-- PDF Content -->
+          <p class="text-xs font-bold mb-2" style="color:#1f2937">Resumen del período</p>
+          <div class="grid grid-cols-3 gap-2 mb-4">
+            <div class="text-center p-2 rounded" style="background:#EFF6FF">
+              <p class="text-lg font-black" style="color:#2563EB">4.7★</p>
+              <p class="text-xs" style="color:#6b7280">Nota media</p>
+            </div>
+            <div class="text-center p-2 rounded" style="background:#EFF6FF">
+              <p class="text-lg font-black" style="color:#2563EB">142</p>
+              <p class="text-xs" style="color:#6b7280">Reseñas</p>
+            </div>
+            <div class="text-center p-2 rounded" style="background:#EFF6FF">
+              <p class="text-lg font-black" style="color:#16a34a">96%</p>
+              <p class="text-xs" style="color:#6b7280">Respondidas</p>
+            </div>
+          </div>
+          <p class="text-xs font-bold mb-1" style="color:#1f2937">Distribución de valoraciones</p>
+          <div class="space-y-1 mb-4">
+            <div class="flex items-center gap-2 text-xs">
+              <span style="color:#6b7280; width:30px">5★</span>
+              <div class="flex-1 h-2 rounded-full" style="background:#e5e7eb">
+                <div class="h-full rounded-full" style="background:#2563EB; width:72%"></div>
+              </div>
+              <span style="color:#6b7280">72%</span>
+            </div>
+            <div class="flex items-center gap-2 text-xs">
+              <span style="color:#6b7280; width:30px">4★</span>
+              <div class="flex-1 h-2 rounded-full" style="background:#e5e7eb">
+                <div class="h-full rounded-full" style="background:#60a5fa; width:18%"></div>
+              </div>
+              <span style="color:#6b7280">18%</span>
+            </div>
+          </div>
+          <!-- PDF Footer -->
+          <div class="flex justify-between items-center pt-3 text-xs"
+               style="border-top:1px solid #e5e7eb; color:#9ca3af">
+            <span>Marketing Pro SL · hola@marketingpro.es</span>
+            <span>Página 1 de 4</span>
+          </div>
+        </div>
+
+        <p class="text-xs text-stone-500 text-center mt-3">
+          Sin logo de Lokigi · Colores de Marketing Pro SL ✓
+        </p>
+      </div>
+
+      <!-- Navigation -->
+      <div class="flex gap-3">
+        <a href="wl_step2_domain.html"
+           class="flex-1 px-4 py-3 rounded-2xl border border-white/10 bg-white/5
+                  text-stone-300 font-semibold text-sm text-center hover:bg-white/10 no-underline">
+          ← Dominio
+        </a>
+        <a href="wl_step4_preview.html"
+           class="flex-1 px-4 py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600
+                  text-white font-bold text-sm text-center hover:from-violet-500 hover:to-indigo-500 no-underline">
+          Ver preview completo →
+        </a>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
