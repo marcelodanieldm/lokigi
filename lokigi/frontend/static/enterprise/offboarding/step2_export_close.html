@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cierre de Organización — Exportación y Confirmación</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --c-primary:   #7c3aed;
+      --c-secondary: #4f46e5;
+    }
+
+    body { background: #0f1117; color: #e5e7eb; font-family: 'Inter', sans-serif; }
+
+    /* ── Export section ──────────────────────────────────────────── */
+    .export-card {
+      background: linear-gradient(135deg, #0d1b2a 0%, #1a2a3a 100%);
+      border: 2px solid #1d4ed8;
+    }
+    .export-card.ready {
+      border-color: #2563eb;
+      box-shadow: 0 0 30px rgba(37, 99, 235, 0.25);
+    }
+
+    .progress-bar-bg { background: #1e3a5f; height: 8px; border-radius: 99px; overflow: hidden; }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #2563eb, #60a5fa);
+      border-radius: 99px;
+      transition: width .5s ease;
+    }
+
+    .download-btn {
+      background: linear-gradient(135deg, #1d4ed8, #2563eb);
+      box-shadow: 0 4px 24px rgba(37, 99, 235, 0.45);
+      transition: filter .2s, transform .1s;
+    }
+    .download-btn:hover { filter: brightness(1.12); transform: translateY(-1px); }
+    .download-btn:active { transform: translateY(0); }
+
+    /* ── Survey stars ────────────────────────────────────────────── */
+    .star-group { display: flex; gap: 4px; }
+    .star { cursor: pointer; color: #374151; font-size: 1.5rem; transition: color .15s; }
+    .star.filled { color: #f59e0b; }
+    .star:hover ~ .star { color: #374151; }
+    .star-group:hover .star { color: #f59e0b; }
+
+    /* ── Confirmation input ──────────────────────────────────────── */
+    .confirm-input {
+      background: #1a1f2e;
+      border: 2px solid #374151;
+      color: #e5e7eb;
+      transition: border-color .2s;
+    }
+    .confirm-input:focus { outline: none; border-color: #ef4444; }
+    .confirm-input.match { border-color: #ef4444; background: #1f0d0d; }
+    .confirm-input.no-match { border-color: #374151; }
+
+    /* ── Final delete button ─────────────────────────────────────── */
+    .final-delete {
+      background: linear-gradient(135deg, #7f1d1d, #dc2626);
+      box-shadow: 0 4px 24px rgba(220, 38, 38, 0.45);
+      transition: filter .2s, opacity .2s;
+    }
+    .final-delete:disabled { opacity: .35; filter: none; cursor: not-allowed; }
+    .final-delete:not(:disabled):hover { filter: brightness(1.1); }
+
+    /* ── Farewell screen ─────────────────────────────────────────── */
+    #farewell-screen {
+      position: fixed; inset: 0; background: #0f1117;
+      display: none; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 100;
+    }
+    #farewell-screen.visible { display: flex; }
+    .farewell-emoji { font-size: 5rem; animation: pop .6s cubic-bezier(.17,.89,.32,1.28) both; }
+    @keyframes pop {
+      0%   { transform: scale(.4); opacity: 0; }
+      100% { transform: scale(1);  opacity: 1; }
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- ── Warning header ──────────────────────────────────────────────────── -->
+  <header class="bg-gray-900 border-b border-red-900/40 px-6 py-4 flex items-center gap-3">
+    <a href="step1_impact.html" class="text-gray-500 hover:text-gray-300 text-sm flex items-center gap-1">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+      </svg>
+      Volver
+    </a>
+    <div class="flex-1">
+      <h1 class="text-base font-bold text-red-300">Exportación de activos y cierre definitivo</h1>
+      <p class="text-gray-500 text-xs">Paso 2 de 2 — Esta acción es irreversible.</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <div class="w-2.5 h-2.5 rounded-full bg-gray-700"></div>
+      <div class="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse"></div>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-6 py-8 space-y-8">
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SECTION 1 — Export
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <section class="export-card rounded-2xl p-7" id="export-section">
+      <div class="flex items-center gap-3 mb-5">
+        <div class="w-10 h-10 rounded-full bg-blue-900 flex items-center justify-center flex-shrink-0">
+          <svg class="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+          </svg>
+        </div>
+        <div>
+          <h2 class="text-blue-200 font-bold text-lg">Exportación Maestra de la Red</h2>
+          <p class="text-blue-400/70 text-xs">ZIP con locales, miembros, historial de auditoría y conexiones de Google.</p>
+        </div>
+      </div>
+
+      <!-- State A: prepare -->
+      <div id="export-idle">
+        <p class="text-gray-400 text-sm mb-5">
+          Genera el archivo antes de cerrar la organización.
+          El ZIP incluye un CSV por cada módulo — sin datos personales innecesarios.
+        </p>
+        <button
+          id="btn-prepare"
+          onclick="prepareExport()"
+          class="bg-blue-700 hover:bg-blue-600 text-white font-bold px-8 py-3 rounded-xl text-sm transition-colors w-full md:w-auto"
+        >
+          Preparar Exportación de Red
+        </button>
+      </div>
+
+      <!-- State B: progress bar -->
+      <div id="export-progress" class="hidden space-y-3">
+        <p class="text-blue-300 text-sm font-medium" id="progress-label">Generando archivos…</p>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="progress-fill" style="width:5%"></div>
+        </div>
+        <p class="text-gray-500 text-xs" id="progress-eta">Esto puede tardar unos segundos…</p>
+      </div>
+
+      <!-- State C: download ready -->
+      <div id="export-ready" class="hidden">
+        <p class="text-blue-300 text-sm mb-4">
+          ✅ Archivo listo.  Descarga el ZIP antes de continuar.
+        </p>
+        <a id="download-link" href="#" onclick="downloadExport(event)" download>
+          <button class="download-btn text-white font-extrabold px-10 py-4 rounded-2xl text-base w-full flex items-center justify-center gap-3">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            Descargar Archivo Maestro (.zip)
+          </button>
+        </a>
+        <p class="text-gray-600 text-xs mt-2 text-center">
+          Este archivo es tu respaldo permanente. Guárdalo en un lugar seguro.
+        </p>
+        <button
+          id="btn-export-done"
+          onclick="markExportDone()"
+          class="mt-4 w-full border border-blue-700/40 text-blue-400 text-sm py-2 rounded-lg hover:bg-blue-900/20 transition-colors hidden"
+        >
+          Ya descargué el archivo → continuar al cierre
+        </button>
+      </div>
+
+      <!-- State D: error -->
+      <div id="export-error" class="hidden text-red-400 text-sm">
+        No se pudo generar la exportación.
+        <button onclick="prepareExport()" class="underline ml-1">Reintentar</button>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SECTION 2 — Partner survey  (locked until export at least triggered)
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <section class="bg-gray-900 border border-gray-700 rounded-2xl p-7" id="survey-section">
+      <h2 class="text-gray-200 font-bold text-base mb-1">Encuesta de salida para partners</h2>
+      <p class="text-gray-500 text-xs mb-6">Opcional pero muy valiosa — nos ayuda a mejorar.</p>
+
+      <!-- Reason dropdown -->
+      <div class="mb-5">
+        <label class="block text-gray-400 text-xs uppercase tracking-widest mb-2">Motivo principal del cierre</label>
+        <select id="survey-reason"
+                class="w-full bg-gray-800 border border-gray-600 text-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500">
+          <option value="">Seleccionar…</option>
+          <option value="budget">Restricción de presupuesto</option>
+          <option value="features">Funcionalidades insuficientes</option>
+          <option value="competitor">Migración a competidor</option>
+          <option value="consolidation">Consolidación de herramientas</option>
+          <option value="pause">Pausa del negocio</option>
+          <option value="technical">Problemas técnicos persistentes</option>
+          <option value="other">Otro</option>
+        </select>
+      </div>
+
+      <!-- Star ratings -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-5">
+        <div>
+          <label class="block text-gray-400 text-xs uppercase tracking-widest mb-2">Soporte técnico</label>
+          <div class="star-group" data-field="score_support">
+            <span class="star" data-val="1">★</span>
+            <span class="star" data-val="2">★</span>
+            <span class="star" data-val="3">★</span>
+            <span class="star" data-val="4">★</span>
+            <span class="star" data-val="5">★</span>
+          </div>
+          <input type="hidden" id="score-support" value="0" />
+        </div>
+        <div>
+          <label class="block text-gray-400 text-xs uppercase tracking-widest mb-2">Escalabilidad</label>
+          <div class="star-group" data-field="score_scalability">
+            <span class="star" data-val="1">★</span>
+            <span class="star" data-val="2">★</span>
+            <span class="star" data-val="3">★</span>
+            <span class="star" data-val="4">★</span>
+            <span class="star" data-val="5">★</span>
+          </div>
+          <input type="hidden" id="score-scalability" value="0" />
+        </div>
+        <div>
+          <label class="block text-gray-400 text-xs uppercase tracking-widest mb-2">Retorno de inversión</label>
+          <div class="star-group" data-field="score_roi">
+            <span class="star" data-val="1">★</span>
+            <span class="star" data-val="2">★</span>
+            <span class="star" data-val="3">★</span>
+            <span class="star" data-val="4">★</span>
+            <span class="star" data-val="5">★</span>
+          </div>
+          <input type="hidden" id="score-roi" value="0" />
+        </div>
+      </div>
+
+      <!-- Open feedback -->
+      <div class="mb-5">
+        <label class="block text-gray-400 text-xs uppercase tracking-widest mb-2">
+          ¿Qué podríamos haber hecho mejor? (opcional)
+        </label>
+        <textarea
+          id="survey-feedback"
+          rows="3"
+          maxlength="4000"
+          placeholder="Tu feedback honesto ayuda al equipo de producto…"
+          class="w-full bg-gray-800 border border-gray-600 text-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-blue-500 resize-none"
+        ></textarea>
+      </div>
+
+      <!-- Would recommend toggle -->
+      <div class="flex items-center gap-3 mb-6">
+        <button
+          id="toggle-recommend"
+          onclick="toggleRecommend()"
+          role="switch"
+          aria-checked="false"
+          class="relative w-11 h-6 rounded-full bg-gray-700 transition-colors focus:outline-none"
+        >
+          <span class="toggle-thumb absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform"></span>
+        </button>
+        <label class="text-gray-400 text-sm">Recomendaría Lokigi a un colega en el futuro</label>
+      </div>
+
+      <button
+        id="btn-submit-survey"
+        onclick="submitSurvey()"
+        class="bg-gray-700 hover:bg-gray-600 text-gray-200 font-bold px-6 py-2.5 rounded-lg text-sm transition-colors"
+      >
+        Enviar encuesta
+      </button>
+      <span id="survey-saved" class="hidden ml-3 text-emerald-400 text-sm">✓ Guardada</span>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SECTION 3 — Security confirmation + final CTA
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <section class="border-2 border-red-900 rounded-2xl p-7 bg-red-950/10" id="confirm-section">
+      <h2 class="text-red-400 font-bold text-base mb-1">Confirmación de identidad</h2>
+      <p class="text-gray-500 text-sm mb-6">
+        Escribe el nombre exacto de la organización para desbloquear el botón de cierre.
+      </p>
+
+      <p class="text-gray-400 text-xs uppercase tracking-widest mb-1">Nombre de la organización</p>
+      <p class="text-white font-bold text-sm mb-3" id="org-name-hint">—</p>
+
+      <input
+        id="confirm-input"
+        type="text"
+        autocomplete="off"
+        placeholder="Escribe el nombre exactamente…"
+        oninput="checkConfirmation()"
+        class="confirm-input w-full rounded-xl px-4 py-3 text-sm mb-2"
+      />
+      <p id="confirm-match" class="text-xs text-gray-600 mb-6">El nombre debe coincidir exactamente (mayúsculas y espacios).</p>
+
+      <button
+        id="btn-final-delete"
+        onclick="openFinalModal()"
+        class="final-delete text-white font-extrabold px-10 py-4 rounded-2xl text-base w-full"
+        disabled
+      >
+        🔴 Cerrar organización definitivamente
+      </button>
+      <p class="text-gray-600 text-xs text-center mt-2">
+        El cierre será efectivo al finalizar el ciclo de facturación actual.
+      </p>
+    </section>
+
+  </main>
+
+  <!-- ── Final confirmation modal ─────────────────────────────────────────── -->
+  <div id="modal-final" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+    <div class="bg-gray-900 border border-red-700 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
+      <h3 class="text-red-400 font-extrabold text-xl mb-3">Última confirmación</h3>
+      <p class="text-gray-300 text-sm mb-2">
+        Estás a punto de cerrar permanentemente la organización
+        <strong id="modal-org-name" class="text-white"></strong>.
+      </p>
+      <ul class="text-red-300/80 text-sm space-y-1 mb-6 list-disc pl-5">
+        <li>Todos los usuarios perderán acceso inmediato.</li>
+        <li>Los scrapers y workers de Celery serán eliminados.</li>
+        <li>La base de datos será borrada al final del ciclo de facturación.</li>
+        <li>Esta acción <strong class="text-red-200">no puede deshacerse</strong>.</li>
+      </ul>
+      <div class="flex gap-3">
+        <button onclick="closeModal('modal-final')"
+                class="flex-1 border border-gray-600 text-gray-400 py-3 rounded-xl text-sm hover:bg-gray-800 transition-colors">
+          Cancelar
+        </button>
+        <button id="btn-confirm-delete"
+                onclick="confirmDeletion()"
+                class="flex-1 bg-red-700 hover:bg-red-600 text-white font-bold py-3 rounded-xl text-sm transition-colors">
+          Confirmar cierre
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Farewell screen ───────────────────────────────────────────────────── -->
+  <div id="farewell-screen">
+    <div class="farewell-emoji mb-4">👋</div>
+    <h2 class="text-2xl font-extrabold text-gray-200 mb-2">Fue un placer trabajar contigo</h2>
+    <p class="text-gray-500 text-sm max-w-sm text-center mb-8">
+      Tu organización ha sido marcada para cierre. El equipo de Lokigi te enviará un correo de
+      confirmación con la fecha efectiva.
+    </p>
+    <p class="text-gray-600 text-xs">Redirigiendo al inicio de sesión en <span id="redirect-count">5</span>s…</p>
+  </div>
+
+  <script>
+    // ─── State ────────────────────────────────────────────────────────────────
+    const orgId   = sessionStorage.getItem('onboarding_org_id') || '';
+    let orgName   = '';
+    let exportTriggered = false;
+    let exportReady     = false;
+    let surveyDone      = false;
+    let recommend       = false;
+
+    // ─── Load org name for confirmation hint ─────────────────────────────────
+    async function loadOrgName() {
+      if (!orgId) return;
+      try {
+        const res = await fetch(`/enterprise/offboarding/${orgId}/impact`, { credentials: 'same-origin' });
+        if (!res.ok) return;
+        const data = await res.json();
+        orgName = data.org_name || '';
+        document.getElementById('org-name-hint').textContent = orgName;
+        document.getElementById('modal-org-name').textContent = orgName;
+      } catch {}
+    }
+
+    // ─── Export flow ─────────────────────────────────────────────────────────
+    async function prepareExport() {
+      document.getElementById('export-idle').classList.add('hidden');
+      document.getElementById('export-progress').classList.remove('hidden');
+      document.getElementById('export-error').classList.add('hidden');
+      exportTriggered = true;
+
+      try {
+        const res = await fetch(`/enterprise/offboarding/${orgId}/export/prepare`, {
+          method: 'POST',
+          credentials: 'same-origin',
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        pollExportReady();
+      } catch (err) {
+        document.getElementById('export-progress').classList.add('hidden');
+        document.getElementById('export-error').classList.remove('hidden');
+        console.error('Prepare export failed:', err);
+      }
+    }
+
+    let pollTimer = null;
+    let fakeProgress = 5;
+
+    function pollExportReady() {
+      // Animate fake progress bar while polling
+      fakeProgress = 5;
+      const fill = document.getElementById('progress-fill');
+      fill.style.width = '5%';
+
+      pollTimer = setInterval(async () => {
+        // Advance fake bar slowly (never reaches 100 until real result)
+        fakeProgress = Math.min(fakeProgress + Math.random() * 12, 90);
+        fill.style.width = `${fakeProgress}%`;
+        document.getElementById('progress-label').textContent =
+          fakeProgress < 40 ? 'Generando CSVs de locales…' :
+          fakeProgress < 70 ? 'Comprimiendo archivos…' :
+                              'Finalizando ZIP…';
+
+        try {
+          const res = await fetch(`/enterprise/offboarding/${orgId}/export/download`, {
+            method: 'GET',
+            credentials: 'same-origin',
+          });
+
+          if (res.status === 202) return; // still preparing
+
+          if (res.ok) {
+            clearInterval(pollTimer);
+            fill.style.width = '100%';
+            document.getElementById('progress-label').textContent = '¡Listo!';
+            setTimeout(showDownloadReady, 400);
+          } else {
+            clearInterval(pollTimer);
+            document.getElementById('export-progress').classList.add('hidden');
+            document.getElementById('export-error').classList.remove('hidden');
+          }
+        } catch {}
+      }, 2500);
+    }
+
+    function showDownloadReady() {
+      exportReady = true;
+      document.getElementById('export-section').classList.add('ready');
+      document.getElementById('export-progress').classList.add('hidden');
+      document.getElementById('export-ready').classList.remove('hidden');
+      document.getElementById('btn-export-done').classList.remove('hidden');
+    }
+
+    async function downloadExport(e) {
+      e.preventDefault();
+      // Trigger real download
+      const link = document.createElement('a');
+      link.href = `/enterprise/offboarding/${orgId}/export/download`;
+      link.download = '';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function markExportDone() {
+      document.getElementById('btn-export-done').textContent = '✓ Descargado';
+      document.getElementById('btn-export-done').classList.add('text-emerald-400', 'border-emerald-700');
+    }
+
+    // ─── Survey ───────────────────────────────────────────────────────────────
+    document.querySelectorAll('.star-group').forEach(group => {
+      group.querySelectorAll('.star').forEach(star => {
+        star.addEventListener('click', () => {
+          const val = parseInt(star.getAttribute('data-val'));
+          const field = group.getAttribute('data-field');
+          const hiddenId = field === 'score_support' ? 'score-support'
+                         : field === 'score_scalability' ? 'score-scalability'
+                         : 'score-roi';
+          document.getElementById(hiddenId).value = val;
+          group.querySelectorAll('.star').forEach(s => {
+            s.classList.toggle('filled', parseInt(s.getAttribute('data-val')) <= val);
+          });
+        });
+      });
+    });
+
+    function toggleRecommend() {
+      recommend = !recommend;
+      const btn = document.getElementById('toggle-recommend');
+      btn.setAttribute('aria-checked', recommend);
+      btn.classList.toggle('bg-blue-600', recommend);
+      btn.classList.toggle('bg-gray-700', !recommend);
+      btn.querySelector('.toggle-thumb').style.transform = recommend ? 'translateX(20px)' : 'translateX(0)';
+    }
+
+    async function submitSurvey() {
+      const btn = document.getElementById('btn-submit-survey');
+      btn.disabled = true;
+      btn.textContent = 'Enviando…';
+
+      const payload = {
+        reason_primary:    document.getElementById('survey-reason').value || 'other',
+        score_support:     parseInt(document.getElementById('score-support').value) || 3,
+        score_scalability: parseInt(document.getElementById('score-scalability').value) || 3,
+        score_roi:         parseInt(document.getElementById('score-roi').value) || 3,
+        open_feedback:     document.getElementById('survey-feedback').value,
+        would_recommend:   recommend,
+      };
+
+      try {
+        const res = await fetch(`/enterprise/offboarding/${orgId}/survey`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        surveyDone = true;
+        document.getElementById('survey-saved').classList.remove('hidden');
+        btn.textContent = '✓ Encuesta enviada';
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = 'Enviar encuesta';
+        alert(`Error al enviar encuesta: ${err.message}`);
+      }
+    }
+
+    // ─── Confirmation input ───────────────────────────────────────────────────
+    function checkConfirmation() {
+      const input = document.getElementById('confirm-input');
+      const btn   = document.getElementById('btn-final-delete');
+      const hint  = document.getElementById('confirm-match');
+      const isMatch = input.value.trim() === orgName && orgName !== '';
+
+      input.classList.toggle('match',    isMatch);
+      input.classList.toggle('no-match', !isMatch);
+      btn.disabled = !isMatch;
+
+      if (isMatch) {
+        hint.textContent = '✓ Nombre confirmado.';
+        hint.className   = 'text-xs text-red-400 mb-6';
+      } else {
+        hint.textContent = 'El nombre debe coincidir exactamente (mayúsculas y espacios).';
+        hint.className   = 'text-xs text-gray-600 mb-6';
+      }
+    }
+
+    // ─── Final deletion ───────────────────────────────────────────────────────
+    function openFinalModal() {
+      document.getElementById('modal-org-name').textContent = orgName;
+      document.getElementById('modal-final').classList.remove('hidden');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    async function confirmDeletion() {
+      const btn = document.getElementById('btn-confirm-delete');
+      btn.disabled = true;
+      btn.textContent = 'Procesando…';
+
+      try {
+        const res = await fetch(`/enterprise/offboarding/${orgId}/confirm-deletion`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            org_name_confirmation: orgName,
+            survey_completed: surveyDone,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.detail || `HTTP ${res.status}`);
+        }
+
+        closeModal('modal-final');
+        showFarewell();
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = 'Confirmar cierre';
+        alert(`Error: ${err.message}`);
+      }
+    }
+
+    // ─── Farewell ─────────────────────────────────────────────────────────────
+    function showFarewell() {
+      // Clear session storage
+      sessionStorage.removeItem('onboarding_org_id');
+
+      const screen = document.getElementById('farewell-screen');
+      screen.classList.add('visible');
+
+      // Countdown and redirect to login
+      let count = 5;
+      const countdown = document.getElementById('redirect-count');
+      const timer = setInterval(() => {
+        count--;
+        countdown.textContent = count;
+        if (count <= 0) {
+          clearInterval(timer);
+          window.location.href = '/login';
+        }
+      }, 1000);
+    }
+
+    // ─── Init ─────────────────────────────────────────────────────────────────
+    if (!orgId) {
+      document.querySelector('main').innerHTML =
+        '<p class="text-red-400 text-center mt-20">No se encontró org_id en sesión. Vuelve al panel de administración.</p>';
+    } else {
+      loadOrgName();
+    }
+  </script>
+</body>
+</html>

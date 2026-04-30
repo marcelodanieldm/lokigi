@@ -61,6 +61,7 @@ from .routes import (
   onboarding_routes,
   starter_inbox_routes,
 )
+from app.enterprise.offboarding_router import router as offboarding_router
 from .routes.cancellation_routes import build_reviews_export_response
 
 
@@ -115,6 +116,7 @@ app.include_router(competitor_scrape_routes.router)
 app.include_router(growth_seo_routes.router)
 app.include_router(nlp_analysis_routes.router)
 app.include_router(onboarding_routes.router)
+app.include_router(offboarding_router)
 app.include_router(starter_inbox_routes.router)
 app.mount("/starter-realtime", socketio_app)
 

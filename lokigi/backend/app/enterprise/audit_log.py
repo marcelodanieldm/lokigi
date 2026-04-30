@@ -88,6 +88,16 @@ class AuditAction(str, enum.Enum):
     LOGIN_FAILED             = "auth.login.failed"
     TOKEN_REFRESHED          = "auth.token.refreshed"
 
+    # Org lifecycle — onboarding
+    ORG_CREATED              = "org.created"
+    ORG_SMTP_CONFIGURED      = "org.smtp.configured"
+
+    # Org lifecycle — offboarding
+    ORG_HIBERNATED                  = "org.hibernated"
+    ORG_DATA_EXPORTED               = "org.data.exported"
+    ORG_DELETION_CONFIRMED          = "org.deletion.confirmed"
+    ORG_OFFBOARDING_SURVEY_SUBMITTED = "org.offboarding.survey.submitted"
+
 
 # ─── Model ────────────────────────────────────────────────────────────────────
 

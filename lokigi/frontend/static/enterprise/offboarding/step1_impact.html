@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cierre de Organización — Análisis de Impacto</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --c-primary:   #7c3aed;
+      --c-secondary: #4f46e5;
+    }
+
+    body { background: #0f1117; color: #e5e7eb; font-family: 'Inter', sans-serif; }
+
+    /* ── Warning gradient header ─────────────────────────────────── */
+    .warning-banner {
+      background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 50%, #7f1d1d 100%);
+      border-bottom: 2px solid #ef4444;
+    }
+    .warning-icon {
+      animation: pulse-red 2s infinite;
+    }
+    @keyframes pulse-red {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
+      50%       { box-shadow: 0 0 0 14px rgba(239, 68, 68, 0); }
+    }
+
+    /* ── Counter cards ───────────────────────────────────────────── */
+    .impact-card {
+      background: #1a1f2e;
+      border: 1px solid #374151;
+      transition: border-color .2s;
+    }
+    .impact-card:hover { border-color: #ef4444; }
+
+    .count-number {
+      font-size: 2.8rem;
+      font-weight: 800;
+      line-height: 1;
+      background: linear-gradient(135deg, #f87171, #fca5a5);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* ── Domain warning ─────────────────────────────────────────── */
+    .domain-card {
+      background: #1c1508;
+      border: 1px solid #d97706;
+    }
+
+    /* ── Hibernation offer ──────────────────────────────────────── */
+    .hibernate-card {
+      background: linear-gradient(135deg, #052e16 0%, #064e3b 100%);
+      border: 2px solid #10b981;
+    }
+    .hibernate-cta {
+      background: linear-gradient(135deg, #059669, #10b981);
+      transition: filter .2s;
+    }
+    .hibernate-cta:hover { filter: brightness(1.1); }
+
+    /* ── Delete CTA ─────────────────────────────────────────────── */
+    .delete-cta {
+      background: transparent;
+      border: 2px solid #ef4444;
+      color: #ef4444;
+      transition: background .2s, color .2s;
+    }
+    .delete-cta:hover {
+      background: #ef4444;
+      color: #fff;
+    }
+
+    /* ── Loading skeleton ───────────────────────────────────────── */
+    .skeleton {
+      background: linear-gradient(90deg, #1f2937 25%, #374151 50%, #1f2937 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 6px;
+    }
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- ── Warning header ──────────────────────────────────────────────────── -->
+  <header class="warning-banner px-6 py-6 flex items-center gap-4">
+    <div class="warning-icon flex-shrink-0 w-12 h-12 rounded-full bg-red-600 flex items-center justify-center">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-2xl font-extrabold text-red-100 tracking-tight">
+        Cierre de Organización Empresarial
+      </h1>
+      <p class="text-red-300 text-sm mt-1">
+        Esta acción afectará permanentemente a todos los sub-usuarios y sus datos.
+        Lee el análisis completo antes de continuar.
+      </p>
+    </div>
+  </header>
+
+  <!-- ── Progress breadcrumb ─────────────────────────────────────────────── -->
+  <div class="max-w-5xl mx-auto px-6 py-4 flex items-center gap-2 text-xs text-gray-500">
+    <span class="text-red-400 font-semibold">Paso 1</span>
+    <span>/</span>
+    <span>Análisis de impacto</span>
+    <span class="mx-2 text-gray-700">→</span>
+    <span class="opacity-40">Paso 2 — Exportación y cierre definitivo</span>
+  </div>
+
+  <main class="max-w-5xl mx-auto px-6 pb-16">
+
+    <!-- ── Impact counters ──────────────────────────────────────────────── -->
+    <section class="mb-8">
+      <h2 class="text-lg font-bold text-gray-200 mb-4">Activos que serán eliminados</h2>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4" id="counters-grid">
+        <!-- Skeleton while loading -->
+        <div class="impact-card rounded-xl p-6 skeleton h-32" id="sk-1"></div>
+        <div class="impact-card rounded-xl p-6 skeleton h-32" id="sk-2"></div>
+        <div class="impact-card rounded-xl p-6 skeleton h-32" id="sk-3"></div>
+      </div>
+
+      <!-- Populated cards (hidden until data arrives) -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 hidden" id="counters-real">
+        <div class="impact-card rounded-xl p-6">
+          <p class="text-gray-400 text-xs uppercase tracking-widest mb-2">Usuarios afectados</p>
+          <div class="count-number" id="count-members">—</div>
+          <p class="text-gray-500 text-xs mt-2">
+            Perderán acceso inmediato al portal
+          </p>
+        </div>
+        <div class="impact-card rounded-xl p-6">
+          <p class="text-gray-400 text-xs uppercase tracking-widest mb-2">Locales / sucursales</p>
+          <div class="count-number" id="count-locations">—</div>
+          <p class="text-gray-500 text-xs mt-2">
+            Sincronización y reseñas detenidas
+          </p>
+        </div>
+        <div class="impact-card rounded-xl p-6">
+          <p class="text-gray-400 text-xs uppercase tracking-widest mb-2">Registros de auditoría</p>
+          <div class="count-number" id="count-audit">—</div>
+          <p class="text-gray-500 text-xs mt-2">
+            Historial de actividad que se borrará
+          </p>
+        </div>
+      </div>
+
+      <div id="load-error" class="hidden text-red-400 text-sm mt-3">
+        No se pudo cargar el análisis de impacto. Recarga la página.
+      </div>
+    </section>
+
+    <!-- ── Domain warning ──────────────────────────────────────────────── -->
+    <section class="domain-card rounded-xl p-5 mb-8 hidden" id="domain-section">
+      <div class="flex items-start gap-3">
+        <svg class="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <div>
+          <p class="text-amber-300 font-semibold text-sm">Advertencia: dominio vinculado</p>
+          <p class="text-amber-200/70 text-sm mt-1">
+            El dominio <span id="org-domain" class="font-mono text-amber-300 font-bold"></span>
+            dejará de estar vinculado a Lokigi. Tus clientes verán un error 404 en el portal.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Hibernation offer ─────────────────────────────────────────────── -->
+    <section class="hibernate-card rounded-2xl p-6 mb-8">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-full bg-emerald-800 flex items-center justify-center">
+          <svg class="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="text-emerald-300 font-bold text-base">Alternativa recomendada: Hibernación de Red</h3>
+          <p class="text-emerald-400/70 text-xs">Pausa sin perder nada. Reactiva con un clic.</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+        <div class="bg-emerald-900/40 rounded-lg p-4 text-center">
+          <p class="text-3xl font-extrabold text-emerald-300">$0</p>
+          <p class="text-emerald-400 text-xs mt-1">Coste de datos (preservados)</p>
+        </div>
+        <div class="bg-emerald-900/40 rounded-lg p-4 text-center">
+          <p class="text-3xl font-extrabold text-emerald-300">∞</p>
+          <p class="text-emerald-400 text-xs mt-1">Tiempo máximo en pausa</p>
+        </div>
+        <div class="bg-emerald-900/40 rounded-lg p-4 text-center">
+          <p class="text-3xl font-extrabold text-emerald-300">1-clic</p>
+          <p class="text-emerald-400 text-xs mt-1">Reactivación instantánea</p>
+        </div>
+      </div>
+
+      <ul class="text-emerald-200/80 text-sm space-y-1 mb-5">
+        <li class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-emerald-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+          Todos los datos, reseñas e historial permanecen intactos.
+        </li>
+        <li class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-emerald-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+          Se pausan los scrapers, IA y workers de Celery.
+        </li>
+        <li class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-emerald-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+          El dominio sigue activo con una página de mantenimiento.
+        </li>
+        <li class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-emerald-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+          Los usuarios conservan sus accesos en modo lectura.
+        </li>
+      </ul>
+
+      <button
+        id="btn-hibernate"
+        onclick="triggerHibernate()"
+        class="hibernate-cta text-white font-bold px-8 py-3 rounded-xl text-sm w-full md:w-auto"
+      >
+        ❄️ Hibernar red ahora — mantener todos los datos
+      </button>
+
+      <div id="hibernate-feedback" class="hidden mt-3 text-sm text-emerald-300 font-medium"></div>
+    </section>
+
+    <!-- ── Divider ───────────────────────────────────────────────────────── -->
+    <div class="flex items-center gap-4 mb-8">
+      <div class="flex-1 h-px bg-gray-800"></div>
+      <span class="text-gray-600 text-xs uppercase tracking-widest">o continuar con cierre definitivo</span>
+      <div class="flex-1 h-px bg-gray-800"></div>
+    </div>
+
+    <!-- ── Destructive CTA ───────────────────────────────────────────────── -->
+    <section class="border border-red-900 rounded-2xl p-6 bg-red-950/20">
+      <h3 class="text-red-400 font-bold text-base mb-2">Cierre definitivo de la organización</h3>
+      <p class="text-gray-400 text-sm mb-4">
+        Esta acción es <strong class="text-red-300">irreversible</strong>. Se exportarán todos los datos
+        y se eliminará la organización al finalizar el ciclo de facturación actual.
+      </p>
+      <div class="flex items-start gap-3 bg-red-900/20 border border-red-800/40 rounded-lg p-4 mb-5">
+        <svg class="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+        </svg>
+        <p class="text-red-300/80 text-sm">
+          Serás responsable de notificar a los <span id="warn-members" class="font-bold text-red-200">todos los</span>
+          usuarios afectados antes de ejecutar el cierre.
+        </p>
+      </div>
+
+      <button
+        id="btn-proceed"
+        onclick="proceedToExport()"
+        class="delete-cta font-bold px-8 py-3 rounded-xl text-sm"
+        disabled
+      >
+        Continuar con cierre definitivo →
+      </button>
+      <p class="text-gray-600 text-xs mt-3" id="proceed-hint">
+        Cargando datos antes de habilitar esta opción…
+      </p>
+    </section>
+
+  </main>
+
+  <!-- ── Hibernate confirmation modal ────────────────────────────────────── -->
+  <div id="modal-hibernate" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+    <div class="bg-gray-900 border border-emerald-700 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
+      <h3 class="text-emerald-300 font-extrabold text-xl mb-3">Confirmar hibernación</h3>
+      <p class="text-gray-300 text-sm mb-6">
+        La organización pasará al estado <strong class="text-emerald-400">Hibernando</strong>.
+        Los workers de Celery serán suspendidos y el acceso de usuarios se pondrá en modo lectura.
+        Puedes reactivar en cualquier momento desde el panel de administración.
+      </p>
+      <div class="flex gap-3">
+        <button onclick="closeModal('modal-hibernate')"
+                class="flex-1 border border-gray-600 text-gray-400 py-3 rounded-xl text-sm hover:bg-gray-800 transition-colors">
+          Cancelar
+        </button>
+        <button id="btn-confirm-hibernate"
+                onclick="confirmHibernate()"
+                class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl text-sm transition-colors">
+          Hibernar ahora
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ─── State ────────────────────────────────────────────────────────────────
+    const orgId = sessionStorage.getItem('onboarding_org_id') || '';
+    let impactData = null;
+
+    if (!orgId) {
+      document.querySelector('main').innerHTML =
+        '<p class="text-red-400 text-center mt-20">No se encontró org_id en sesión. Vuelve al panel de administración.</p>';
+    }
+
+    // ─── Load impact summary ─────────────────────────────────────────────────
+    async function loadImpact() {
+      try {
+        const res = await fetch(`/enterprise/offboarding/${orgId}/impact`, {
+          headers: { 'Accept': 'application/json' },
+          credentials: 'same-origin',
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        impactData = await res.json();
+        renderImpact(impactData);
+      } catch (err) {
+        document.getElementById('load-error').classList.remove('hidden');
+        document.querySelectorAll('[id^="sk-"]').forEach(el => el.remove());
+        console.error('Impact load failed:', err);
+      }
+    }
+
+    function renderImpact(data) {
+      // Hide skeletons, show real cards
+      document.querySelectorAll('[id^="sk-"]').forEach(el => el.remove());
+      document.getElementById('counters-real').classList.remove('hidden');
+
+      // Animate counters
+      animateCount('count-members',   data.total_members);
+      animateCount('count-locations', data.total_locations);
+      animateCount('count-audit',     data.total_audit_log_entries);
+
+      // Domain warning
+      if (data.org_domain) {
+        document.getElementById('org-domain').textContent = data.org_domain;
+        document.getElementById('domain-section').classList.remove('hidden');
+      }
+
+      // Warn badge
+      document.getElementById('warn-members').textContent =
+        `${data.total_members} usuario${data.total_members !== 1 ? 's' : ''}`;
+
+      // Enable proceed button
+      document.getElementById('btn-proceed').removeAttribute('disabled');
+      document.getElementById('proceed-hint').textContent =
+        'Al continuar podrás exportar los datos y confirmar el cierre.';
+    }
+
+    function animateCount(id, target) {
+      const el = document.getElementById(id);
+      const duration = 1200;
+      const start = performance.now();
+      function step(now) {
+        const pct = Math.min((now - start) / duration, 1);
+        const ease = 1 - Math.pow(1 - pct, 3);
+        el.textContent = Math.round(ease * target).toLocaleString('es-ES');
+        if (pct < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }
+
+    // ─── Hibernation ─────────────────────────────────────────────────────────
+    function triggerHibernate() {
+      document.getElementById('modal-hibernate').classList.remove('hidden');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    async function confirmHibernate() {
+      const btn = document.getElementById('btn-confirm-hibernate');
+      btn.disabled = true;
+      btn.textContent = 'Hibernando…';
+
+      try {
+        const res = await fetch(`/enterprise/offboarding/${orgId}/hibernate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ confirmed: true }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+
+        closeModal('modal-hibernate');
+        const fb = document.getElementById('hibernate-feedback');
+        fb.classList.remove('hidden');
+        fb.innerHTML =
+          '✅ <strong>Red hibernada correctamente.</strong> Los workers han sido suspendidos. Puedes reactivar desde el panel.';
+
+        // Disable destructive CTA
+        document.getElementById('btn-proceed').setAttribute('disabled', 'true');
+        document.getElementById('btn-hibernate').setAttribute('disabled', 'true');
+        document.getElementById('btn-hibernate').textContent = '❄️ Hibernación activa';
+      } catch (err) {
+        closeModal('modal-hibernate');
+        alert(`Error al hibernar: ${err.message}`);
+        btn.disabled = false;
+        btn.textContent = 'Hibernar ahora';
+      }
+    }
+
+    // ─── Proceed to export ───────────────────────────────────────────────────
+    function proceedToExport() {
+      window.location.href = '/enterprise/offboarding/step2_export_close.html';
+    }
+
+    // ─── Init ─────────────────────────────────────────────────────────────────
+    if (orgId) loadImpact();
+  </script>
+</body>
+</html>

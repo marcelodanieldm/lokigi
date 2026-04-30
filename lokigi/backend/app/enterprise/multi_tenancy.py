@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import logging
 import uuid
+from datetime import datetime
 from typing import Callable
 
 from fastapi import Depends, HTTPException, Request, status
@@ -79,6 +80,14 @@ class Organization(Base):
 
     # Onboarding wizard progress (1=identity, 2=locations, 3=governance, 4=complete)
     onboarding_step: Mapped[int] = mapped_column(nullable=False, default=1)
+
+    # Lifecycle status — active | hibernating | pending_deletion | cancelled
+    org_status: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="active"
+    )
+    deletion_scheduled_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     created_at: Mapped[str] = mapped_column(
         DateTime(timezone=True),
