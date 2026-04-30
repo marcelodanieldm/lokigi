@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Informe de resultados | Bulk Publish · Lokigi Enterprise</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Arial, "Helvetica Neue", sans-serif; }
+    .no-underline { text-decoration: none; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp .35s ease both; }
+    @keyframes progress {
+      from { width: 0; }
+    }
+    .bar-anim { animation: progress 1.4s cubic-bezier(.4,0,.2,1) both; }
+    @keyframes pulse-dot {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%  { opacity: .5; transform: scale(1.4); }
+    }
+    .pulse-dot { animation: pulse-dot 1.2s ease-in-out infinite; }
+    input, select, textarea {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      color: #f1f5f9;
+      padding: 10px 14px;
+      font-size: 14px;
+      width: 100%;
+      outline: none;
+      transition: border-color .15s;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: rgba(167,139,250,.6);
+      box-shadow: 0 0 0 3px rgba(139,92,246,.15);
+    }
+    textarea { resize: vertical; min-height: 110px; }
+    select option { background: #1c1917; }
+    .tag {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 700;
+      border: 1px solid rgba(255,255,255,.12); cursor: pointer;
+      transition: all .15s;
+    }
+    .tag.selected {
+      background: rgba(139,92,246,.25);
+      border-color: rgba(139,92,246,.5);
+      color: #c4b5fd;
+    }
+    .tag:not(.selected) {
+      background: rgba(255,255,255,.04);
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-stone-950 text-stone-100">
+
+<nav class="sticky top-0 z-50 flex items-center gap-1 px-5 h-14
+     bg-stone-950/95 backdrop-blur-sm border-b border-white/10 shadow-md flex-wrap">
+  <div class="flex items-center gap-2.5 mr-4">
+    <a href="../enterprise_landing.html"
+       class="flex items-center justify-center w-8 h-8 rounded-lg
+              bg-gradient-to-br from-violet-500 to-indigo-600
+              text-white font-black text-sm no-underline">L</a>
+    <a href="../enterprise_landing.html"
+       class="font-bold text-white text-base no-underline">Lokigi</a>
+    <span class="px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300
+                 text-xs font-bold uppercase tracking-wider">Enterprise</span>
+    <span class="text-stone-600">·</span>
+    <span class="text-stone-400 text-xs font-semibold">Publicación Masiva</span>
+  </div>
+  <a href="bulk_hub.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">🗂 Hub</a>
+<a href="bulk_step1_compose.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">1 · Redactar</a>
+<a href="bulk_step2_segment.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">2 · Segmentar</a>
+<a href="bulk_step3_preview.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">3 · Preview</a>
+<a href="bulk_step4_publish.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">4 · Publicar</a>
+<a href="bulk_step5_report.html" class="px-3 py-2 rounded-lg text-sm font-semibold text-violet-200 bg-violet-500/20 border border-violet-400/20 no-underline">5 · Resultados</a>
+
+</nav>
+
+<div class="mx-auto max-w-4xl px-4 py-10 sm:px-6 pb-20 fade-up">
+
+  <div class="mb-8">
+    <p class="text-xs uppercase tracking-[.2em] text-violet-300/70 mb-1">Publicación Masiva · Informe Final</p>
+    <h1 class="text-3xl font-bold text-white">Resultados — Black Friday 2026</h1>
+    <p class="mt-1 text-stone-400 text-sm">
+      Campaña completada el <strong class="text-stone-200">28 Nov 2026 · 09:04:37</strong>
+    </p>
+  </div>
+
+  <!-- Big result banner -->
+  <div class="rounded-3xl border border-emerald-500/25
+              bg-gradient-to-br from-emerald-950/60 to-stone-900 p-8 mb-8 text-center">
+    <div class="text-6xl mb-3">✅</div>
+    <h2 class="text-4xl font-black text-white mb-2">42 de 44 locales</h2>
+    <p class="text-emerald-300 text-lg font-bold mb-1">95.5 % de éxito</p>
+    <p class="text-stone-400 text-sm">2 locales reintentando · 0 fallos definitivos</p>
+  </div>
+
+  <!-- KPI grid -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+    <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-center">
+      <p class="text-3xl font-black text-emerald-300">42</p>
+      <p class="text-xs uppercase tracking-wider text-stone-400 mt-1">Publicados ✓</p>
+    </div>
+    <div class="rounded-2xl border border-amber-500/15 bg-amber-500/5 p-4 text-center">
+      <p class="text-3xl font-black text-amber-300">2</p>
+      <p class="text-xs uppercase tracking-wider text-stone-400 mt-1">En reintento</p>
+    </div>
+    <div class="rounded-2xl border border-white/10 bg-white/5 p-4 text-center">
+      <p class="text-3xl font-black text-white">4 m 37 s</p>
+      <p class="text-xs uppercase tracking-wider text-stone-400 mt-1">Duración total</p>
+    </div>
+    <div class="rounded-2xl border border-white/10 bg-white/5 p-4 text-center">
+      <p class="text-3xl font-black text-white">6.3 s</p>
+      <p class="text-xs uppercase tracking-wider text-stone-400 mt-1">Máx. por local</p>
+    </div>
+  </div>
+
+  <!-- Tenant breakdown -->
+  <div class="rounded-3xl border border-white/10 bg-white/5 p-6 mb-6">
+    <h2 class="text-base font-semibold text-white mb-5">Desglose por Tenant</h2>
+    <div class="space-y-4">
+
+      <div>
+        <div class="flex justify-between text-sm mb-1.5">
+          <span class="text-stone-200 font-semibold">Cadena Pizzas Norte</span>
+          <span class="text-emerald-300 font-bold">8 / 8 ✓</span>
+        </div>
+        <div class="h-2.5 rounded-full bg-black/30 overflow-hidden">
+          <div class="h-full rounded-full bg-emerald-500 bar-anim" style="width:100%"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="flex justify-between text-sm mb-1.5">
+          <span class="text-stone-200 font-semibold">Franquicia Café Rápido</span>
+          <span class="text-emerald-300 font-bold">14 / 14 ✓</span>
+        </div>
+        <div class="h-2.5 rounded-full bg-black/30 overflow-hidden">
+          <div class="h-full rounded-full bg-emerald-500 bar-anim" style="width:100%"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="flex justify-between text-sm mb-1.5">
+          <span class="text-stone-200 font-semibold">Restaurantes El Mar</span>
+          <span class="text-amber-300 font-bold">4 / 5 · 1 reintentando</span>
+        </div>
+        <div class="h-2.5 rounded-full bg-black/30 overflow-hidden">
+          <div class="h-full rounded-full" style="width:80%;background:linear-gradient(90deg,#10b981,#f59e0b)"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="flex justify-between text-sm mb-1.5">
+          <span class="text-stone-200 font-semibold">Hoteles Solimar</span>
+          <span class="text-amber-300 font-bold">16 / 17 · 1 reintentando</span>
+        </div>
+        <div class="h-2.5 rounded-full bg-black/30 overflow-hidden">
+          <div class="h-full rounded-full" style="width:94%;background:linear-gradient(90deg,#10b981,#f59e0b)"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Technical report -->
+  <div class="rounded-3xl border border-white/10 bg-white/5 p-6 mb-6">
+    <h2 class="text-base font-semibold text-white mb-5">Informe técnico de Celery</h2>
+    <div class="rounded-2xl bg-stone-950 border border-white/10 p-5 font-mono text-xs text-stone-300 space-y-1.5">
+      <div><span class="text-stone-500">[2026-11-28 09:00:01]</span> <span class="text-violet-400">TASK_GROUP_START</span>  campaign=bf2026 · tasks=44 · concurrency=12</div>
+      <div><span class="text-stone-500">[2026-11-28 09:00:04]</span> <span class="text-emerald-400">SUCCESS</span>          loc=pizza-norte-malasana · elapsed=3.1s</div>
+      <div><span class="text-stone-500">[2026-11-28 09:00:04]</span> <span class="text-emerald-400">SUCCESS</span>          loc=cafe-rapido-gran-via · elapsed=2.8s</div>
+      <div><span class="text-stone-500">[2026-11-28 09:00:05]</span> <span class="text-rose-400">ERROR</span>            loc=el-mar-sarria · code=403 · msg=token_expired</div>
+      <div><span class="text-stone-500">[2026-11-28 09:00:05]</span> <span class="text-amber-400">RETRY</span>           loc=el-mar-sarria · attempt=1/3 · eta=+60s</div>
+      <div><span class="text-stone-500">[2026-11-28 09:00:07]</span> <span class="text-rose-400">ERROR</span>            loc=pizza-norte-arganzuela · code=429 · msg=rate_limit</div>
+      <div><span class="text-stone-500">[2026-11-28 09:00:07]</span> <span class="text-amber-400">RETRY</span>           loc=pizza-norte-arganzuela · attempt=1/3 · eta=+90s</div>
+      <div><span class="text-stone-500">[2026-11-28 09:02:14]</span> <span class="text-emerald-400">SUCCESS (retry)</span>  loc=el-mar-sarria · elapsed=1.4s</div>
+      <div><span class="text-stone-500">[2026-11-28 09:04:37]</span> <span class="text-emerald-400">TASK_GROUP_DONE</span>  success=42 · failed=0 · retried=2 · total_elapsed=4m37s</div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+    <button class="px-5 py-3.5 rounded-2xl border border-white/10 bg-white/5
+                   text-stone-300 font-semibold text-sm hover:bg-white/10 flex items-center justify-center gap-2">
+      📥 Descargar CSV
+    </button>
+    <button class="px-5 py-3.5 rounded-2xl border border-white/10 bg-white/5
+                   text-stone-300 font-semibold text-sm hover:bg-white/10 flex items-center justify-center gap-2">
+      📧 Enviar por email
+    </button>
+    <a href="bulk_step1_compose.html"
+       class="px-5 py-3.5 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600
+              text-white font-bold text-sm hover:from-violet-500 hover:to-indigo-500
+              no-underline flex items-center justify-center gap-2">
+      + Nueva campaña
+    </a>
+  </div>
+
+  <!-- Back to hub -->
+  <div class="flex justify-start">
+    <a href="bulk_hub.html"
+       class="px-5 py-3 rounded-2xl border border-white/10 bg-white/5
+              text-stone-300 font-semibold text-sm hover:bg-white/10 no-underline">
+      ← Volver al Hub
+    </a>
+  </div>
+</div>
+</body>
+</html>

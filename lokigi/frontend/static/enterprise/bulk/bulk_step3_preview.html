@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Paso 3 — Vista Previa | Bulk Publish · Lokigi Enterprise</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Arial, "Helvetica Neue", sans-serif; }
+    .no-underline { text-decoration: none; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp .35s ease both; }
+    @keyframes progress {
+      from { width: 0; }
+    }
+    .bar-anim { animation: progress 1.4s cubic-bezier(.4,0,.2,1) both; }
+    @keyframes pulse-dot {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%  { opacity: .5; transform: scale(1.4); }
+    }
+    .pulse-dot { animation: pulse-dot 1.2s ease-in-out infinite; }
+    input, select, textarea {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      color: #f1f5f9;
+      padding: 10px 14px;
+      font-size: 14px;
+      width: 100%;
+      outline: none;
+      transition: border-color .15s;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: rgba(167,139,250,.6);
+      box-shadow: 0 0 0 3px rgba(139,92,246,.15);
+    }
+    textarea { resize: vertical; min-height: 110px; }
+    select option { background: #1c1917; }
+    .tag {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 700;
+      border: 1px solid rgba(255,255,255,.12); cursor: pointer;
+      transition: all .15s;
+    }
+    .tag.selected {
+      background: rgba(139,92,246,.25);
+      border-color: rgba(139,92,246,.5);
+      color: #c4b5fd;
+    }
+    .tag:not(.selected) {
+      background: rgba(255,255,255,.04);
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-stone-950 text-stone-100">
+
+<nav class="sticky top-0 z-50 flex items-center gap-1 px-5 h-14
+     bg-stone-950/95 backdrop-blur-sm border-b border-white/10 shadow-md flex-wrap">
+  <div class="flex items-center gap-2.5 mr-4">
+    <a href="../enterprise_landing.html"
+       class="flex items-center justify-center w-8 h-8 rounded-lg
+              bg-gradient-to-br from-violet-500 to-indigo-600
+              text-white font-black text-sm no-underline">L</a>
+    <a href="../enterprise_landing.html"
+       class="font-bold text-white text-base no-underline">Lokigi</a>
+    <span class="px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300
+                 text-xs font-bold uppercase tracking-wider">Enterprise</span>
+    <span class="text-stone-600">·</span>
+    <span class="text-stone-400 text-xs font-semibold">Publicación Masiva</span>
+  </div>
+  <a href="bulk_hub.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">🗂 Hub</a>
+<a href="bulk_step1_compose.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">1 · Redactar</a>
+<a href="bulk_step2_segment.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">2 · Segmentar</a>
+<a href="bulk_step3_preview.html" class="px-3 py-2 rounded-lg text-sm font-semibold text-violet-200 bg-violet-500/20 border border-violet-400/20 no-underline">3 · Preview</a>
+<a href="bulk_step4_publish.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">4 · Publicar</a>
+<a href="bulk_step5_report.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">5 · Resultados</a>
+
+</nav>
+
+<div class="mx-auto max-w-4xl px-4 py-10 sm:px-6 pb-20 fade-up">
+
+  <div class="mb-8">
+    <p class="text-xs uppercase tracking-[.2em] text-violet-300/70 mb-1">Publicación Masiva · Paso 3 de 4</p>
+    <h1 class="text-3xl font-bold text-white">Vista Previa</h1>
+    <p class="mt-1 text-stone-400 text-sm">
+      Así quedará el post en Google Business Profile. Verifica que el contenido y las variables dinámicas son correctas antes de publicar.
+    </p>
+  </div>
+
+  <!-- Progress -->
+  <div class="flex gap-2 mb-10">
+    <div class="h-1.5 flex-1 rounded-full bg-violet-500"></div>
+    <div class="h-1.5 flex-1 rounded-full bg-violet-500"></div>
+    <div class="h-1.5 flex-1 rounded-full bg-violet-500"></div>
+    <div class="h-1.5 flex-1 rounded-full bg-white/10"></div>
+  </div>
+
+  <!-- Preview tabs -->
+  <div class="flex gap-2 mb-5">
+    <button class="px-4 py-2 rounded-xl bg-violet-600/30 border border-violet-500/30
+                   text-violet-200 text-sm font-semibold">Vista de ficha GBP</button>
+    <button class="px-4 py-2 rounded-xl border border-white/10 bg-white/5
+                   text-stone-400 text-sm font-semibold hover:bg-white/10">Vista móvil</button>
+    <button class="px-4 py-2 rounded-xl border border-white/10 bg-white/5
+                   text-stone-400 text-sm font-semibold hover:bg-white/10">Vista desktop</button>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-5 mb-8">
+
+    <!-- Local selector -->
+    <div class="rounded-3xl border border-white/10 bg-white/5 p-5">
+      <h2 class="text-base font-semibold text-white mb-1">Seleccionar local</h2>
+      <p class="text-xs text-stone-500 mb-4">Previsualiza cómo quedaría en cada ficha individual</p>
+      <div class="space-y-2">
+        <div class="flex items-center gap-3 p-3 rounded-2xl bg-violet-500/15 border border-violet-500/25 cursor-pointer">
+          <span class="w-2.5 h-2.5 rounded-full bg-violet-400 flex-shrink-0"></span>
+          <div>
+            <p class="text-sm font-semibold text-white">Pizza Norte — Malasaña</p>
+            <p class="text-xs text-stone-400">Madrid · rating: 4.5★</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 p-3 rounded-2xl border border-white/10 bg-white/3 cursor-pointer hover:bg-white/6">
+          <span class="w-2.5 h-2.5 rounded-full bg-stone-500 flex-shrink-0"></span>
+          <div>
+            <p class="text-sm font-semibold text-stone-200">Café Rápido — Gran Vía</p>
+            <p class="text-xs text-stone-400">Madrid · rating: 4.4★</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 p-3 rounded-2xl border border-white/10 bg-white/3 cursor-pointer hover:bg-white/6">
+          <span class="w-2.5 h-2.5 rounded-full bg-stone-500 flex-shrink-0"></span>
+          <div>
+            <p class="text-sm font-semibold text-stone-200">El Mar — Barceloneta</p>
+            <p class="text-xs text-stone-400">Barcelona · rating: 4.8★</p>
+          </div>
+        </div>
+        <div class="text-center py-2">
+          <span class="text-stone-600 text-xs">+ 41 más</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- GBP preview mockup -->
+    <div class="rounded-3xl border border-white/10 bg-white/5 p-5">
+      <div class="flex items-center gap-2 mb-4">
+        <div class="w-3 h-3 rounded-full bg-rose-500"></div>
+        <div class="w-3 h-3 rounded-full bg-amber-500"></div>
+        <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+        <div class="flex-1 mx-3 bg-white/10 rounded-md px-3 py-1 text-xs text-stone-500 font-mono">
+          google.com/maps/place/pizza-norte-malasana
+        </div>
+      </div>
+
+      <!-- Simulated GBP post card -->
+      <div class="rounded-2xl bg-white p-4 shadow-xl">
+        <!-- Business header -->
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600
+                      flex items-center justify-center text-white font-bold text-lg">🍕</div>
+          <div>
+            <p class="font-bold text-stone-900 text-sm">Pizza Norte — Malasaña</p>
+            <p class="text-stone-500 text-xs">Publicado por el propietario · hace unos momentos</p>
+          </div>
+        </div>
+        <!-- Image mockup -->
+        <div class="w-full h-36 rounded-xl bg-gradient-to-br from-amber-400 via-orange-500 to-red-600
+                    flex items-center justify-center mb-3">
+          <span class="text-white font-black text-2xl text-center px-4">🖤 BLACK FRIDAY</span>
+        </div>
+        <!-- Post text -->
+        <p class="text-stone-800 text-sm leading-relaxed mb-3">
+          ¡Llega nuestro Black Friday más especial! 🎉<br><br>
+          Del 28 al 30 de noviembre, disfruta de un 30 % de descuento en toda la carta en
+          <strong>Pizza Norte — Malasaña</strong>, en el corazón de Madrid.
+          Muestra este post en caja y el descuento se aplica automáticamente.<br><br>
+          📍 Válido en nuestro local de Malasaña.<br>
+          ⏰ Solo durante el periodo indicado.
+        </p>
+        <!-- CTA button -->
+        <div class="flex justify-center">
+          <div class="px-6 py-2.5 rounded-full border-2 border-blue-600 text-blue-600 text-sm font-bold">
+            Más información
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        <p class="text-xs text-emerald-300 font-semibold">Variables sustituidas correctamente</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Summary before publish -->
+  <div class="rounded-3xl border border-white/10 bg-white/5 p-6 mb-6">
+    <h2 class="text-base font-semibold text-white mb-4">Resumen antes de publicar</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+      <div><p class="text-2xl font-black text-white">44</p><p class="text-xs text-stone-400 mt-1">Locales destino</p></div>
+      <div><p class="text-2xl font-black text-emerald-300">50</p><p class="text-xs text-stone-400 mt-1">Verificados GBP</p></div>
+      <div><p class="text-2xl font-black text-white">28 Nov</p><p class="text-xs text-stone-400 mt-1">Fecha publicación</p></div>
+      <div><p class="text-2xl font-black text-violet-300">09:00</p><p class="text-xs text-stone-400 mt-1">Hora programada</p></div>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <div class="flex justify-between items-center">
+    <a href="bulk_step2_segment.html"
+       class="px-5 py-3 rounded-2xl border border-white/10 bg-white/5
+              text-stone-300 font-semibold text-sm hover:bg-white/10 no-underline">
+      ← Ajustar segmentación
+    </a>
+    <a href="bulk_step4_publish.html"
+       class="px-8 py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600
+              text-white font-bold text-sm hover:from-violet-500 hover:to-indigo-500 no-underline">
+      Confirmar y publicar →
+    </a>
+  </div>
+</div>
+</body>
+</html>

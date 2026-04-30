@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Paso 2 — Segmentación | Bulk Publish · Lokigi Enterprise</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Arial, "Helvetica Neue", sans-serif; }
+    .no-underline { text-decoration: none; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp .35s ease both; }
+    @keyframes progress {
+      from { width: 0; }
+    }
+    .bar-anim { animation: progress 1.4s cubic-bezier(.4,0,.2,1) both; }
+    @keyframes pulse-dot {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%  { opacity: .5; transform: scale(1.4); }
+    }
+    .pulse-dot { animation: pulse-dot 1.2s ease-in-out infinite; }
+    input, select, textarea {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      color: #f1f5f9;
+      padding: 10px 14px;
+      font-size: 14px;
+      width: 100%;
+      outline: none;
+      transition: border-color .15s;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: rgba(167,139,250,.6);
+      box-shadow: 0 0 0 3px rgba(139,92,246,.15);
+    }
+    textarea { resize: vertical; min-height: 110px; }
+    select option { background: #1c1917; }
+    .tag {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 700;
+      border: 1px solid rgba(255,255,255,.12); cursor: pointer;
+      transition: all .15s;
+    }
+    .tag.selected {
+      background: rgba(139,92,246,.25);
+      border-color: rgba(139,92,246,.5);
+      color: #c4b5fd;
+    }
+    .tag:not(.selected) {
+      background: rgba(255,255,255,.04);
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-stone-950 text-stone-100">
+
+<nav class="sticky top-0 z-50 flex items-center gap-1 px-5 h-14
+     bg-stone-950/95 backdrop-blur-sm border-b border-white/10 shadow-md flex-wrap">
+  <div class="flex items-center gap-2.5 mr-4">
+    <a href="../enterprise_landing.html"
+       class="flex items-center justify-center w-8 h-8 rounded-lg
+              bg-gradient-to-br from-violet-500 to-indigo-600
+              text-white font-black text-sm no-underline">L</a>
+    <a href="../enterprise_landing.html"
+       class="font-bold text-white text-base no-underline">Lokigi</a>
+    <span class="px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300
+                 text-xs font-bold uppercase tracking-wider">Enterprise</span>
+    <span class="text-stone-600">·</span>
+    <span class="text-stone-400 text-xs font-semibold">Publicación Masiva</span>
+  </div>
+  <a href="bulk_hub.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">🗂 Hub</a>
+<a href="bulk_step1_compose.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">1 · Redactar</a>
+<a href="bulk_step2_segment.html" class="px-3 py-2 rounded-lg text-sm font-semibold text-violet-200 bg-violet-500/20 border border-violet-400/20 no-underline">2 · Segmentar</a>
+<a href="bulk_step3_preview.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">3 · Preview</a>
+<a href="bulk_step4_publish.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">4 · Publicar</a>
+<a href="bulk_step5_report.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">5 · Resultados</a>
+
+</nav>
+
+<div class="mx-auto max-w-4xl px-4 py-10 sm:px-6 pb-20 fade-up">
+
+  <div class="mb-8">
+    <p class="text-xs uppercase tracking-[.2em] text-violet-300/70 mb-1">Publicación Masiva · Paso 2 de 4</p>
+    <h1 class="text-3xl font-bold text-white">Segmentación de Locales</h1>
+    <p class="mt-1 text-stone-400 text-sm">
+      Elige exactamente qué locales recibirán la publicación usando etiquetas, ciudad o tenant.
+    </p>
+  </div>
+
+  <!-- Progress -->
+  <div class="flex gap-2 mb-10">
+    <div class="h-1.5 flex-1 rounded-full bg-violet-500"></div>
+    <div class="h-1.5 flex-1 rounded-full bg-violet-500"></div>
+    <div class="h-1.5 flex-1 rounded-full bg-white/10"></div>
+    <div class="h-1.5 flex-1 rounded-full bg-white/10"></div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-5">
+
+    <!-- LEFT -->
+    <div class="space-y-5">
+
+      <!-- Tenant filter -->
+      <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
+        <h2 class="text-base font-semibold text-white mb-4">Filtrar por Tenant</h2>
+        <div class="flex flex-wrap gap-2">
+          <span class="tag selected">✓ Todos los tenants</span>
+          <span class="tag">Cadena Pizzas Norte</span>
+          <span class="tag">Franquicia Café Rápido</span>
+          <span class="tag">Restaurantes El Mar</span>
+          <span class="tag">Hoteles Solimar</span>
+        </div>
+      </div>
+
+      <!-- Location tags -->
+      <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-base font-semibold text-white m-0">Etiquetas de locales</h2>
+          <button class="px-3 py-1.5 rounded-lg bg-violet-600/30 border border-violet-500/20
+                         text-violet-300 text-xs font-semibold hover:bg-violet-600/50">
+            + Nueva etiqueta
+          </button>
+        </div>
+        <div class="flex flex-wrap gap-2 mb-4">
+          <span class="tag selected">✓ Todos los locales (50)</span>
+          <span class="tag">Con terraza (18)</span>
+          <span class="tag">Drive-thru (7)</span>
+          <span class="tag">Apertura reciente (4)</span>
+          <span class="tag">Alta demanda (12)</span>
+          <span class="tag">Rating &lt; 4.0 (9)</span>
+          <span class="tag">Franquicia Gold (6)</span>
+        </div>
+        <p class="text-xs text-stone-500">
+          💡 Las etiquetas se asignan desde el panel de ubicaciones (Paso 3 del flujo Enterprise).
+        </p>
+      </div>
+
+      <!-- City filter -->
+      <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
+        <h2 class="text-base font-semibold text-white mb-4">Filtrar por Ciudad</h2>
+        <div class="flex flex-wrap gap-2">
+          <span class="tag selected">✓ Todas las ciudades</span>
+          <span class="tag">Madrid (28)</span>
+          <span class="tag">Barcelona (9)</span>
+          <span class="tag">Sevilla (6)</span>
+          <span class="tag">Marbella (3)</span>
+          <span class="tag">Valencia (4)</span>
+        </div>
+      </div>
+
+      <!-- Advanced -->
+      <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
+        <h2 class="text-base font-semibold text-white mb-4">Filtros avanzados</h2>
+        <div class="space-y-3">
+          <div class="flex items-center justify-between py-2.5 border-b border-white/5">
+            <div>
+              <p class="text-sm font-semibold text-stone-200">Solo locales con GBP verificado</p>
+              <p class="text-xs text-stone-500">Excluye fichas pendientes de verificación</p>
+            </div>
+            <label class="flex items-center cursor-pointer">
+              <div class="w-10 h-5 rounded-full bg-violet-600 relative">
+                <div class="absolute right-0.5 top-0.5 w-4 h-4 rounded-full bg-white shadow"></div>
+              </div>
+            </label>
+          </div>
+          <div class="flex items-center justify-between py-2.5 border-b border-white/5">
+            <div>
+              <p class="text-sm font-semibold text-stone-200">Excluir locales con alerta activa</p>
+              <p class="text-xs text-stone-500">Evita publicar en locales con problemas pendientes</p>
+            </div>
+            <label class="flex items-center cursor-pointer">
+              <div class="w-10 h-5 rounded-full bg-stone-700 relative">
+                <div class="absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-stone-400 shadow"></div>
+              </div>
+            </label>
+          </div>
+          <div class="flex items-center justify-between py-2.5">
+            <div>
+              <p class="text-sm font-semibold text-stone-200">Excluir locales temporalmente cerrados</p>
+              <p class="text-xs text-stone-500">No publica en fichas con estado "cerrado temporalmente"</p>
+            </div>
+            <label class="flex items-center cursor-pointer">
+              <div class="w-10 h-5 rounded-full bg-violet-600 relative">
+                <div class="absolute right-0.5 top-0.5 w-4 h-4 rounded-full bg-white shadow"></div>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <!-- END LEFT -->
+
+    <!-- RIGHT: Live selection summary -->
+    <div class="space-y-5">
+      <div class="rounded-3xl border border-violet-500/25 bg-violet-500/8 p-6 sticky top-20">
+        <p class="text-xs uppercase tracking-[.2em] text-violet-300/70 mb-4">Resumen de selección</p>
+
+        <div class="text-center mb-6">
+          <p class="text-6xl font-black text-white">50</p>
+          <p class="text-stone-400 text-sm mt-1">locales seleccionados</p>
+        </div>
+
+        <div class="space-y-3 mb-6">
+          <div class="flex justify-between text-sm">
+            <span class="text-stone-400">Tenants cubiertos</span>
+            <span class="text-white font-bold">4 / 4</span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span class="text-stone-400">Ciudades</span>
+            <span class="text-white font-bold">5</span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span class="text-stone-400">Con GBP verificado</span>
+            <span class="text-emerald-300 font-bold">50 / 50</span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span class="text-stone-400">Con alerta activa</span>
+            <span class="text-amber-300 font-bold">6 (excluidos)</span>
+          </div>
+          <div class="flex justify-between text-sm border-t border-white/10 pt-3">
+            <span class="text-stone-300 font-semibold">Total a publicar</span>
+            <span class="text-white font-black">44 locales</span>
+          </div>
+        </div>
+
+        <!-- Mini location list preview -->
+        <div class="rounded-2xl border border-white/10 bg-black/20 p-4 max-h-48 overflow-y-auto mb-5">
+          <p class="text-xs text-stone-500 uppercase tracking-wider mb-3">Vista previa</p>
+          <div class="space-y-2 text-xs">
+            <div class="flex gap-2 items-center"><span class="w-2 h-2 rounded-full bg-emerald-400"></span><span class="text-stone-300">Pizza Norte — Malasaña · Madrid</span></div>
+            <div class="flex gap-2 items-center"><span class="w-2 h-2 rounded-full bg-emerald-400"></span><span class="text-stone-300">Pizza Norte — Chamberí · Madrid</span></div>
+            <div class="flex gap-2 items-center"><span class="w-2 h-2 rounded-full bg-emerald-400"></span><span class="text-stone-300">Café Rápido — Gran Vía · Madrid</span></div>
+            <div class="flex gap-2 items-center"><span class="w-2 h-2 rounded-full bg-emerald-400"></span><span class="text-stone-300">Café Rápido — Retiro · Madrid</span></div>
+            <div class="flex gap-2 items-center"><span class="w-2 h-2 rounded-full bg-emerald-400"></span><span class="text-stone-300">El Mar — Barceloneta · Barcelona</span></div>
+            <div class="flex gap-2 items-center"><span class="w-2 h-2 rounded-full bg-amber-400"></span><span class="text-stone-400 line-through">Hotel Solimar Marbella · (alerta)</span></div>
+            <div class="flex items-center justify-center py-2">
+              <span class="text-stone-600 text-xs">+ 38 más...</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-3 mb-5">
+          <p class="text-xs text-amber-300 font-semibold">⚠️ 6 locales excluidos por alerta activa</p>
+          <p class="text-xs text-stone-500 mt-1">Puedes revisarlos en la vista de ubicaciones antes de continuar.</p>
+        </div>
+
+        <a href="bulk_step3_preview.html"
+           class="flex items-center justify-center w-full px-6 py-3 rounded-2xl
+                  bg-gradient-to-r from-violet-600 to-indigo-600
+                  text-white font-bold text-sm hover:from-violet-500 hover:to-indigo-500 no-underline">
+          Confirmar y previsualizar →
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Navigation -->
+  <div class="flex justify-between items-center mt-8">
+    <a href="bulk_step1_compose.html"
+       class="px-5 py-3 rounded-2xl border border-white/10 bg-white/5
+              text-stone-300 font-semibold text-sm hover:bg-white/10 no-underline">
+      ← Atrás
+    </a>
+    <a href="bulk_step3_preview.html"
+       class="px-8 py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600
+              text-white font-bold text-sm hover:from-violet-500 hover:to-indigo-500 no-underline">
+      Vista previa →
+    </a>
+  </div>
+</div>
+</body>
+</html>

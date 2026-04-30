@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Paso 4 — Publicando | Bulk Publish · Lokigi Enterprise</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Arial, "Helvetica Neue", sans-serif; }
+    .no-underline { text-decoration: none; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp .35s ease both; }
+    @keyframes progress {
+      from { width: 0; }
+    }
+    .bar-anim { animation: progress 1.4s cubic-bezier(.4,0,.2,1) both; }
+    @keyframes pulse-dot {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%  { opacity: .5; transform: scale(1.4); }
+    }
+    .pulse-dot { animation: pulse-dot 1.2s ease-in-out infinite; }
+    input, select, textarea {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      color: #f1f5f9;
+      padding: 10px 14px;
+      font-size: 14px;
+      width: 100%;
+      outline: none;
+      transition: border-color .15s;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: rgba(167,139,250,.6);
+      box-shadow: 0 0 0 3px rgba(139,92,246,.15);
+    }
+    textarea { resize: vertical; min-height: 110px; }
+    select option { background: #1c1917; }
+    .tag {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 700;
+      border: 1px solid rgba(255,255,255,.12); cursor: pointer;
+      transition: all .15s;
+    }
+    .tag.selected {
+      background: rgba(139,92,246,.25);
+      border-color: rgba(139,92,246,.5);
+      color: #c4b5fd;
+    }
+    .tag:not(.selected) {
+      background: rgba(255,255,255,.04);
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-stone-950 text-stone-100">
+
+<nav class="sticky top-0 z-50 flex items-center gap-1 px-5 h-14
+     bg-stone-950/95 backdrop-blur-sm border-b border-white/10 shadow-md flex-wrap">
+  <div class="flex items-center gap-2.5 mr-4">
+    <a href="../enterprise_landing.html"
+       class="flex items-center justify-center w-8 h-8 rounded-lg
+              bg-gradient-to-br from-violet-500 to-indigo-600
+              text-white font-black text-sm no-underline">L</a>
+    <a href="../enterprise_landing.html"
+       class="font-bold text-white text-base no-underline">Lokigi</a>
+    <span class="px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300
+                 text-xs font-bold uppercase tracking-wider">Enterprise</span>
+    <span class="text-stone-600">·</span>
+    <span class="text-stone-400 text-xs font-semibold">Publicación Masiva</span>
+  </div>
+  <a href="bulk_hub.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">🗂 Hub</a>
+<a href="bulk_step1_compose.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">1 · Redactar</a>
+<a href="bulk_step2_segment.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">2 · Segmentar</a>
+<a href="bulk_step3_preview.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">3 · Preview</a>
+<a href="bulk_step4_publish.html" class="px-3 py-2 rounded-lg text-sm font-semibold text-violet-200 bg-violet-500/20 border border-violet-400/20 no-underline">4 · Publicar</a>
+<a href="bulk_step5_report.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">5 · Resultados</a>
+
+</nav>
+
+<div class="mx-auto max-w-3xl px-4 py-10 sm:px-6 pb-20 fade-up">
+
+  <div class="mb-8">
+    <p class="text-xs uppercase tracking-[.2em] text-violet-300/70 mb-1">Publicación Masiva · Paso 4 de 4</p>
+    <h1 class="text-3xl font-bold text-white">Worker en Cascada</h1>
+    <p class="mt-1 text-stone-400 text-sm">
+      Celery dispara <strong class="text-white">44 tareas en paralelo</strong>
+      hacia la Google Business Profile API. Progreso en tiempo real.
+    </p>
+  </div>
+
+  <!-- Progress -->
+  <div class="flex gap-2 mb-10">
+    <div class="h-1.5 flex-1 rounded-full bg-violet-500"></div>
+    <div class="h-1.5 flex-1 rounded-full bg-violet-500"></div>
+    <div class="h-1.5 flex-1 rounded-full bg-violet-500"></div>
+    <div class="h-1.5 flex-1 rounded-full bg-violet-500"></div>
+  </div>
+
+  <!-- Live progress card -->
+  <div class="rounded-3xl border border-violet-500/25 bg-violet-500/8 p-6 mb-6">
+    <div class="flex items-center justify-between mb-2">
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-violet-400 pulse-dot"></span>
+        <p class="text-sm font-bold text-violet-200">Publicando… Black Friday 2026</p>
+      </div>
+      <span class="text-xs text-stone-400 font-mono">Celery worker · 12 hilos activos</span>
+    </div>
+
+    <!-- Big progress bar -->
+    <div class="relative h-5 rounded-full bg-black/30 overflow-hidden my-5 border border-white/10">
+      <div class="h-full rounded-full bar-anim"
+           style="width:90%;background:linear-gradient(90deg,#7c3aed,#4f46e5,#6366f1)"></div>
+      <span class="absolute inset-0 flex items-center justify-center text-xs font-bold text-white">
+        90 %
+      </span>
+    </div>
+
+    <div class="grid grid-cols-3 gap-3 text-center mb-5">
+      <div class="rounded-2xl bg-black/20 border border-emerald-500/15 p-3">
+        <p class="text-2xl font-black text-emerald-300">18</p>
+        <p class="text-xs text-stone-400 mt-1">Publicados</p>
+      </div>
+      <div class="rounded-2xl bg-black/20 border border-rose-500/15 p-3">
+        <p class="text-2xl font-black text-rose-300">2</p>
+        <p class="text-xs text-stone-400 mt-1">Fallaron</p>
+      </div>
+      <div class="rounded-2xl bg-black/20 border border-stone-500/15 p-3">
+        <p class="text-2xl font-black text-stone-400">0</p>
+        <p class="text-xs text-stone-400 mt-1">En cola</p>
+      </div>
+    </div>
+
+    <!-- Architecture note -->
+    <div class="rounded-2xl bg-black/20 border border-white/10 p-4 font-mono text-xs text-stone-400 space-y-1">
+      <div><span class="text-violet-400">bulk_publish_campaign</span>.apply_async(campaign_id=<span class="text-amber-300">"bf2026"</span>)</div>
+      <div class="pl-4">→ <span class="text-sky-400">chord</span>([publish_location.s(loc_id) for loc_id in locations])</div>
+      <div class="pl-8">→ <span class="text-emerald-400">aggregate_results</span>.s()  <span class="text-stone-600"># callback al terminar</span></div>
+      <div class="pl-4 text-stone-600"># Concurrency: 12 · Rate limit: 10/s · Retry: 3x exp backoff</div>
+    </div>
+  </div>
+
+  <!-- Task log -->
+  <div class="rounded-3xl border border-white/10 bg-white/5 p-5 mb-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-base font-semibold text-white m-0">Log de tareas (últimas 20)</h2>
+      <span class="text-xs text-stone-500 font-mono">actualización cada 2 s</span>
+    </div>
+    <div class="max-h-80 overflow-y-auto space-y-0">
+      
+        <div class="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
+          <span class="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs flex-shrink-0">✓</span>
+          <span class="text-sm text-stone-200 flex-1">Pizza Norte — Malasaña</span>
+          <span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Publicado</span>
+        </div>
+        <div class="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
+          <span class="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs flex-shrink-0">✓</span>
+          <span class="text-sm text-stone-200 flex-1">Pizza Norte — Chamberí</span>
+          <span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Publicado</span>
+        </div>
+        <div class="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
+          <span class="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs flex-shrink-0">✓</span>
+          <span class="text-sm text-stone-200 flex-1">Pizza Norte — Vallecas</span>
+          <span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Publicado</span>
+        </div>
+        <div class="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
+          <span class="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs flex-shrink-0">✓</span>
+          <span class="text-sm text-stone-200 flex-1">Pizza Norte — Getafe</span>
+          <span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Publicado</span>
+        </div>
+        <div class="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
+          <span class="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs flex-shrink-0">✓</span>
+          <span class="text-sm text-stone-200 flex-1">Café Rápido — Gran Vía</span>
+          <span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Publicado</span>
+        </div>
+        <div class="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
+          <span class="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs flex-shrink-0">✓</span>
+          <span class="text-sm text-stone-200 flex-1">Café Rápido — Retiro</span>
+          <span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Publicado</span>
+        </div>
+        <div class="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
+          <span class="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs flex-shrink-0">✓</span>
+          <span class="text-sm text-stone-200 flex-1">Café Rápido — Atocha</span>
+          <span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Publicado</span>
+        </div>
+        <div class="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
+          <span class="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs flex-shrink-0">✓</span>
+          <span class="text-sm text-stone-200 flex-1">Café Rápido — Leganés</span>
+          <span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Publicado</span>
+        </div>
+        <div class="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
+          <span class="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs flex-shrink-0">✓</span>
+          <span class="text-sm text-stone-200 flex-1">Café Rápido — Alcorcón</span>
+          <span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Publicado</span>
+        </div>
+        <div class="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
+          <span class="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs flex-shrink-0">✓</span>
+          <span class="text-sm text-stone-200 flex-1">El Mar — Barceloneta</span>
+          <span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Publicado</span>
+        </div>
+        <div class="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
+          <span class="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs flex-shrink-0">✓</span>
+          <span class="text-sm text-stone-200 flex-1">El Mar — Diagonal</span>
+          <span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Publicado</span>
+        </div>
+        <div class="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
+          <span class="w-6 h-6 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-400 text-xs flex-shrink-0">✗</span>
+          <span class="text-sm text-stone-200 flex-1">El Mar — Sarrià</span>
+          <span class="px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-300 text-xs font-bold">Error · retry</span>
+        </div>
+        <div class="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
+          <span class="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs flex-shrink-0">✓</span>
+          <span class="text-sm text-stone-200 flex-1">El Mar — Gràcia</span>
+          <span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Publicado</span>
+        </div>
+        <div class="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
+          <span class="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs flex-shrink-0">✓</span>
+          <span class="text-sm text-stone-200 flex-1">Café Rápido — Getafe Centro</span>
+          <span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Publicado</span>
+        </div>
+        <div class="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
+          <span class="w-6 h-6 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-400 text-xs flex-shrink-0">✗</span>
+          <span class="text-sm text-stone-200 flex-1">Pizza Norte — Arganzuela</span>
+          <span class="px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-300 text-xs font-bold">Error · retry</span>
+        </div>
+        <div class="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
+          <span class="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs flex-shrink-0">✓</span>
+          <span class="text-sm text-stone-200 flex-1">Café Rápido — Majadahonda</span>
+          <span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Publicado</span>
+        </div>
+        <div class="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
+          <span class="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs flex-shrink-0">✓</span>
+          <span class="text-sm text-stone-200 flex-1">Café Rápido — Pozuelo</span>
+          <span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Publicado</span>
+        </div>
+        <div class="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
+          <span class="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs flex-shrink-0">✓</span>
+          <span class="text-sm text-stone-200 flex-1">Pizza Norte — Hortaleza</span>
+          <span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Publicado</span>
+        </div>
+        <div class="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
+          <span class="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs flex-shrink-0">✓</span>
+          <span class="text-sm text-stone-200 flex-1">Café Rápido — Moratalaz</span>
+          <span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Publicado</span>
+        </div>
+        <div class="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
+          <span class="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs flex-shrink-0">✓</span>
+          <span class="text-sm text-stone-200 flex-1">Café Rápido — Vicálvaro</span>
+          <span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Publicado</span>
+        </div>
+    </div>
+  </div>
+
+  <!-- Error detail -->
+  <div class="rounded-3xl border border-rose-500/20 bg-rose-500/5 p-5 mb-8">
+    <h2 class="text-base font-semibold text-white mb-4">Errores detectados — 2 locales</h2>
+    <div class="space-y-3">
+      <div class="rounded-2xl border border-white/10 bg-black/15 p-4">
+        <div class="flex justify-between items-start gap-2 mb-2">
+          <div>
+            <p class="text-sm font-semibold text-white">El Mar — Sarrià</p>
+            <p class="text-xs text-stone-500 font-mono mt-1">GBP_API_ERROR · 403 Forbidden · token_expired</p>
+          </div>
+          <span class="px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 text-xs font-bold flex-shrink-0">Reintentando</span>
+        </div>
+        <p class="text-xs text-stone-400">El token OAuth de este local ha expirado. El sistema reintentará en 60 s tras refrescar credenciales.</p>
+      </div>
+      <div class="rounded-2xl border border-white/10 bg-black/15 p-4">
+        <div class="flex justify-between items-start gap-2 mb-2">
+          <div>
+            <p class="text-sm font-semibold text-white">Pizza Norte — Arganzuela</p>
+            <p class="text-xs text-stone-500 font-mono mt-1">GBP_API_ERROR · 429 Too Many Requests</p>
+          </div>
+          <span class="px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 text-xs font-bold flex-shrink-0">Reintentando</span>
+        </div>
+        <p class="text-xs text-stone-400">Rate limit alcanzado. Backoff exponencial: próximo intento en 90 s.</p>
+      </div>
+    </div>
+    <button class="mt-4 px-5 py-2.5 rounded-xl border border-rose-500/25 bg-rose-500/10
+                   text-rose-300 text-sm font-semibold hover:bg-rose-500/20">
+      Reintentar fallidos manualmente
+    </button>
+  </div>
+
+  <!-- Navigation -->
+  <div class="flex justify-between items-center">
+    <span class="text-stone-600 text-sm">Publicación en curso · no cierres esta pestaña</span>
+    <a href="bulk_step5_report.html"
+       class="px-8 py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600
+              text-white font-bold text-sm hover:from-violet-500 hover:to-indigo-500 no-underline">
+      Ver informe final →
+    </a>
+  </div>
+</div>
+</body>
+</html>
