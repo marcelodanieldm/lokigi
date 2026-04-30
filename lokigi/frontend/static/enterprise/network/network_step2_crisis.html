@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Paso 2 — Alertas de Crisis | Network Health · Lokigi Enterprise</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Arial, "Helvetica Neue", sans-serif; }
+    .no-underline { text-decoration: none; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp .35s ease both; }
+    @keyframes progress {
+      from { width: 0; }
+    }
+    .bar-anim { animation: progress 1.4s cubic-bezier(.4,0,.2,1) both; }
+    @keyframes pulse-dot {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%  { opacity: .5; transform: scale(1.6); }
+    }
+    .pulse-dot { animation: pulse-dot 1s ease-in-out infinite; }
+    @keyframes crisis-pulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,.4); }
+      50%  { box-shadow: 0 0 0 12px rgba(239,68,68,0); }
+    }
+    .crisis-pulse { animation: crisis-pulse 1.8s ease-in-out infinite; }
+    input, select, textarea {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      color: #f1f5f9;
+      padding: 10px 14px;
+      font-size: 14px;
+      width: 100%;
+      outline: none;
+    }
+    select option { background: #1c1917; }
+  </style>
+</head>
+<body class="min-h-screen bg-stone-950 text-stone-100">
+
+<nav class="sticky top-0 z-50 flex items-center gap-1 px-5 h-14
+     bg-stone-950/95 backdrop-blur-sm border-b border-white/10 shadow-md flex-wrap">
+  <div class="flex items-center gap-2.5 mr-4">
+    <a href="../enterprise_landing.html"
+       class="flex items-center justify-center w-8 h-8 rounded-lg
+              bg-gradient-to-br from-violet-500 to-indigo-600
+              text-white font-black text-sm no-underline">L</a>
+    <a href="../enterprise_landing.html"
+       class="font-bold text-white text-base no-underline">Lokigi</a>
+    <span class="px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300
+                 text-xs font-bold uppercase tracking-wider">Enterprise</span>
+    <span class="text-stone-600">·</span>
+    <span class="text-stone-400 text-xs font-semibold">Auditoría de Red</span>
+  </div>
+  <a href="network_hub.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">🌐 Hub</a>
+<a href="network_step1_scan.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">1 · Escaneo</a>
+<a href="network_step2_crisis.html" class="px-3 py-2 rounded-lg text-sm font-semibold text-violet-200 bg-violet-500/20 border border-violet-400/20 no-underline">2 · Crisis</a>
+<a href="network_step3_benchmark.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">3 · Benchmark</a>
+<a href="network_step4_training.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">4 · Training</a>
+<a href="network_step5_report.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">5 · Informe</a>
+
+</nav>
+
+<div class="mx-auto max-w-4xl px-4 py-10 sm:px-6 pb-20 fade-up">
+
+  <div class="mb-8">
+    <p class="text-xs uppercase tracking-[.2em] text-rose-300/70 mb-1">Auditoría de Red · Paso 2</p>
+    <h1 class="text-3xl font-bold text-white">Alerta de Crisis</h1>
+    <p class="mt-1 text-stone-400 text-sm">
+      La IA monitoriza el sentimiento de cada reseña. Cuando detecta palabras o patrones críticos,
+      dispara una alerta inmediata al SuperAdmin de la agencia.
+    </p>
+  </div>
+
+  <!-- How AI works -->
+  <div class="rounded-3xl border border-violet-500/20 bg-violet-500/5 p-6 mb-6">
+    <h2 class="text-base font-semibold text-white mb-4">¿Cómo funciona la detección de crisis?</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="text-center">
+        <div class="w-12 h-12 rounded-2xl bg-violet-500/20 flex items-center justify-center text-2xl mx-auto mb-3">📥</div>
+        <p class="text-sm font-semibold text-white mb-1">Ingesta continua</p>
+        <p class="text-xs text-stone-400">GBP API envía nuevas reseñas al webhook de Lokigi cada 15 min</p>
+      </div>
+      <div class="text-center">
+        <div class="w-12 h-12 rounded-2xl bg-indigo-500/20 flex items-center justify-center text-2xl mx-auto mb-3">🤖</div>
+        <p class="text-sm font-semibold text-white mb-1">Análisis NLP</p>
+        <p class="text-xs text-stone-400">Modelo de sentimiento detecta categorías críticas: higiene, fraude, seguridad, servicio</p>
+      </div>
+      <div class="text-center">
+        <div class="w-12 h-12 rounded-2xl bg-rose-500/20 flex items-center justify-center text-2xl mx-auto mb-3">🚨</div>
+        <p class="text-sm font-semibold text-white mb-1">Alerta inmediata</p>
+        <p class="text-xs text-stone-400">Email + push al SuperAdmin + ticket automático de gestión</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Crisis cards -->
+  <h2 class="text-base font-semibold text-white mb-4">Alertas activas — 2 crisis detectadas</h2>
+
+  <!-- Crisis 1 -->
+  <div class="rounded-3xl border border-rose-500/40 bg-rose-950/30 p-6 mb-5 crisis-pulse">
+    <div class="flex items-start justify-between gap-4 mb-5 flex-wrap">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-rose-500 flex items-center justify-center text-white font-black text-lg flex-shrink-0">!</div>
+        <div>
+          <p class="text-rose-300 font-black text-lg">El Mar — Sarrià · Barcelona</p>
+          <p class="text-stone-400 text-sm">Detectado: hace 4 min · 1 reseña crítica</p>
+        </div>
+      </div>
+      <span class="px-3 py-1.5 rounded-full bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs font-black uppercase tracking-wider">
+        🔴 Crisis activa
+      </span>
+    </div>
+
+    <!-- The offending review -->
+    <div class="rounded-2xl border border-rose-500/25 bg-black/20 p-5 mb-5">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-9 h-9 rounded-full bg-stone-700 flex items-center justify-center text-sm font-bold text-stone-300">MG</div>
+        <div>
+          <p class="text-sm font-semibold text-stone-200">Marta García</p>
+          <div class="flex gap-0.5 text-amber-400 text-xs">★★☆☆☆</div>
+        </div>
+        <span class="ml-auto text-xs text-stone-600">hace 5 min · Google</span>
+      </div>
+      <p class="text-stone-300 text-sm leading-relaxed">
+        "Completamente decepcionante. El local estaba <strong class="text-rose-300 bg-rose-500/15 px-1 rounded">sucio</strong>, los baños en estado lamentable
+        y el pescado olía mal. No volveré nunca. Esperaba más de un sitio de este nivel de precios."
+      </p>
+      <div class="flex flex-wrap gap-2 mt-4">
+        <span class="px-2.5 py-1 rounded-full bg-rose-500/20 border border-rose-500/20 text-rose-300 text-xs font-bold">🔴 suciedad</span>
+        <span class="px-2.5 py-1 rounded-full bg-rose-500/20 border border-rose-500/20 text-rose-300 text-xs font-bold">🔴 higiene alimentaria</span>
+        <span class="px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/15 text-amber-300 text-xs font-bold">⚠️ precio/valor</span>
+        <span class="text-xs text-stone-500 self-center ml-1">Confianza del modelo: 97.3%</span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div class="rounded-2xl bg-black/15 border border-white/8 p-4 text-center">
+        <p class="text-2xl font-black text-rose-300">2.9★</p>
+        <p class="text-xs text-stone-500 mt-1">Nota actual</p>
+      </div>
+      <div class="rounded-2xl bg-black/15 border border-white/8 p-4 text-center">
+        <p class="text-2xl font-black text-amber-300">-1.3</p>
+        <p class="text-xs text-stone-500 mt-1">Caída este mes</p>
+      </div>
+      <div class="rounded-2xl bg-black/15 border border-white/8 p-4 text-center">
+        <p class="text-2xl font-black text-white">1</p>
+        <p class="text-xs text-stone-500 mt-1">Reseñas críticas nuevas</p>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap gap-3 mt-5">
+      <button class="px-5 py-2.5 rounded-xl bg-rose-600 text-white text-sm font-bold hover:bg-rose-500">
+        📧 Responder ahora
+      </button>
+      <button class="px-5 py-2.5 rounded-xl border border-white/10 bg-white/5 text-stone-300 text-sm font-semibold hover:bg-white/10">
+        📋 Crear ticket de gestión
+      </button>
+      <button class="px-5 py-2.5 rounded-xl border border-white/10 bg-white/5 text-stone-300 text-sm font-semibold hover:bg-white/10">
+        🔕 Descartar alerta
+      </button>
+    </div>
+  </div>
+
+  <!-- Crisis 2 -->
+  <div class="rounded-3xl border border-rose-500/30 bg-rose-950/20 p-6 mb-8">
+    <div class="flex items-start justify-between gap-4 mb-5 flex-wrap">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-rose-600 flex items-center justify-center text-white font-black text-lg flex-shrink-0">!</div>
+        <div>
+          <p class="text-rose-300 font-black text-lg">Pizza Norte — Getafe Sur · Madrid</p>
+          <p class="text-stone-400 text-sm">Detectado: hace 47 min · 3 reseñas críticas</p>
+        </div>
+      </div>
+      <span class="px-3 py-1.5 rounded-full bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs font-black uppercase tracking-wider">
+        🔴 Crisis activa
+      </span>
+    </div>
+
+    <div class="rounded-2xl border border-rose-500/20 bg-black/20 p-5 mb-5">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-9 h-9 rounded-full bg-stone-700 flex items-center justify-center text-sm font-bold text-stone-300">JR</div>
+        <div>
+          <p class="text-sm font-semibold text-stone-200">Javier Ruiz</p>
+          <div class="flex gap-0.5 text-amber-400 text-xs">★☆☆☆☆</div>
+        </div>
+        <span class="ml-auto text-xs text-stone-600">hace 47 min · Google</span>
+      </div>
+      <p class="text-stone-300 text-sm leading-relaxed">
+        "Me cobraron de más y cuando reclamé me dijeron que era normal. Eso es una
+        <strong class="text-rose-300 bg-rose-500/15 px-1 rounded">estafa</strong> descarada.
+        Voy a poner una denuncia. 3 personas de mi mesa con el mismo problema."
+      </p>
+      <div class="flex flex-wrap gap-2 mt-4">
+        <span class="px-2.5 py-1 rounded-full bg-rose-500/20 border border-rose-500/20 text-rose-300 text-xs font-bold">🔴 fraude / estafa</span>
+        <span class="px-2.5 py-1 rounded-full bg-rose-500/20 border border-rose-500/20 text-rose-300 text-xs font-bold">🔴 denuncia legal</span>
+        <span class="px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/15 text-amber-300 text-xs font-bold">⚠️ gestión deficiente</span>
+        <span class="text-xs text-stone-500 self-center ml-1">Confianza del modelo: 99.1%</span>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap gap-3">
+      <button class="px-5 py-2.5 rounded-xl bg-rose-600 text-white text-sm font-bold hover:bg-rose-500">
+        📧 Responder ahora
+      </button>
+      <button class="px-5 py-2.5 rounded-xl border border-white/10 bg-white/5 text-stone-300 text-sm font-semibold hover:bg-white/10">
+        📋 Crear ticket urgente
+      </button>
+    </div>
+  </div>
+
+  <!-- SuperAdmin notification log -->
+  <div class="rounded-3xl border border-white/10 bg-white/5 p-6 mb-8">
+    <h2 class="text-base font-semibold text-white mb-4">Registro de notificaciones a SuperAdmin</h2>
+    <div class="space-y-3 font-mono text-xs">
+      <div class="flex gap-3 text-stone-300">
+        <span class="text-stone-500 flex-shrink-0">09:58:12</span>
+        <span class="text-rose-400 font-bold">CRISIS_ALERT</span>
+        <span>loc=el-mar-sarria · keywords=["suciedad","higiene"] · confidence=97.3% · notified=superadmin@agencia.es</span>
+      </div>
+      <div class="flex gap-3 text-stone-300">
+        <span class="text-stone-500 flex-shrink-0">09:58:13</span>
+        <span class="text-indigo-400">PUSH_SENT</span>
+        <span>channel=email · to=superadmin@agencia.es · subject="🚨 Crisis en El Mar — Sarrià"</span>
+      </div>
+      <div class="flex gap-3 text-stone-300">
+        <span class="text-stone-500 flex-shrink-0">09:11:04</span>
+        <span class="text-rose-400 font-bold">CRISIS_ALERT</span>
+        <span>loc=pizza-norte-getafe-sur · keywords=["estafa","denuncia"] · confidence=99.1% · notified=superadmin@agencia.es</span>
+      </div>
+      <div class="flex gap-3 text-stone-300">
+        <span class="text-stone-500 flex-shrink-0">09:11:04</span>
+        <span class="text-indigo-400">PUSH_SENT</span>
+        <span>channel=email+push · to=superadmin@agencia.es · subject="🚨 Crisis en Pizza Norte — Getafe Sur"</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nav -->
+  <div class="flex justify-between items-center">
+    <a href="network_step1_scan.html"
+       class="px-5 py-3 rounded-2xl border border-white/10 bg-white/5
+              text-stone-300 font-semibold text-sm hover:bg-white/10 no-underline">
+      ← Escaneo
+    </a>
+    <a href="network_step3_benchmark.html"
+       class="px-8 py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600
+              text-white font-bold text-sm hover:from-violet-500 hover:to-indigo-500 no-underline">
+      Benchmarking →
+    </a>
+  </div>
+</div>
+</body>
+</html>

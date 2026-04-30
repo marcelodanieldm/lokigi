@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Paso 1 — Escaneo de Reputación | Network Health · Lokigi Enterprise</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Arial, "Helvetica Neue", sans-serif; }
+    .no-underline { text-decoration: none; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp .35s ease both; }
+    @keyframes progress {
+      from { width: 0; }
+    }
+    .bar-anim { animation: progress 1.4s cubic-bezier(.4,0,.2,1) both; }
+    @keyframes pulse-dot {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%  { opacity: .5; transform: scale(1.6); }
+    }
+    .pulse-dot { animation: pulse-dot 1s ease-in-out infinite; }
+    @keyframes crisis-pulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,.4); }
+      50%  { box-shadow: 0 0 0 12px rgba(239,68,68,0); }
+    }
+    .crisis-pulse { animation: crisis-pulse 1.8s ease-in-out infinite; }
+    input, select, textarea {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      color: #f1f5f9;
+      padding: 10px 14px;
+      font-size: 14px;
+      width: 100%;
+      outline: none;
+    }
+    select option { background: #1c1917; }
+  </style>
+</head>
+<body class="min-h-screen bg-stone-950 text-stone-100">
+
+<nav class="sticky top-0 z-50 flex items-center gap-1 px-5 h-14
+     bg-stone-950/95 backdrop-blur-sm border-b border-white/10 shadow-md flex-wrap">
+  <div class="flex items-center gap-2.5 mr-4">
+    <a href="../enterprise_landing.html"
+       class="flex items-center justify-center w-8 h-8 rounded-lg
+              bg-gradient-to-br from-violet-500 to-indigo-600
+              text-white font-black text-sm no-underline">L</a>
+    <a href="../enterprise_landing.html"
+       class="font-bold text-white text-base no-underline">Lokigi</a>
+    <span class="px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300
+                 text-xs font-bold uppercase tracking-wider">Enterprise</span>
+    <span class="text-stone-600">·</span>
+    <span class="text-stone-400 text-xs font-semibold">Auditoría de Red</span>
+  </div>
+  <a href="network_hub.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">🌐 Hub</a>
+<a href="network_step1_scan.html" class="px-3 py-2 rounded-lg text-sm font-semibold text-violet-200 bg-violet-500/20 border border-violet-400/20 no-underline">1 · Escaneo</a>
+<a href="network_step2_crisis.html" class="px-3 py-2 rounded-lg text-sm font-medium text-rose-300/80 hover:text-rose-200 hover:bg-rose-500/10 no-underline">2 · Crisis</a>
+<a href="network_step3_benchmark.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">3 · Benchmark</a>
+<a href="network_step4_training.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">4 · Training</a>
+<a href="network_step5_report.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">5 · Informe</a>
+
+</nav>
+
+<div class="mx-auto max-w-5xl px-4 py-10 sm:px-6 pb-20 fade-up">
+
+  <div class="mb-8">
+    <p class="text-xs uppercase tracking-[.2em] text-violet-300/70 mb-1">Auditoría de Red · Paso 1</p>
+    <h1 class="text-3xl font-bold text-white">Escaneo de Reputación</h1>
+    <p class="mt-1 text-stone-400 text-sm">
+      Análisis de la nota media de toda la red y detección automática de anomalías mes a mes.
+    </p>
+  </div>
+
+  <!-- Summary metrics -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+    <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5 text-center">
+      <p class="text-4xl font-black text-emerald-300">4.3★</p>
+      <p class="text-xs uppercase tracking-wider text-stone-400 mt-1">Media de red</p>
+      <p class="text-xs text-emerald-400 mt-1">▲ +0.1 vs. abril</p>
+    </div>
+    <div class="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5 text-center">
+      <p class="text-4xl font-black text-amber-300">5</p>
+      <p class="text-xs uppercase tracking-wider text-stone-400 mt-1">Anomalías</p>
+      <p class="text-xs text-amber-400 mt-1">Bajada &gt; 0.5★ este mes</p>
+    </div>
+    <div class="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-5 text-center">
+      <p class="text-4xl font-black text-rose-300">2</p>
+      <p class="text-xs uppercase tracking-wider text-stone-400 mt-1">Crisis activas</p>
+      <p class="text-xs text-rose-400 mt-1">Debajo de 3.2★</p>
+    </div>
+    <div class="rounded-2xl border border-white/10 bg-white/5 p-5 text-center">
+      <p class="text-4xl font-black text-white">43</p>
+      <p class="text-xs uppercase tracking-wider text-stone-400 mt-1">Saludables</p>
+      <p class="text-xs text-stone-500 mt-1">≥ 4.0★</p>
+    </div>
+  </div>
+
+  <!-- Trend chart (visual bar) -->
+  <div class="rounded-3xl border border-white/10 bg-white/5 p-6 mb-6">
+    <h2 class="text-base font-semibold text-white mb-5">Tendencia de nota media — últimos 6 meses</h2>
+    <div class="flex items-end gap-3 h-32">
+      <div class="flex flex-col items-center gap-1 flex-1">
+        <span class="text-xs text-stone-500 font-bold">4.1</span>
+        <div class="w-full rounded-t-lg bg-violet-500/30 bar-anim" style="height:70%"></div>
+        <span class="text-xs text-stone-600">Nov</span>
+      </div>
+      <div class="flex flex-col items-center gap-1 flex-1">
+        <span class="text-xs text-stone-500 font-bold">4.0</span>
+        <div class="w-full rounded-t-lg bg-violet-500/30 bar-anim" style="height:65%"></div>
+        <span class="text-xs text-stone-600">Dic</span>
+      </div>
+      <div class="flex flex-col items-center gap-1 flex-1">
+        <span class="text-xs text-stone-500 font-bold">4.0</span>
+        <div class="w-full rounded-t-lg bg-violet-500/30 bar-anim" style="height:65%"></div>
+        <span class="text-xs text-stone-600">Ene</span>
+      </div>
+      <div class="flex flex-col items-center gap-1 flex-1">
+        <span class="text-xs text-stone-500 font-bold">4.1</span>
+        <div class="w-full rounded-t-lg bg-violet-500/30 bar-anim" style="height:70%"></div>
+        <span class="text-xs text-stone-600">Feb</span>
+      </div>
+      <div class="flex flex-col items-center gap-1 flex-1">
+        <span class="text-xs text-stone-500 font-bold">4.2</span>
+        <div class="w-full rounded-t-lg bg-violet-500/40 bar-anim" style="height:76%"></div>
+        <span class="text-xs text-stone-600">Mar</span>
+      </div>
+      <div class="flex flex-col items-center gap-1 flex-1">
+        <span class="text-xs text-stone-300 font-black">4.3</span>
+        <div class="w-full rounded-t-lg bg-violet-500 bar-anim" style="height:82%"></div>
+        <span class="text-xs text-violet-400 font-bold">Abr ↑</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="rounded-3xl border border-white/10 bg-white/5 overflow-hidden mb-8">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-white/10">
+      <h2 class="text-base font-semibold text-white m-0">Todos los locales</h2>
+      <select class="w-40 text-xs py-2 px-3">
+        <option>Todos</option>
+        <option>Solo anomalías</option>
+        <option>Solo crisis</option>
+        <option>Solo saludables</option>
+      </select>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead>
+          <tr class="border-b border-white/10 text-stone-400 text-xs uppercase tracking-wider">
+            <th class="py-3 pr-4 pl-6 text-left font-semibold">Local</th>
+            <th class="py-3 pr-4 text-left font-semibold">Ciudad</th>
+            <th class="py-3 pr-4 text-center font-semibold">Nota</th>
+            <th class="py-3 pr-4 text-center font-semibold">Δ mensual</th>
+            <th class="py-3 pr-6 text-left font-semibold"></th>
+          </tr>
+        </thead>
+        <tbody class="text-stone-200">
+          
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pl-6 pr-4">
+            <span class="text-sm font-semibold text-stone-100">El Mar — Barceloneta</span>
+            
+          </td>
+          <td class="py-3 pr-4 text-sm text-stone-400">Barcelona</td>
+          <td class="py-3 pr-4 text-center">
+            <span class="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 text-sm font-black">4.8★</span>
+          </td>
+          <td class="py-3 pr-4 text-center">
+            <span class="text-sm font-bold text-emerald-400">▲ +0.3</span>
+          </td>
+          <td class="py-3 pr-6">
+            <a href="network_step2_crisis.html" class="text-xs text-stone-500 hover:text-stone-300 no-underline">Ver detalle →</a>
+          </td>
+        </tr>
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pl-6 pr-4">
+            <span class="text-sm font-semibold text-stone-100">Pizza Norte — Malasaña</span>
+            
+          </td>
+          <td class="py-3 pr-4 text-sm text-stone-400">Madrid</td>
+          <td class="py-3 pr-4 text-center">
+            <span class="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 text-sm font-black">4.7★</span>
+          </td>
+          <td class="py-3 pr-4 text-center">
+            <span class="text-sm font-bold text-emerald-400">▲ +0.2</span>
+          </td>
+          <td class="py-3 pr-6">
+            <a href="network_step2_crisis.html" class="text-xs text-stone-500 hover:text-stone-300 no-underline">Ver detalle →</a>
+          </td>
+        </tr>
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pl-6 pr-4">
+            <span class="text-sm font-semibold text-stone-100">Hotel Solimar Marbella</span>
+            
+          </td>
+          <td class="py-3 pr-4 text-sm text-stone-400">Marbella</td>
+          <td class="py-3 pr-4 text-center">
+            <span class="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 text-sm font-black">4.6★</span>
+          </td>
+          <td class="py-3 pr-4 text-center">
+            <span class="text-sm font-bold text-emerald-400">▲ +0.1</span>
+          </td>
+          <td class="py-3 pr-6">
+            <a href="network_step2_crisis.html" class="text-xs text-stone-500 hover:text-stone-300 no-underline">Ver detalle →</a>
+          </td>
+        </tr>
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pl-6 pr-4">
+            <span class="text-sm font-semibold text-stone-100">Café Rápido — Retiro</span>
+            
+          </td>
+          <td class="py-3 pr-4 text-sm text-stone-400">Madrid</td>
+          <td class="py-3 pr-4 text-center">
+            <span class="px-2.5 py-1 rounded-full bg-stone-500/15 text-stone-400 text-sm font-black">4.4★</span>
+          </td>
+          <td class="py-3 pr-4 text-center">
+            <span class="text-sm font-bold text-stone-500">– 0.0</span>
+          </td>
+          <td class="py-3 pr-6">
+            <a href="network_step2_crisis.html" class="text-xs text-stone-500 hover:text-stone-300 no-underline">Ver detalle →</a>
+          </td>
+        </tr>
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pl-6 pr-4">
+            <span class="text-sm font-semibold text-stone-100">El Mar — Diagonal</span>
+            
+          </td>
+          <td class="py-3 pr-4 text-sm text-stone-400">Barcelona</td>
+          <td class="py-3 pr-4 text-center">
+            <span class="px-2.5 py-1 rounded-full bg-stone-500/15 text-stone-400 text-sm font-black">4.3★</span>
+          </td>
+          <td class="py-3 pr-4 text-center">
+            <span class="text-sm font-bold text-stone-500">▼ -0.1</span>
+          </td>
+          <td class="py-3 pr-6">
+            <a href="network_step2_crisis.html" class="text-xs text-stone-500 hover:text-stone-300 no-underline">Ver detalle →</a>
+          </td>
+        </tr>
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pl-6 pr-4">
+            <span class="text-sm font-semibold text-stone-100">Café Rápido — Gran Vía</span>
+            
+          </td>
+          <td class="py-3 pr-4 text-sm text-stone-400">Madrid</td>
+          <td class="py-3 pr-4 text-center">
+            <span class="px-2.5 py-1 rounded-full bg-stone-500/15 text-stone-400 text-sm font-black">4.2★</span>
+          </td>
+          <td class="py-3 pr-4 text-center">
+            <span class="text-sm font-bold text-stone-500">▼ -0.2</span>
+          </td>
+          <td class="py-3 pr-6">
+            <a href="network_step2_crisis.html" class="text-xs text-stone-500 hover:text-stone-300 no-underline">Ver detalle →</a>
+          </td>
+        </tr>
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pl-6 pr-4">
+            <span class="text-sm font-semibold text-stone-100">Pizza Norte — Getafe</span>
+            <span class="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 text-xs font-bold ml-2">anomalía</span>
+          </td>
+          <td class="py-3 pr-4 text-sm text-stone-400">Madrid</td>
+          <td class="py-3 pr-4 text-center">
+            <span class="px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 text-sm font-black">3.8★</span>
+          </td>
+          <td class="py-3 pr-4 text-center">
+            <span class="text-sm font-bold text-amber-400">▼ -0.5</span>
+          </td>
+          <td class="py-3 pr-6">
+            <a href="network_step2_crisis.html" class="text-xs text-stone-500 hover:text-stone-300 no-underline">Ver detalle →</a>
+          </td>
+        </tr>
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pl-6 pr-4">
+            <span class="text-sm font-semibold text-stone-100">Café Rápido — Alcorcón</span>
+            <span class="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 text-xs font-bold ml-2">anomalía</span>
+          </td>
+          <td class="py-3 pr-4 text-sm text-stone-400">Madrid</td>
+          <td class="py-3 pr-4 text-center">
+            <span class="px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 text-sm font-black">3.6★</span>
+          </td>
+          <td class="py-3 pr-4 text-center">
+            <span class="text-sm font-bold text-amber-400">▼ -0.7</span>
+          </td>
+          <td class="py-3 pr-6">
+            <a href="network_step2_crisis.html" class="text-xs text-stone-500 hover:text-stone-300 no-underline">Ver detalle →</a>
+          </td>
+        </tr>
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pl-6 pr-4">
+            <span class="text-sm font-semibold text-stone-100">Pizza Norte — Avellaneda</span>
+            <span class="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 text-xs font-bold ml-2">anomalía</span>
+          </td>
+          <td class="py-3 pr-4 text-sm text-stone-400">Madrid</td>
+          <td class="py-3 pr-4 text-center">
+            <span class="px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 text-sm font-black">3.4★</span>
+          </td>
+          <td class="py-3 pr-4 text-center">
+            <span class="text-sm font-bold text-amber-400">▼ -1.0</span>
+          </td>
+          <td class="py-3 pr-6">
+            <a href="network_step2_crisis.html" class="text-xs text-stone-500 hover:text-stone-300 no-underline">Ver detalle →</a>
+          </td>
+        </tr>
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pl-6 pr-4">
+            <span class="text-sm font-semibold text-stone-100">El Mar — Sarrià</span>
+            <span class="px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-300 text-xs font-bold ml-2">crisis</span>
+          </td>
+          <td class="py-3 pr-4 text-sm text-stone-400">Barcelona</td>
+          <td class="py-3 pr-4 text-center">
+            <span class="px-2.5 py-1 rounded-full bg-rose-500/15 text-rose-300 text-sm font-black">2.9★</span>
+          </td>
+          <td class="py-3 pr-4 text-center">
+            <span class="text-sm font-bold text-rose-400">▼ -1.3</span>
+          </td>
+          <td class="py-3 pr-6">
+            <a href="network_step2_crisis.html" class="text-xs text-stone-500 hover:text-stone-300 no-underline">Ver detalle →</a>
+          </td>
+        </tr>
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pl-6 pr-4">
+            <span class="text-sm font-semibold text-stone-100">Pizza Norte — Getafe Sur</span>
+            <span class="px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-300 text-xs font-bold ml-2">crisis</span>
+          </td>
+          <td class="py-3 pr-4 text-sm text-stone-400">Madrid</td>
+          <td class="py-3 pr-4 text-center">
+            <span class="px-2.5 py-1 rounded-full bg-rose-500/15 text-rose-300 text-sm font-black">3.1★</span>
+          </td>
+          <td class="py-3 pr-4 text-center">
+            <span class="text-sm font-bold text-rose-400">▼ -0.9</span>
+          </td>
+          <td class="py-3 pr-6">
+            <a href="network_step2_crisis.html" class="text-xs text-stone-500 hover:text-stone-300 no-underline">Ver detalle →</a>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Anomaly explanation -->
+  <div class="rounded-3xl border border-amber-500/20 bg-amber-500/5 p-6 mb-8">
+    <h3 class="text-sm font-bold text-amber-300 uppercase tracking-wider mb-3">¿Cómo detecta Lokigi las anomalías?</h3>
+    <p class="text-stone-300 text-sm leading-relaxed mb-4">
+      El sistema calcula la media móvil de 4 semanas por local y compara con la semana actual.
+      Si la variación supera el umbral configurado (por defecto <strong class="text-white">−0.5★</strong>),
+      el local se marca como anomalía y se genera una alerta en el Hub.
+    </p>
+    <div class="rounded-2xl bg-black/20 border border-white/10 p-4 font-mono text-xs text-stone-300 space-y-1">
+      <div><span class="text-violet-400">anomaly_score</span> = current_rating − moving_avg_4w</div>
+      <div><span class="text-violet-400">if</span> anomaly_score &lt; <span class="text-amber-300">-0.5</span>: trigger_anomaly_alert(location_id)</div>
+      <div><span class="text-violet-400">if</span> anomaly_score &lt; <span class="text-rose-300">-1.0</span>: trigger_crisis_alert(location_id, notify_superadmin=True)</div>
+    </div>
+  </div>
+
+  <!-- Nav -->
+  <div class="flex justify-between items-center">
+    <a href="network_hub.html"
+       class="px-5 py-3 rounded-2xl border border-white/10 bg-white/5
+              text-stone-300 font-semibold text-sm hover:bg-white/10 no-underline">
+      ← Hub
+    </a>
+    <a href="network_step2_crisis.html"
+       class="px-8 py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600
+              text-white font-bold text-sm hover:from-violet-500 hover:to-indigo-500 no-underline">
+      Ver alertas de crisis →
+    </a>
+  </div>
+</div>
+</body>
+</html>

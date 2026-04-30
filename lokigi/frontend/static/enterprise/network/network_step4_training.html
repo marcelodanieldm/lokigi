@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Paso 4 — Plan de Entrenamiento | Network Health · Lokigi Enterprise</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Arial, "Helvetica Neue", sans-serif; }
+    .no-underline { text-decoration: none; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp .35s ease both; }
+    @keyframes progress {
+      from { width: 0; }
+    }
+    .bar-anim { animation: progress 1.4s cubic-bezier(.4,0,.2,1) both; }
+    @keyframes pulse-dot {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%  { opacity: .5; transform: scale(1.6); }
+    }
+    .pulse-dot { animation: pulse-dot 1s ease-in-out infinite; }
+    @keyframes crisis-pulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,.4); }
+      50%  { box-shadow: 0 0 0 12px rgba(239,68,68,0); }
+    }
+    .crisis-pulse { animation: crisis-pulse 1.8s ease-in-out infinite; }
+    input, select, textarea {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      color: #f1f5f9;
+      padding: 10px 14px;
+      font-size: 14px;
+      width: 100%;
+      outline: none;
+    }
+    select option { background: #1c1917; }
+  </style>
+</head>
+<body class="min-h-screen bg-stone-950 text-stone-100">
+
+<nav class="sticky top-0 z-50 flex items-center gap-1 px-5 h-14
+     bg-stone-950/95 backdrop-blur-sm border-b border-white/10 shadow-md flex-wrap">
+  <div class="flex items-center gap-2.5 mr-4">
+    <a href="../enterprise_landing.html"
+       class="flex items-center justify-center w-8 h-8 rounded-lg
+              bg-gradient-to-br from-violet-500 to-indigo-600
+              text-white font-black text-sm no-underline">L</a>
+    <a href="../enterprise_landing.html"
+       class="font-bold text-white text-base no-underline">Lokigi</a>
+    <span class="px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300
+                 text-xs font-bold uppercase tracking-wider">Enterprise</span>
+    <span class="text-stone-600">·</span>
+    <span class="text-stone-400 text-xs font-semibold">Auditoría de Red</span>
+  </div>
+  <a href="network_hub.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">🌐 Hub</a>
+<a href="network_step1_scan.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">1 · Escaneo</a>
+<a href="network_step2_crisis.html" class="px-3 py-2 rounded-lg text-sm font-medium text-rose-300/80 hover:text-rose-200 hover:bg-rose-500/10 no-underline">2 · Crisis</a>
+<a href="network_step3_benchmark.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">3 · Benchmark</a>
+<a href="network_step4_training.html" class="px-3 py-2 rounded-lg text-sm font-semibold text-violet-200 bg-violet-500/20 border border-violet-400/20 no-underline">4 · Training</a>
+<a href="network_step5_report.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">5 · Informe</a>
+
+</nav>
+
+<div class="mx-auto max-w-4xl px-4 py-10 sm:px-6 pb-20 fade-up">
+
+  <div class="mb-8">
+    <p class="text-xs uppercase tracking-[.2em] text-violet-300/70 mb-1">Auditoría de Red · Paso 4</p>
+    <h1 class="text-3xl font-bold text-white">Plan de Entrenamiento</h1>
+    <p class="mt-1 text-stone-400 text-sm">
+      Lokigi analiza el feedback de los clientes y genera automáticamente recomendaciones de mejora
+      personalizadas por local. Basado en NLP sobre 4.200 reseñas del último trimestre.
+    </p>
+  </div>
+
+  <!-- Summary -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+    <div class="rounded-2xl border border-white/10 bg-white/5 p-4 text-center">
+      <p class="text-3xl font-black text-white">7</p>
+      <p class="text-xs uppercase tracking-wider text-stone-400 mt-1">Locales con plan</p>
+    </div>
+    <div class="rounded-2xl border border-amber-500/15 bg-amber-500/5 p-4 text-center">
+      <p class="text-3xl font-black text-amber-300">23</p>
+      <p class="text-xs uppercase tracking-wider text-stone-400 mt-1">Acciones generadas</p>
+    </div>
+    <div class="rounded-2xl border border-violet-500/15 bg-violet-500/5 p-4 text-center">
+      <p class="text-3xl font-black text-violet-300">4.200</p>
+      <p class="text-xs uppercase tracking-wider text-stone-400 mt-1">Reseñas analizadas</p>
+    </div>
+    <div class="rounded-2xl border border-emerald-500/15 bg-emerald-500/5 p-4 text-center">
+      <p class="text-3xl font-black text-emerald-300">+0.6★</p>
+      <p class="text-xs uppercase tracking-wider text-stone-400 mt-1">Mejora estimada</p>
+    </div>
+  </div>
+
+  <!-- Training cards -->
+
+  <!-- Card 1: Café Rápido Alcorcón -->
+  <div class="rounded-3xl border border-amber-500/20 bg-white/4 p-6 mb-5">
+    <div class="flex items-start justify-between gap-3 mb-5 flex-wrap">
+      <div>
+        <p class="text-base font-bold text-white">Café Rápido — Alcorcón</p>
+        <p class="text-xs text-stone-500">Madrid · Nota actual: <span class="text-amber-300 font-bold">3.6★</span> · Objetivo: 4.2★</p>
+      </div>
+      <span class="px-3 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/20 text-amber-300 text-xs font-bold">
+        Prioridad alta
+      </span>
+    </div>
+
+    <div class="rounded-2xl bg-black/15 border border-white/8 p-4 mb-4">
+      <p class="text-xs text-stone-500 uppercase tracking-wider font-semibold mb-3">Diagnóstico IA — Top quejas</p>
+      <div class="space-y-2">
+        <div class="flex items-center gap-3">
+          <span class="w-2 h-2 rounded-full bg-rose-400 flex-shrink-0"></span>
+          <span class="text-sm text-stone-200 flex-1">"lentitud en el servicio"</span>
+          <span class="text-xs text-stone-500 font-mono">21 menciones</span>
+          <div class="w-20 h-1.5 rounded-full bg-black/30 overflow-hidden">
+            <div class="h-full rounded-full bg-rose-500 bar-anim" style="width:78%"></div>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0"></span>
+          <span class="text-sm text-stone-200 flex-1">"esperas largas en caja"</span>
+          <span class="text-xs text-stone-500 font-mono">14 menciones</span>
+          <div class="w-20 h-1.5 rounded-full bg-black/30 overflow-hidden">
+            <div class="h-full rounded-full bg-amber-500 bar-anim" style="width:52%"></div>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0"></span>
+          <span class="text-sm text-stone-200 flex-1">"personal poco atento"</span>
+          <span class="text-xs text-stone-500 font-mono">9 menciones</span>
+          <div class="w-20 h-1.5 rounded-full bg-black/30 overflow-hidden">
+            <div class="h-full rounded-full bg-amber-500 bar-anim" style="width:33%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="space-y-2">
+      <p class="text-xs text-stone-500 uppercase tracking-wider font-semibold mb-3">Acciones recomendadas por la IA</p>
+      <div class="flex items-start gap-3 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/15">
+        <span class="text-emerald-400 mt-0.5">✓</span>
+        <div>
+          <p class="text-sm font-semibold text-stone-200">Sesión de formación: "Flujo de atención rápida"</p>
+          <p class="text-xs text-stone-500 mt-0.5">Protocolo estándar de toma de pedido — objetivo: &lt; 2 min por cliente</p>
+        </div>
+      </div>
+      <div class="flex items-start gap-3 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/15">
+        <span class="text-emerald-400 mt-0.5">✓</span>
+        <div>
+          <p class="text-sm font-semibold text-stone-200">Revisión de turnos y refuerzo en hora punta (13–15 h)</p>
+          <p class="text-xs text-stone-500 mt-0.5">Los picos de queja coinciden con el tramo de mediodía (análisis de timestamps)</p>
+        </div>
+      </div>
+      <div class="flex items-start gap-3 p-3 rounded-xl bg-violet-500/5 border border-violet-500/15">
+        <span class="text-violet-400 mt-0.5">→</span>
+        <div>
+          <p class="text-sm font-semibold text-stone-200">Instalar segunda caja exprés (recomendación estructural)</p>
+          <p class="text-xs text-stone-500 mt-0.5">Requiere aprobación del tenant manager antes de ejecutar</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card 2: Pizza Norte Avellaneda -->
+  <div class="rounded-3xl border border-amber-500/20 bg-white/4 p-6 mb-5">
+    <div class="flex items-start justify-between gap-3 mb-5 flex-wrap">
+      <div>
+        <p class="text-base font-bold text-white">Pizza Norte — Avellaneda</p>
+        <p class="text-xs text-stone-500">Madrid · Nota actual: <span class="text-amber-300 font-bold">3.4★</span> · Objetivo: 4.0★</p>
+      </div>
+      <span class="px-3 py-1.5 rounded-full bg-rose-500/15 border border-rose-500/20 text-rose-300 text-xs font-bold">
+        Prioridad urgente
+      </span>
+    </div>
+
+    <div class="rounded-2xl bg-black/15 border border-white/8 p-4 mb-4">
+      <p class="text-xs text-stone-500 uppercase tracking-wider font-semibold mb-3">Top quejas</p>
+      <div class="space-y-2">
+        <div class="flex items-center gap-3">
+          <span class="w-2 h-2 rounded-full bg-rose-400 flex-shrink-0"></span>
+          <span class="text-sm text-stone-200 flex-1">"masa fría al llegar"</span>
+          <span class="text-xs text-stone-500 font-mono">17 menciones</span>
+          <div class="w-20 h-1.5 rounded-full bg-black/30 overflow-hidden">
+            <div class="h-full rounded-full bg-rose-500 bar-anim" style="width:63%"></div>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="w-2 h-2 rounded-full bg-rose-400 flex-shrink-0"></span>
+          <span class="text-sm text-stone-200 flex-1">"pedidos incorrectos"</span>
+          <span class="text-xs text-stone-500 font-mono">12 menciones</span>
+          <div class="w-20 h-1.5 rounded-full bg-black/30 overflow-hidden">
+            <div class="h-full rounded-full bg-rose-500 bar-anim" style="width:44%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="space-y-2">
+      <p class="text-xs text-stone-500 uppercase tracking-wider font-semibold mb-3">Acciones</p>
+      <div class="flex items-start gap-3 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/15">
+        <span class="text-emerald-400 mt-0.5">✓</span>
+        <div>
+          <p class="text-sm font-semibold text-stone-200">Calibrar temperatura de hornos y tiempo de empaquetado</p>
+          <p class="text-xs text-stone-500 mt-0.5">Protocolo: máx. 3 min desde horno hasta entrega</p>
+        </div>
+      </div>
+      <div class="flex items-start gap-3 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/15">
+        <span class="text-emerald-400 mt-0.5">✓</span>
+        <div>
+          <p class="text-sm font-semibold text-stone-200">Implementar checklist de verificación de pedido antes de entrega</p>
+          <p class="text-xs text-stone-500 mt-0.5">Reducción estimada de errores: 80% (benchmark red interna)</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Positive reinforcement -->
+  <div class="rounded-3xl border border-emerald-500/20 bg-emerald-950/20 p-6 mb-8">
+    <h2 class="text-base font-semibold text-white mb-4">Aprender del #1: El Mar — Barceloneta</h2>
+    <p class="text-stone-400 text-sm mb-4">
+      El local con mejor nota de la red destaca consistentemente en 3 categorías.
+      Exportar su protocolo a otros locales podría elevar la media de red hasta <strong class="text-white">4.5★</strong>.
+    </p>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div class="rounded-2xl bg-black/15 border border-emerald-500/15 p-4 text-center">
+        <p class="text-2xl mb-2">🐟</p>
+        <p class="text-sm font-bold text-emerald-200">Frescura de producto</p>
+        <p class="text-xs text-stone-400 mt-1">Mencionada en 89% de reseñas 5★</p>
+      </div>
+      <div class="rounded-2xl bg-black/15 border border-emerald-500/15 p-4 text-center">
+        <p class="text-2xl mb-2">😊</p>
+        <p class="text-sm font-bold text-emerald-200">Trato personalizado</p>
+        <p class="text-xs text-stone-400 mt-1">73% menciona al personal por su nombre</p>
+      </div>
+      <div class="rounded-2xl bg-black/15 border border-emerald-500/15 p-4 text-center">
+        <p class="text-2xl mb-2">⚡</p>
+        <p class="text-sm font-bold text-emerald-200">Rapidez de servicio</p>
+        <p class="text-xs text-stone-400 mt-1">Media de espera 4 min (red: 11 min)</p>
+      </div>
+    </div>
+    <button class="mt-4 px-5 py-2.5 rounded-xl bg-emerald-600/30 border border-emerald-500/20
+                   text-emerald-300 text-sm font-semibold hover:bg-emerald-600/50">
+      📤 Exportar protocolo de Barceloneta a todos los locales
+    </button>
+  </div>
+
+  <!-- Nav -->
+  <div class="flex justify-between items-center">
+    <a href="network_step3_benchmark.html"
+       class="px-5 py-3 rounded-2xl border border-white/10 bg-white/5
+              text-stone-300 font-semibold text-sm hover:bg-white/10 no-underline">
+      ← Benchmarking
+    </a>
+    <a href="network_step5_report.html"
+       class="px-8 py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600
+              text-white font-bold text-sm hover:from-violet-500 hover:to-indigo-500 no-underline">
+      Ver informe ejecutivo →
+    </a>
+  </div>
+</div>
+</body>
+</html>

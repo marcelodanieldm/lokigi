@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Paso 3 — Benchmarking Interno | Network Health · Lokigi Enterprise</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Arial, "Helvetica Neue", sans-serif; }
+    .no-underline { text-decoration: none; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp .35s ease both; }
+    @keyframes progress {
+      from { width: 0; }
+    }
+    .bar-anim { animation: progress 1.4s cubic-bezier(.4,0,.2,1) both; }
+    @keyframes pulse-dot {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%  { opacity: .5; transform: scale(1.6); }
+    }
+    .pulse-dot { animation: pulse-dot 1s ease-in-out infinite; }
+    @keyframes crisis-pulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,.4); }
+      50%  { box-shadow: 0 0 0 12px rgba(239,68,68,0); }
+    }
+    .crisis-pulse { animation: crisis-pulse 1.8s ease-in-out infinite; }
+    input, select, textarea {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      color: #f1f5f9;
+      padding: 10px 14px;
+      font-size: 14px;
+      width: 100%;
+      outline: none;
+    }
+    select option { background: #1c1917; }
+  </style>
+</head>
+<body class="min-h-screen bg-stone-950 text-stone-100">
+
+<nav class="sticky top-0 z-50 flex items-center gap-1 px-5 h-14
+     bg-stone-950/95 backdrop-blur-sm border-b border-white/10 shadow-md flex-wrap">
+  <div class="flex items-center gap-2.5 mr-4">
+    <a href="../enterprise_landing.html"
+       class="flex items-center justify-center w-8 h-8 rounded-lg
+              bg-gradient-to-br from-violet-500 to-indigo-600
+              text-white font-black text-sm no-underline">L</a>
+    <a href="../enterprise_landing.html"
+       class="font-bold text-white text-base no-underline">Lokigi</a>
+    <span class="px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300
+                 text-xs font-bold uppercase tracking-wider">Enterprise</span>
+    <span class="text-stone-600">·</span>
+    <span class="text-stone-400 text-xs font-semibold">Auditoría de Red</span>
+  </div>
+  <a href="network_hub.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">🌐 Hub</a>
+<a href="network_step1_scan.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">1 · Escaneo</a>
+<a href="network_step2_crisis.html" class="px-3 py-2 rounded-lg text-sm font-medium text-rose-300/80 hover:text-rose-200 hover:bg-rose-500/10 no-underline">2 · Crisis</a>
+<a href="network_step3_benchmark.html" class="px-3 py-2 rounded-lg text-sm font-semibold text-violet-200 bg-violet-500/20 border border-violet-400/20 no-underline">3 · Benchmark</a>
+<a href="network_step4_training.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">4 · Training</a>
+<a href="network_step5_report.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">5 · Informe</a>
+
+</nav>
+
+<div class="mx-auto max-w-5xl px-4 py-10 sm:px-6 pb-20 fade-up">
+
+  <div class="mb-8">
+    <p class="text-xs uppercase tracking-[.2em] text-violet-300/70 mb-1">Auditoría de Red · Paso 3</p>
+    <h1 class="text-3xl font-bold text-white">Benchmarking Interno</h1>
+    <p class="mt-1 text-stone-400 text-sm">
+      Ranking completo de todos los locales de la red. Identifica tu #1 y los que necesitan formación basada en el feedback real de clientes.
+    </p>
+  </div>
+
+  <!-- Podium -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+    <!-- #2 -->
+    <div class="rounded-3xl border border-stone-500/25 bg-stone-500/5 p-6 text-center sm:mt-6">
+      <p class="text-4xl mb-2">🥈</p>
+      <p class="text-sm font-bold text-stone-200 mb-1">Pizza Norte — Malasaña</p>
+      <p class="text-xs text-stone-500 mb-3">Madrid</p>
+      <p class="text-3xl font-black text-stone-200">4.7★</p>
+      <p class="text-xs text-stone-500 mt-1">278 reseñas</p>
+    </div>
+    <!-- #1 -->
+    <div class="rounded-3xl border border-emerald-500/30 bg-emerald-950/30 p-6 text-center ring-2 ring-emerald-500/20">
+      <p class="text-4xl mb-2">🥇</p>
+      <p class="text-sm font-black text-emerald-200 mb-1">#1 de la red</p>
+      <p class="text-base font-bold text-white mb-1">El Mar — Barceloneta</p>
+      <p class="text-xs text-stone-400 mb-3">Barcelona</p>
+      <p class="text-4xl font-black text-emerald-300">4.8★</p>
+      <p class="text-xs text-stone-500 mt-1">312 reseñas · mejor nota de la red</p>
+      <div class="mt-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-3">
+        <p class="text-xs text-emerald-300 font-semibold">Fortalezas clave</p>
+        <p class="text-xs text-stone-400 mt-1">"Fresco", "trato excelente", "vistas únicas"</p>
+      </div>
+    </div>
+    <!-- #3 -->
+    <div class="rounded-3xl border border-violet-500/20 bg-violet-500/5 p-6 text-center sm:mt-6">
+      <p class="text-4xl mb-2">🥉</p>
+      <p class="text-sm font-bold text-violet-200 mb-1">Hotel Solimar Marbella</p>
+      <p class="text-xs text-stone-500 mb-3">Marbella</p>
+      <p class="text-3xl font-black text-violet-300">4.6★</p>
+      <p class="text-xs text-stone-500 mt-1">195 reseñas</p>
+    </div>
+  </div>
+
+  <!-- Full ranking table -->
+  <div class="rounded-3xl border border-white/10 bg-white/5 overflow-hidden mb-6">
+    <div class="px-6 py-4 border-b border-white/10">
+      <h2 class="text-base font-semibold text-white m-0">Ranking completo (muestra representativa)</h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead>
+          <tr class="border-b border-white/10 text-stone-400 text-xs uppercase tracking-wider">
+            <th class="py-3 pl-6 pr-3 text-center font-semibold">#</th>
+            <th class="py-3 pr-4 text-left font-semibold">Local</th>
+            <th class="py-3 pr-4 text-left font-semibold">Ciudad</th>
+            <th class="py-3 pr-4 text-center font-semibold">Nota</th>
+            <th class="py-3 pr-4 text-center font-semibold">Reseñas</th>
+            <th class="py-3 pr-6 text-left font-semibold">Score</th>
+          </tr>
+        </thead>
+        <tbody class="text-stone-200">
+          
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pl-6 pr-3 text-center">
+            <span class="text-lg">🥇</span>
+          </td>
+          <td class="py-3 pr-4">
+            <span class="text-sm font-semibold text-stone-100">El Mar — Barceloneta</span>
+            
+          </td>
+          <td class="py-3 pr-4 text-sm text-stone-400">Barcelona</td>
+          <td class="py-3 pr-4 text-center">
+            <span class="text-sm font-black text-emerald-300">4.8★</span>
+          </td>
+          <td class="py-3 pr-4 text-sm text-stone-500 text-center">312</td>
+          <td class="py-3 pr-6 w-32">
+            <div class="h-2 rounded-full bg-black/30 overflow-hidden">
+              <div class="h-full rounded-full bar-anim bg-emerald-500" style="width:96%"></div>
+            </div>
+          </td>
+        </tr>
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pl-6 pr-3 text-center">
+            <span class="text-lg">🥈</span>
+          </td>
+          <td class="py-3 pr-4">
+            <span class="text-sm font-semibold text-stone-100">Pizza Norte — Malasaña</span>
+            
+          </td>
+          <td class="py-3 pr-4 text-sm text-stone-400">Madrid</td>
+          <td class="py-3 pr-4 text-center">
+            <span class="text-sm font-black text-emerald-300">4.7★</span>
+          </td>
+          <td class="py-3 pr-4 text-sm text-stone-500 text-center">278</td>
+          <td class="py-3 pr-6 w-32">
+            <div class="h-2 rounded-full bg-black/30 overflow-hidden">
+              <div class="h-full rounded-full bar-anim bg-emerald-500" style="width:94%"></div>
+            </div>
+          </td>
+        </tr>
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pl-6 pr-3 text-center">
+            <span class="text-lg">🥉</span>
+          </td>
+          <td class="py-3 pr-4">
+            <span class="text-sm font-semibold text-stone-100">Hotel Solimar Marbella</span>
+            
+          </td>
+          <td class="py-3 pr-4 text-sm text-stone-400">Marbella</td>
+          <td class="py-3 pr-4 text-center">
+            <span class="text-sm font-black text-violet-300">4.6★</span>
+          </td>
+          <td class="py-3 pr-4 text-sm text-stone-500 text-center">195</td>
+          <td class="py-3 pr-6 w-32">
+            <div class="h-2 rounded-full bg-black/30 overflow-hidden">
+              <div class="h-full rounded-full bar-anim bg-violet-500" style="width:92%"></div>
+            </div>
+          </td>
+        </tr>
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pl-6 pr-3 text-center">
+            <span class="text-lg">4</span>
+          </td>
+          <td class="py-3 pr-4">
+            <span class="text-sm font-semibold text-stone-100">El Mar — Diagonal</span>
+            
+          </td>
+          <td class="py-3 pr-4 text-sm text-stone-400">Barcelona</td>
+          <td class="py-3 pr-4 text-center">
+            <span class="text-sm font-black text-emerald-300">4.5★</span>
+          </td>
+          <td class="py-3 pr-4 text-sm text-stone-500 text-center">241</td>
+          <td class="py-3 pr-6 w-32">
+            <div class="h-2 rounded-full bg-black/30 overflow-hidden">
+              <div class="h-full rounded-full bar-anim bg-emerald-500" style="width:90%"></div>
+            </div>
+          </td>
+        </tr>
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pl-6 pr-3 text-center">
+            <span class="text-lg">5</span>
+          </td>
+          <td class="py-3 pr-4">
+            <span class="text-sm font-semibold text-stone-100">Café Rápido — Retiro</span>
+            
+          </td>
+          <td class="py-3 pr-4 text-sm text-stone-400">Madrid</td>
+          <td class="py-3 pr-4 text-center">
+            <span class="text-sm font-black text-emerald-300">4.4★</span>
+          </td>
+          <td class="py-3 pr-4 text-sm text-stone-500 text-center">310</td>
+          <td class="py-3 pr-6 w-32">
+            <div class="h-2 rounded-full bg-black/30 overflow-hidden">
+              <div class="h-full rounded-full bar-anim bg-emerald-500" style="width:88%"></div>
+            </div>
+          </td>
+        </tr>
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pl-6 pr-3 text-center">
+            <span class="text-lg">6</span>
+          </td>
+          <td class="py-3 pr-4">
+            <span class="text-sm font-semibold text-stone-100">Café Rápido — Gran Vía</span>
+            
+          </td>
+          <td class="py-3 pr-4 text-sm text-stone-400">Madrid</td>
+          <td class="py-3 pr-4 text-center">
+            <span class="text-sm font-black text-stone-400">4.2★</span>
+          </td>
+          <td class="py-3 pr-4 text-sm text-stone-500 text-center">425</td>
+          <td class="py-3 pr-6 w-32">
+            <div class="h-2 rounded-full bg-black/30 overflow-hidden">
+              <div class="h-full rounded-full bar-anim bg-stone-500" style="width:84%"></div>
+            </div>
+          </td>
+        </tr>
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pl-6 pr-3 text-center">
+            <span class="text-lg">···</span>
+          </td>
+          <td class="py-3 pr-4">
+            <span class="text-sm font-semibold text-stone-100">Café Rápido — Alcorcón</span>
+            <span class="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 text-xs font-bold ml-2">entrenamiento</span>
+          </td>
+          <td class="py-3 pr-4 text-sm text-stone-400">Madrid</td>
+          <td class="py-3 pr-4 text-center">
+            <span class="text-sm font-black text-amber-300">3.6★</span>
+          </td>
+          <td class="py-3 pr-4 text-sm text-stone-500 text-center">87</td>
+          <td class="py-3 pr-6 w-32">
+            <div class="h-2 rounded-full bg-black/30 overflow-hidden">
+              <div class="h-full rounded-full bar-anim bg-amber-500" style="width:72%"></div>
+            </div>
+          </td>
+        </tr>
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pl-6 pr-3 text-center">
+            <span class="text-lg">···</span>
+          </td>
+          <td class="py-3 pr-4">
+            <span class="text-sm font-semibold text-stone-100">Pizza Norte — Avellaneda</span>
+            <span class="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 text-xs font-bold ml-2">entrenamiento</span>
+          </td>
+          <td class="py-3 pr-4 text-sm text-stone-400">Madrid</td>
+          <td class="py-3 pr-4 text-center">
+            <span class="text-sm font-black text-amber-300">3.4★</span>
+          </td>
+          <td class="py-3 pr-4 text-sm text-stone-500 text-center">62</td>
+          <td class="py-3 pr-6 w-32">
+            <div class="h-2 rounded-full bg-black/30 overflow-hidden">
+              <div class="h-full rounded-full bar-anim bg-amber-500" style="width:68%"></div>
+            </div>
+          </td>
+        </tr>
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pl-6 pr-3 text-center">
+            <span class="text-lg">···</span>
+          </td>
+          <td class="py-3 pr-4">
+            <span class="text-sm font-semibold text-stone-100">Pizza Norte — Getafe Sur</span>
+            <span class="px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-300 text-xs font-bold ml-2">crisis</span>
+          </td>
+          <td class="py-3 pr-4 text-sm text-stone-400">Madrid</td>
+          <td class="py-3 pr-4 text-center">
+            <span class="text-sm font-black text-rose-300">3.1★</span>
+          </td>
+          <td class="py-3 pr-4 text-sm text-stone-500 text-center">54</td>
+          <td class="py-3 pr-6 w-32">
+            <div class="h-2 rounded-full bg-black/30 overflow-hidden">
+              <div class="h-full rounded-full bar-anim bg-rose-500" style="width:62%"></div>
+            </div>
+          </td>
+        </tr>
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pl-6 pr-3 text-center">
+            <span class="text-lg">···</span>
+          </td>
+          <td class="py-3 pr-4">
+            <span class="text-sm font-semibold text-stone-100">El Mar — Sarrià</span>
+            <span class="px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-300 text-xs font-bold ml-2">crisis</span>
+          </td>
+          <td class="py-3 pr-4 text-sm text-stone-400">Barcelona</td>
+          <td class="py-3 pr-4 text-center">
+            <span class="text-sm font-black text-rose-300">2.9★</span>
+          </td>
+          <td class="py-3 pr-4 text-sm text-stone-500 text-center">39</td>
+          <td class="py-3 pr-6 w-32">
+            <div class="h-2 rounded-full bg-black/30 overflow-hidden">
+              <div class="h-full rounded-full bar-anim bg-rose-500" style="width:57%"></div>
+            </div>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Training needs summary -->
+  <div class="rounded-3xl border border-amber-500/20 bg-amber-500/5 p-6 mb-8">
+    <h2 class="text-base font-semibold text-white mb-2">Locales que necesitan entrenamiento</h2>
+    <p class="text-stone-400 text-sm mb-4">
+      Basado en análisis de feedback: 7 locales tienen patrones recurrentes de queja que pueden resolverse con formación de equipo.
+    </p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div class="rounded-2xl border border-white/8 bg-black/15 p-4">
+        <p class="text-sm font-bold text-amber-300 mb-1">⚠️ Café Rápido — Alcorcón</p>
+        <p class="text-xs text-stone-400">Problema recurrente: <strong class="text-stone-300">"lentitud en el servicio"</strong> (21 menciones este mes)</p>
+      </div>
+      <div class="rounded-2xl border border-white/8 bg-black/15 p-4">
+        <p class="text-sm font-bold text-amber-300 mb-1">⚠️ Pizza Norte — Avellaneda</p>
+        <p class="text-xs text-stone-400">Problema recurrente: <strong class="text-stone-300">"masa fría"</strong> y <strong class="text-stone-300">"pedidos incorrectos"</strong> (17 menciones)</p>
+      </div>
+      <div class="rounded-2xl border border-white/8 bg-black/15 p-4">
+        <p class="text-sm font-bold text-rose-300 mb-1">🔴 Pizza Norte — Getafe Sur</p>
+        <p class="text-xs text-stone-400">Crisis: <strong class="text-stone-300">"cobros incorrectos"</strong> — requiere acción urgente de management</p>
+      </div>
+      <div class="rounded-2xl border border-white/8 bg-black/15 p-4">
+        <p class="text-sm font-bold text-rose-300 mb-1">🔴 El Mar — Sarrià</p>
+        <p class="text-xs text-stone-400">Crisis: <strong class="text-stone-300">"limpieza"</strong> — requiere inspección de local y protocolo de higiene</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nav -->
+  <div class="flex justify-between items-center">
+    <a href="network_step2_crisis.html"
+       class="px-5 py-3 rounded-2xl border border-white/10 bg-white/5
+              text-stone-300 font-semibold text-sm hover:bg-white/10 no-underline">
+      ← Crisis
+    </a>
+    <a href="network_step4_training.html"
+       class="px-8 py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600
+              text-white font-bold text-sm hover:from-violet-500 hover:to-indigo-500 no-underline">
+      Plan de entrenamiento →
+    </a>
+  </div>
+</div>
+</body>
+</html>
