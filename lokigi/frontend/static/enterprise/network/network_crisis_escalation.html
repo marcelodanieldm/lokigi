@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Escalamiento de Crisis · Network Health | Lokigi Enterprise</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Arial, "Helvetica Neue", sans-serif; }
+    .no-underline { text-decoration: none; }
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(14px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .fade-up { animation: fadeUp .35s ease both; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .spin { animation: spin .8s linear infinite; }
+    @keyframes pulse-dot {
+      0%,100% { opacity:1; transform:scale(1); }
+      50%  { opacity:.4; transform:scale(1.5); }
+    }
+    .pulse { animation: pulse-dot 1.4s ease-in-out infinite; }
+    @keyframes crisis-ring {
+      0%,100% { box-shadow:0 0 0 0 rgba(239,68,68,.5); }
+      50% { box-shadow:0 0 0 14px rgba(239,68,68,0); }
+    }
+    .crisis-ring { animation: crisis-ring 1.6s ease-in-out infinite; }
+    @keyframes worker-flash {
+      0%,100% { background:rgba(139,92,246,.1); }
+      50% { background:rgba(139,92,246,.25); }
+    }
+    .worker-active { animation: worker-flash 1s ease-in-out infinite; }
+    @keyframes bar-grow {
+      from { width:0; }
+    }
+    .bar-grow { animation: bar-grow 1.6s cubic-bezier(.4,0,.2,1) both; }
+    input,select {
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:10px;
+      color:#f1f5f9;
+      padding:9px 13px;
+      font-size:13px;
+      outline:none;
+      width:100%;
+    }
+    select option { background:#1c1917; }
+    pre {
+      background:rgba(0,0,0,.4);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:12px;
+      padding:16px;
+      font-size:12px;
+      color:#a3e635;
+      overflow-x:auto;
+      white-space:pre;
+    }
+</style>
+</head>
+<body class="min-h-screen bg-stone-950 text-stone-100">
+
+<nav class="sticky top-0 z-50 flex items-center gap-1 px-5 h-14
+     bg-stone-950/95 backdrop-blur-sm border-b border-white/10 shadow-md flex-wrap">
+  <div class="flex items-center gap-2.5 mr-4">
+    <a href="../enterprise_landing.html"
+       class="flex items-center justify-center w-8 h-8 rounded-lg
+              bg-gradient-to-br from-violet-500 to-indigo-600
+              text-white font-black text-sm no-underline">L</a>
+    <a href="../enterprise_landing.html"
+       class="font-bold text-white text-base no-underline">Lokigi</a>
+    <span class="px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300
+                 text-xs font-bold uppercase tracking-wider">Enterprise</span>
+    <span class="text-stone-600">·</span>
+    <span class="text-stone-400 text-xs font-semibold">Auditoría de Red</span>
+  </div>
+  <a href="network_hub.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">🌐 Hub</a>
+<a href="network_step1_scan.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">1 · Escaneo</a>
+<a href="network_step2_crisis.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">2 · Crisis</a>
+<a href="network_crisis_escalation.html" class="px-3 py-2 rounded-lg text-sm font-semibold text-violet-200 bg-violet-500/20 border border-violet-400/20 no-underline">🚨 Escalamiento</a>
+<a href="network_step3_benchmark.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">3 · Benchmark</a>
+<a href="network_step5_report.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">5 · Informe</a>
+
+</nav>
+
+<div class="mx-auto max-w-4xl px-4 py-10 sm:px-6 pb-20 fade-up">
+
+  <div class="flex items-start justify-between gap-4 mb-6 flex-wrap">
+    <div>
+      <p class="text-xs uppercase tracking-[.2em] text-rose-300/70 mb-1">Auditoría de Red · Escalamiento</p>
+      <h1 class="text-3xl font-bold text-white">Escalamiento de Crisis</h1>
+      <p class="mt-1 text-stone-400 text-sm max-w-2xl">
+        Cuando el motor de IA detecta palabras clave críticas en cualquier reseña de la red,
+        el sistema escala la alerta <strong class="text-white">por encima del encargado local</strong>
+        — directo al Gerente de Operaciones o CEO vía SMS y email.
+      </p>
+    </div>
+    <div class="flex items-center gap-2 px-4 py-2 rounded-2xl border border-rose-500/20 bg-rose-500/5">
+      <div class="w-2.5 h-2.5 rounded-full bg-rose-500 pulse flex-shrink-0"></div>
+      <span class="text-xs text-rose-300 font-semibold">Monitorización activa · 50 locales</span>
+    </div>
+  </div>
+
+  <!-- Active crises -->
+  <div class="mb-8">
+    <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+      <h2 class="text-sm font-bold text-white uppercase tracking-wider">Crisis activas</h2>
+      <span class="px-3 py-1 rounded-full bg-rose-500/20 text-rose-200 text-xs font-bold">
+        4 alertas en las últimas 6h
+      </span>
+    </div>
+    <div class="space-y-4">
+      
+        <div class="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-5">
+          <div class="flex items-start gap-3 mb-3">
+            <div class="w-10 h-10 rounded-2xl bg-rose-500 crisis-ring flex items-center justify-center text-white text-lg flex-shrink-0">
+              🚨
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-start justify-between gap-2 flex-wrap">
+                <p class="text-sm font-bold text-white">Restaurante La Pepita - Coslada</p>
+                <span class="text-xs text-stone-500 flex-shrink-0">hace 12 min</span>
+              </div>
+              <p class="text-xs text-stone-400 mt-0.5">
+                Keyword detectada: <strong class="text-rose-300">"intoxicación"</strong>
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 flex-wrap">
+            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/20 text-rose-200 border border-rose-500/30">
+              🔴 Nivel Rojo — Escalado
+            </span>
+            <span class="text-xs text-stone-400">✓ Ops. Manager notificado via SMS</span>
+            <a href="#" class="ml-auto px-3 py-1.5 rounded-xl border border-white/10 bg-white/5 text-stone-300 text-xs font-semibold no-underline hover:bg-white/10">
+              Ver reseña →
+            </a>
+          </div>
+        </div>
+        <div class="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-5">
+          <div class="flex items-start gap-3 mb-3">
+            <div class="w-10 h-10 rounded-2xl bg-rose-500 crisis-ring flex items-center justify-center text-white text-lg flex-shrink-0">
+              🚨
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-start justify-between gap-2 flex-wrap">
+                <p class="text-sm font-bold text-white">Restaurante La Pepita - Vallecas</p>
+                <span class="text-xs text-stone-500 flex-shrink-0">hace 47 min</span>
+              </div>
+              <p class="text-xs text-stone-400 mt-0.5">
+                Keyword detectada: <strong class="text-rose-300">"denuncia"</strong>
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 flex-wrap">
+            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/20 text-rose-200 border border-rose-500/30">
+              🔴 Nivel Rojo — Escalado
+            </span>
+            <span class="text-xs text-stone-400">✓ Ops. Manager notificado via Email</span>
+            <a href="#" class="ml-auto px-3 py-1.5 rounded-xl border border-white/10 bg-white/5 text-stone-300 text-xs font-semibold no-underline hover:bg-white/10">
+              Ver reseña →
+            </a>
+          </div>
+        </div>
+        <div class="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5">
+          <div class="flex items-start gap-3 mb-3">
+            <div class="w-10 h-10 rounded-2xl bg-amber-500 flex items-center justify-center text-white text-lg flex-shrink-0">
+              ⚠️
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-start justify-between gap-2 flex-wrap">
+                <p class="text-sm font-bold text-white">Restaurante La Pepita - Parla</p>
+                <span class="text-xs text-stone-500 flex-shrink-0">hace 2 horas</span>
+              </div>
+              <p class="text-xs text-stone-400 mt-0.5">
+                Keyword detectada: <strong class="text-amber-300">"cerrado"</strong>
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 flex-wrap">
+            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-200 border border-amber-500/30">
+              🟡 Nivel Ámbar
+            </span>
+            <span class="text-xs text-stone-400">✓ Encargado local notificado</span>
+            <a href="#" class="ml-auto px-3 py-1.5 rounded-xl border border-white/10 bg-white/5 text-stone-300 text-xs font-semibold no-underline hover:bg-white/10">
+              Ver reseña →
+            </a>
+          </div>
+        </div>
+        <div class="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-5">
+          <div class="flex items-start gap-3 mb-3">
+            <div class="w-10 h-10 rounded-2xl bg-rose-500 crisis-ring flex items-center justify-center text-white text-lg flex-shrink-0">
+              🚨
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-start justify-between gap-2 flex-wrap">
+                <p class="text-sm font-bold text-white">Restaurante La Pepita - Getafe</p>
+                <span class="text-xs text-stone-500 flex-shrink-0">hace 3 horas</span>
+              </div>
+              <p class="text-xs text-stone-400 mt-0.5">
+                Keyword detectada: <strong class="text-rose-300">"sanidad"</strong>
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 flex-wrap">
+            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/20 text-rose-200 border border-rose-500/30">
+              🔴 Nivel Rojo — Escalado
+            </span>
+            <span class="text-xs text-stone-400">✓ Ops. Manager + CEO alertados</span>
+            <a href="#" class="ml-auto px-3 py-1.5 rounded-xl border border-white/10 bg-white/5 text-stone-300 text-xs font-semibold no-underline hover:bg-white/10">
+              Ver reseña →
+            </a>
+          </div>
+        </div>
+    </div>
+  </div>
+
+  <!-- Escalation tree -->
+  <div class="rounded-3xl border border-white/10 bg-white/5 p-6 mb-6">
+    <h2 class="text-sm font-bold text-stone-300 uppercase tracking-wider mb-5">Árbol de Escalamiento</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+      <div class="text-center">
+        <div class="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-2xl mx-auto mb-3">⚠️</div>
+        <p class="text-sm font-bold text-amber-300 mb-1">Nivel Ámbar</p>
+        <p class="text-xs text-stone-400 mb-2">Sentimiento negativo inusual o keyword de nivel 2</p>
+        <div class="space-y-1 text-xs text-stone-400">
+          <div class="flex items-center gap-1.5 justify-center"><span>📧</span> Email al encargado local</div>
+          <div class="flex items-center gap-1.5 justify-center"><span>🔔</span> Push notification</div>
+        </div>
+      </div>
+
+      <div class="text-center">
+        <div class="w-12 h-12 rounded-2xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-2xl mx-auto mb-3 crisis-ring">🚨</div>
+        <p class="text-sm font-bold text-rose-300 mb-1">Nivel Rojo</p>
+        <p class="text-xs text-stone-400 mb-2">Keyword crítica: intoxicación, denuncia, fraude, sanidad</p>
+        <div class="space-y-1 text-xs text-stone-400">
+          <div class="flex items-center gap-1.5 justify-center"><span>📱</span> SMS al Gerente de Ops.</div>
+          <div class="flex items-center gap-1.5 justify-center"><span>📧</span> Email urgente + CC CEO</div>
+          <div class="flex items-center gap-1.5 justify-center"><span>🔔</span> Notificación en panel</div>
+        </div>
+      </div>
+
+      <div class="text-center">
+        <div class="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-2xl mx-auto mb-3">🔇</div>
+        <p class="text-sm font-bold text-purple-300 mb-1">Silenciado</p>
+        <p class="text-xs text-stone-400 mb-2">El operador ha tomado control — alertas suspendidas 24h</p>
+        <div class="space-y-1 text-xs text-stone-400">
+          <div class="flex items-center gap-1.5 justify-center"><span>✓</span> Log de acciones guardado</div>
+          <div class="flex items-center gap-1.5 justify-center"><span>📝</span> Informe post-crisis auto</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Keyword config -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
+    <div class="rounded-3xl border border-white/10 bg-white/5 p-5">
+      <h2 class="text-sm font-bold text-stone-300 uppercase tracking-wider mb-4">Keywords monitorizadas</h2>
+      <div class="flex flex-wrap gap-2 mb-4">
+        <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/15 text-rose-300 border border-rose-500/25">🔴 intoxicación</span>
+<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/15 text-rose-300 border border-rose-500/25">🔴 denuncia</span>
+<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/15 text-rose-300 border border-rose-500/25">🔴 fraude</span>
+<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/15 text-rose-300 border border-rose-500/25">🔴 robo</span>
+<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/15 text-rose-300 border border-rose-500/25">🔴 agresión</span>
+<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-300 border border-amber-500/25">🟡 accidente</span>
+<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-300 border border-amber-500/25">🟡 cerrado</span>
+<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/15 text-rose-300 border border-rose-500/25">🔴 guardia civil</span>
+<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/15 text-rose-300 border border-rose-500/25">🔴 sanidad</span>
+<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/15 text-rose-300 border border-rose-500/25">🔴 veneno</span>
+<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-300 border border-amber-500/25">🟡 hospital</span>
+<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-300 border border-amber-500/25">🟡 rata</span>
+<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-300 border border-amber-500/25">🟡 cucaracha</span>
+<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-300 border border-amber-500/25">🟡 multa</span>
+      </div>
+      <button class="w-full px-4 py-2.5 rounded-xl border border-dashed border-white/15 text-stone-500 text-xs hover:border-white/25 hover:text-stone-400">
+        + Agregar keyword
+      </button>
+    </div>
+
+    <div class="rounded-3xl border border-white/10 bg-white/5 p-5">
+      <h2 class="text-sm font-bold text-stone-300 uppercase tracking-wider mb-4">Destinatarios de alerta</h2>
+      <div class="space-y-3">
+        <div class="flex items-center gap-3 p-3 rounded-xl border border-white/8 bg-black/15">
+          <div class="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center text-lg flex-shrink-0">👤</div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-bold text-white">Carlos Vega</p>
+            <p class="text-xs text-stone-500">Gerente de Operaciones · 🔴 Rojo</p>
+          </div>
+          <div class="flex gap-1.5 flex-shrink-0">
+            <span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-xs">SMS</span>
+            <span class="px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 text-xs">Email</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 p-3 rounded-xl border border-white/8 bg-black/15">
+          <div class="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center text-lg flex-shrink-0">👤</div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-bold text-white">Ana Martínez</p>
+            <p class="text-xs text-stone-500">Responsable de Calidad · 🟡 Ámbar + 🔴</p>
+          </div>
+          <div class="flex gap-1.5 flex-shrink-0">
+            <span class="px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 text-xs">Email</span>
+          </div>
+        </div>
+        <button class="w-full px-4 py-2.5 rounded-xl border border-dashed border-white/15 text-stone-500 text-xs hover:border-white/25 hover:text-stone-400">
+          + Agregar destinatario
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Backend snippet -->
+  <div class="rounded-3xl border border-white/10 bg-white/5 p-5">
+    <h2 class="text-sm font-bold text-stone-300 uppercase tracking-wider mb-3">Motor de escalamiento</h2>
+    <pre># app/churn_alert_engine.py — crisis escalation
+CRISIS_KEYWORDS_RED  = {"intoxicación","denuncia","fraude","sanidad","guardia civil"}
+CRISIS_KEYWORDS_AMBER= {"cerrado","accidente","hospital","multa","cucaracha"}
+
+def check_crisis(review_text: str, location: Location, db: Session):
+    text_lower = review_text.lower()
+    keywords_found = CRISIS_KEYWORDS_RED & set(text_lower.split())
+    if keywords_found:
+        # Escalate to Ops Manager — bypass local manager
+        dispatch_sms(ops_manager_phone, location, keywords_found)
+        dispatch_email(ops_manager_email, location, keywords_found, cc=[ceo_email])
+        create_crisis_event(db, location.id, "red", list(keywords_found))
+        return "escalated_red"
+    # ... amber check ...</pre>
+  </div>
+
+</div>
+</body>
+</html>

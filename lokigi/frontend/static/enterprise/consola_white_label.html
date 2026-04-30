@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Consola de Marca Blanca · Dashboard Enterprise | Lokigi Enterprise</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Arial, "Helvetica Neue", sans-serif; }
+    .no-underline { text-decoration: none; }
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(14px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .fade-up { animation: fadeUp .35s ease both; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .spin { animation: spin .8s linear infinite; }
+    @keyframes pulse-dot {
+      0%,100% { opacity:1; transform:scale(1); }
+      50%  { opacity:.4; transform:scale(1.5); }
+    }
+    .pulse { animation: pulse-dot 1.4s ease-in-out infinite; }
+    @keyframes crisis-ring {
+      0%,100% { box-shadow:0 0 0 0 rgba(239,68,68,.5); }
+      50% { box-shadow:0 0 0 14px rgba(239,68,68,0); }
+    }
+    .crisis-ring { animation: crisis-ring 1.6s ease-in-out infinite; }
+    @keyframes worker-flash {
+      0%,100% { background:rgba(139,92,246,.1); }
+      50% { background:rgba(139,92,246,.25); }
+    }
+    .worker-active { animation: worker-flash 1s ease-in-out infinite; }
+    @keyframes bar-grow {
+      from { width:0; }
+    }
+    .bar-grow { animation: bar-grow 1.6s cubic-bezier(.4,0,.2,1) both; }
+    input,select {
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:10px;
+      color:#f1f5f9;
+      padding:9px 13px;
+      font-size:13px;
+      outline:none;
+      width:100%;
+    }
+    select option { background:#1c1917; }
+    pre {
+      background:rgba(0,0,0,.4);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:12px;
+      padding:16px;
+      font-size:12px;
+      color:#a3e635;
+      overflow-x:auto;
+      white-space:pre;
+    }
+input[type=color]{background:transparent;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:2px;cursor:pointer;}</style>
+</head>
+<body class="min-h-screen bg-stone-950 text-stone-100">
+
+<nav class="sticky top-0 z-50 flex items-center gap-1 px-5 h-14
+     bg-stone-950/95 backdrop-blur-sm border-b border-white/10 shadow-md flex-wrap">
+  <div class="flex items-center gap-2.5 mr-4">
+    <a href="enterprise_landing.html"
+       class="flex items-center justify-center w-8 h-8 rounded-lg
+              bg-gradient-to-br from-violet-500 to-indigo-600
+              text-white font-black text-sm no-underline">L</a>
+    <a href="enterprise_landing.html"
+       class="font-bold text-white text-base no-underline">Lokigi</a>
+    <span class="px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300
+                 text-xs font-bold uppercase tracking-wider">Enterprise</span>
+  </div>
+  <a href="enterprise_hub.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">🏠 Hub</a>
+<a href="vista_red.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">🗺 Vista de Red</a>
+<a href="consola_white_label.html" class="px-3 py-2 rounded-lg text-sm font-semibold text-violet-200 bg-violet-500/20 border border-violet-400/20 no-underline">🏷 Consola WL</a>
+<a href="enterprise_landing.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">← Planes</a>
+
+</nav>
+
+<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 pb-20 fade-up">
+
+  <div class="flex items-start justify-between gap-4 mb-6 flex-wrap">
+    <div>
+      <p class="text-xs uppercase tracking-[.2em] text-violet-300/70 mb-1">Dashboard Enterprise · Pantalla 2</p>
+      <h1 class="text-3xl font-bold text-white">Consola de Marca Blanca</h1>
+      <p class="text-stone-400 text-sm mt-1">
+        Gestiona la identidad visual de cada agencia cliente y controla los límites de su plan.
+      </p>
+    </div>
+    <div class="flex gap-2">
+      <a href="white_label/wl_hub.html"
+         class="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600
+                text-white font-bold text-sm no-underline hover:from-violet-500 hover:to-indigo-500">
+        + Nuevo tenant
+      </a>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+    <div class="rounded-2xl border border-white/10 bg-white/5 p-4 text-center">
+      <p class="text-2xl font-black text-white">8</p>
+      <p class="text-xs text-stone-500 mt-0.5">Tenants totales</p>
+    </div>
+    <div class="rounded-2xl border border-violet-500/20 bg-violet-500/5 p-4 text-center">
+      <p class="text-2xl font-black text-violet-300">6</p>
+      <p class="text-xs text-stone-500 mt-0.5">Con WL activo</p>
+    </div>
+    <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-center">
+      <p class="text-2xl font-black text-emerald-400">150</p>
+      <p class="text-xs text-stone-500 mt-0.5">Locales gestionados</p>
+    </div>
+    <div class="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-4 text-center">
+      <p class="text-2xl font-black text-indigo-400">8</p>
+      <p class="text-xs text-stone-500 mt-0.5">Dominios activos</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+
+    <!-- Branding Editor -->
+    <div class="space-y-4">
+
+      <div class="rounded-3xl border border-violet-500/20 bg-violet-500/5 p-6">
+        <h2 class="text-sm font-bold text-violet-200 uppercase tracking-wider mb-5">Editor de Branding Rápido</h2>
+
+        <!-- Tenant selector -->
+        <div class="mb-4">
+          <label class="text-xs text-stone-400 block mb-1.5">Tenant activo</label>
+          <select>
+            <option>★ Marketing Pro SL</option><option>★ Agencia Reputación XYZ</option><option>★ Gestión Digital Norte</option><option>Reputación Online Sur</option><option>★ Consultoría Marca 360</option><option>Social Media Partners</option><option>★ Franquicias Mediterráneas</option><option>★ Grupo Hostelería Premium</option>
+          </select>
+        </div>
+
+        <!-- Color swatches -->
+        <div class="mb-4">
+          <label class="text-xs text-stone-400 block mb-2">Paleta de colores</label>
+          <div class="grid grid-cols-3 gap-2">
+            <div class="h-10 rounded-xl cursor-pointer ring-2 ring-white/10 hover:ring-violet-400/40 transition-all" style="background:#2563EB" title="Marketing Pro SL"></div><div class="h-10 rounded-xl cursor-pointer ring-2 ring-white/10 hover:ring-violet-400/40 transition-all" style="background:#16a34a" title="Agencia Reputación XYZ"></div><div class="h-10 rounded-xl cursor-pointer ring-2 ring-white/10 hover:ring-violet-400/40 transition-all" style="background:#7c3aed" title="Gestión Digital Norte"></div><div class="h-10 rounded-xl cursor-pointer ring-2 ring-white/10 hover:ring-violet-400/40 transition-all" style="background:#dc2626" title="Reputación Online Sur"></div><div class="h-10 rounded-xl cursor-pointer ring-2 ring-white/10 hover:ring-violet-400/40 transition-all" style="background:#ea580c" title="Consultoría Marca 360"></div><div class="h-10 rounded-xl cursor-pointer ring-2 ring-white/10 hover:ring-violet-400/40 transition-all" style="background:#0891b2" title="Social Media Partners"></div>
+          </div>
+        </div>
+
+        <!-- Color inputs -->
+        <div class="space-y-3">
+          <div>
+            <label class="text-xs text-stone-400 block mb-1.5">Color primario</label>
+            <div class="flex gap-2 items-center">
+              <input type="color" value="#2563EB" class="!w-12 !h-10 !p-1" />
+              <input type="text" value="#2563EB" class="flex-1 font-mono text-xs" />
+            </div>
+          </div>
+          <div>
+            <label class="text-xs text-stone-400 block mb-1.5">Color secundario</label>
+            <div class="flex gap-2 items-center">
+              <input type="color" value="#1E40AF" class="!w-12 !h-10 !p-1" />
+              <input type="text" value="#1E40AF" class="flex-1 font-mono text-xs" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Logo upload -->
+        <div class="mt-4">
+          <label class="text-xs text-stone-400 block mb-1.5">Logo del tenant</label>
+          <div class="border-2 border-dashed border-violet-500/30 rounded-2xl p-4 text-center hover:border-violet-400/50 cursor-pointer">
+            <p class="text-xs text-stone-400">Arrastra el logo aquí o</p>
+            <p class="text-xs text-violet-400 font-semibold mt-0.5">haz click para subir</p>
+          </div>
+        </div>
+
+        <button class="w-full mt-4 px-4 py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold text-sm hover:from-violet-500 hover:to-indigo-500">
+          Guardar y sincronizar →
+        </button>
+
+        <p class="text-xs text-stone-500 text-center mt-2">
+          Cambios en vivo · Redis TTL 300s
+        </p>
+      </div>
+
+      <!-- Domain mapping -->
+      <div class="rounded-3xl border border-white/10 bg-white/5 p-5">
+        <h2 class="text-sm font-bold text-stone-300 uppercase tracking-wider mb-4">Dominios activos</h2>
+        <div class="space-y-2">
+          <div class="flex items-center gap-2 p-2.5 rounded-xl bg-black/20 border border-white/8">
+            <div class="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0"></div>
+            <span class="text-xs font-mono text-stone-300 flex-1 truncate">clientes.marketingpro.com</span>
+            <span class="text-xs text-stone-600">7f3a2b</span>
+          </div>
+          <div class="flex items-center gap-2 p-2.5 rounded-xl bg-black/20 border border-white/8">
+            <div class="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0"></div>
+            <span class="text-xs font-mono text-stone-300 flex-1 truncate">panel.agenciaxyz.com</span>
+            <span class="text-xs text-stone-600">a1b2c3</span>
+          </div>
+          <div class="flex items-center gap-2 p-2.5 rounded-xl bg-black/20 border border-white/8">
+            <div class="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0"></div>
+            <span class="text-xs font-mono text-stone-300 flex-1 truncate">reputacion.digital-norte.es</span>
+            <span class="text-xs text-stone-600">c4d5e6</span>
+          </div>
+          <div class="flex items-center gap-2 p-2.5 rounded-xl bg-black/20 border border-amber-500/15">
+            <div class="w-2 h-2 rounded-full bg-amber-400 pulse flex-shrink-0"></div>
+            <span class="text-xs font-mono text-stone-400 flex-1 truncate">reputacion-sur.com · SSL ⏳</span>
+            <span class="text-xs text-stone-600">f7g8h9</span>
+          </div>
+          <a href="white_label/wl_step2_domain.html"
+             class="block text-center text-xs text-violet-400 no-underline hover:text-violet-300 mt-2">
+            Gestionar dominios →
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tenant table -->
+    <div class="xl:col-span-2">
+      <div class="rounded-3xl border border-white/10 bg-white/5 overflow-hidden">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-white/8 flex-wrap gap-2">
+          <h2 class="text-sm font-bold text-stone-300 uppercase tracking-wider">Gestión de Tenants</h2>
+          <div class="flex gap-2">
+            <input type="text" placeholder="Buscar tenant..." class="!w-48 text-xs !py-2" />
+            <select class="!w-auto text-xs !py-2">
+              <option>Todos</option>
+              <option>WL Activo</option>
+              <option>Sin WL</option>
+            </select>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead>
+              <tr class="text-xs text-stone-500 uppercase tracking-wider border-b border-white/8">
+                <th class="text-left py-3 px-4 font-semibold">Tenant</th>
+                <th class="text-center py-3 px-4 font-semibold">Locales</th>
+                <th class="text-center py-3 px-4 font-semibold">Rating</th>
+                <th class="text-center py-3 px-4 font-semibold">Color</th>
+                <th class="text-center py-3 px-4 font-semibold">White Label</th>
+                <th class="text-center py-3 px-4 font-semibold">Estado</th>
+                <th class="text-right py-3 px-4 font-semibold">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              
+    <tr class="border-b border-white/5 hover:bg-white/3">
+      <td class="py-3 px-4">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-xl flex items-center justify-center text-white font-black text-sm flex-shrink-0"
+               style="background:#2563EB">M</div>
+          <div>
+            <p class="text-sm font-semibold text-white">Marketing Pro SL</p>
+            <p class="text-xs text-stone-500 font-mono">org_7f3a2b</p>
+          </div>
+        </div>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="text-sm text-stone-300">12</span>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="text-sm text-stone-300">4.6★</span>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <div class="flex items-center justify-center gap-2">
+          <div class="w-4 h-4 rounded-full flex-shrink-0" style="background:#2563EB"></div>
+          <span class="text-xs font-mono text-stone-400">#2563EB</span>
+        </div>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="px-2.5 py-1 rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/25 text-xs font-bold">WL Activo</span>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="text-xs font-semibold text-emerald-400">✓ Activo</span>
+      </td>
+      <td class="py-3 px-4 text-right">
+        <div class="flex gap-1.5 justify-end">
+          <a href="white_label/wl_hub.html" class="px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/5 text-stone-300 text-xs no-underline hover:bg-white/10">Editar WL</a>
+          <a href="#" class="px-2.5 py-1.5 rounded-lg border border-white/8 bg-white/3 text-stone-400 text-xs no-underline hover:bg-white/8">Ajustes</a>
+        </div>
+      </td>
+    </tr>
+
+    <tr class="border-b border-white/5 hover:bg-white/3">
+      <td class="py-3 px-4">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-xl flex items-center justify-center text-white font-black text-sm flex-shrink-0"
+               style="background:#16a34a">A</div>
+          <div>
+            <p class="text-sm font-semibold text-white">Agencia Reputación XYZ</p>
+            <p class="text-xs text-stone-500 font-mono">org_a1b2c3</p>
+          </div>
+        </div>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="text-sm text-stone-300">8</span>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="text-sm text-stone-300">4.4★</span>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <div class="flex items-center justify-center gap-2">
+          <div class="w-4 h-4 rounded-full flex-shrink-0" style="background:#16a34a"></div>
+          <span class="text-xs font-mono text-stone-400">#16a34a</span>
+        </div>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="px-2.5 py-1 rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/25 text-xs font-bold">WL Activo</span>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="text-xs font-semibold text-emerald-400">✓ Activo</span>
+      </td>
+      <td class="py-3 px-4 text-right">
+        <div class="flex gap-1.5 justify-end">
+          <a href="white_label/wl_hub.html" class="px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/5 text-stone-300 text-xs no-underline hover:bg-white/10">Editar WL</a>
+          <a href="#" class="px-2.5 py-1.5 rounded-lg border border-white/8 bg-white/3 text-stone-400 text-xs no-underline hover:bg-white/8">Ajustes</a>
+        </div>
+      </td>
+    </tr>
+
+    <tr class="border-b border-white/5 hover:bg-white/3">
+      <td class="py-3 px-4">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-xl flex items-center justify-center text-white font-black text-sm flex-shrink-0"
+               style="background:#7c3aed">G</div>
+          <div>
+            <p class="text-sm font-semibold text-white">Gestión Digital Norte</p>
+            <p class="text-xs text-stone-500 font-mono">org_c4d5e6</p>
+          </div>
+        </div>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="text-sm text-stone-300">25</span>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="text-sm text-stone-300">4.7★</span>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <div class="flex items-center justify-center gap-2">
+          <div class="w-4 h-4 rounded-full flex-shrink-0" style="background:#7c3aed"></div>
+          <span class="text-xs font-mono text-stone-400">#7c3aed</span>
+        </div>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="px-2.5 py-1 rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/25 text-xs font-bold">WL Activo</span>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="text-xs font-semibold text-emerald-400">✓ Activo</span>
+      </td>
+      <td class="py-3 px-4 text-right">
+        <div class="flex gap-1.5 justify-end">
+          <a href="white_label/wl_hub.html" class="px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/5 text-stone-300 text-xs no-underline hover:bg-white/10">Editar WL</a>
+          <a href="#" class="px-2.5 py-1.5 rounded-lg border border-white/8 bg-white/3 text-stone-400 text-xs no-underline hover:bg-white/8">Ajustes</a>
+        </div>
+      </td>
+    </tr>
+
+    <tr class="border-b border-white/5 hover:bg-white/3">
+      <td class="py-3 px-4">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-xl flex items-center justify-center text-white font-black text-sm flex-shrink-0"
+               style="background:#dc2626">R</div>
+          <div>
+            <p class="text-sm font-semibold text-white">Reputación Online Sur</p>
+            <p class="text-xs text-stone-500 font-mono">org_f7g8h9</p>
+          </div>
+        </div>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="text-sm text-stone-300">5</span>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="text-sm text-stone-300">4.2★</span>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <div class="flex items-center justify-center gap-2">
+          <div class="w-4 h-4 rounded-full flex-shrink-0" style="background:#dc2626"></div>
+          <span class="text-xs font-mono text-stone-400">#dc2626</span>
+        </div>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="px-2.5 py-1 rounded-full bg-stone-500/15 text-stone-400 text-xs">Estándar</span>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="text-xs font-semibold text-amber-400">⏳ Pendiente</span>
+      </td>
+      <td class="py-3 px-4 text-right">
+        <div class="flex gap-1.5 justify-end">
+          <a href="white_label/wl_hub.html" class="px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/5 text-stone-300 text-xs no-underline hover:bg-white/10">Editar WL</a>
+          <a href="#" class="px-2.5 py-1.5 rounded-lg border border-white/8 bg-white/3 text-stone-400 text-xs no-underline hover:bg-white/8">Ajustes</a>
+        </div>
+      </td>
+    </tr>
+
+    <tr class="border-b border-white/5 hover:bg-white/3">
+      <td class="py-3 px-4">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-xl flex items-center justify-center text-white font-black text-sm flex-shrink-0"
+               style="background:#ea580c">C</div>
+          <div>
+            <p class="text-sm font-semibold text-white">Consultoría Marca 360</p>
+            <p class="text-xs text-stone-500 font-mono">org_i0j1k2</p>
+          </div>
+        </div>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="text-sm text-stone-300">18</span>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="text-sm text-stone-300">4.5★</span>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <div class="flex items-center justify-center gap-2">
+          <div class="w-4 h-4 rounded-full flex-shrink-0" style="background:#ea580c"></div>
+          <span class="text-xs font-mono text-stone-400">#ea580c</span>
+        </div>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="px-2.5 py-1 rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/25 text-xs font-bold">WL Activo</span>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="text-xs font-semibold text-emerald-400">✓ Activo</span>
+      </td>
+      <td class="py-3 px-4 text-right">
+        <div class="flex gap-1.5 justify-end">
+          <a href="white_label/wl_hub.html" class="px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/5 text-stone-300 text-xs no-underline hover:bg-white/10">Editar WL</a>
+          <a href="#" class="px-2.5 py-1.5 rounded-lg border border-white/8 bg-white/3 text-stone-400 text-xs no-underline hover:bg-white/8">Ajustes</a>
+        </div>
+      </td>
+    </tr>
+
+    <tr class="border-b border-white/5 hover:bg-white/3">
+      <td class="py-3 px-4">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-xl flex items-center justify-center text-white font-black text-sm flex-shrink-0"
+               style="background:#0891b2">S</div>
+          <div>
+            <p class="text-sm font-semibold text-white">Social Media Partners</p>
+            <p class="text-xs text-stone-500 font-mono">org_l3m4n5</p>
+          </div>
+        </div>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="text-sm text-stone-300">3</span>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="text-sm text-stone-300">4.1★</span>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <div class="flex items-center justify-center gap-2">
+          <div class="w-4 h-4 rounded-full flex-shrink-0" style="background:#0891b2"></div>
+          <span class="text-xs font-mono text-stone-400">#0891b2</span>
+        </div>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="px-2.5 py-1 rounded-full bg-stone-500/15 text-stone-400 text-xs">Estándar</span>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="text-xs font-semibold text-rose-400">✗ Inactivo</span>
+      </td>
+      <td class="py-3 px-4 text-right">
+        <div class="flex gap-1.5 justify-end">
+          <a href="white_label/wl_hub.html" class="px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/5 text-stone-300 text-xs no-underline hover:bg-white/10">Editar WL</a>
+          <a href="#" class="px-2.5 py-1.5 rounded-lg border border-white/8 bg-white/3 text-stone-400 text-xs no-underline hover:bg-white/8">Ajustes</a>
+        </div>
+      </td>
+    </tr>
+
+    <tr class="border-b border-white/5 hover:bg-white/3">
+      <td class="py-3 px-4">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-xl flex items-center justify-center text-white font-black text-sm flex-shrink-0"
+               style="background:#059669">F</div>
+          <div>
+            <p class="text-sm font-semibold text-white">Franquicias Mediterráneas</p>
+            <p class="text-xs text-stone-500 font-mono">org_o6p7q8</p>
+          </div>
+        </div>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="text-sm text-stone-300">47</span>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="text-sm text-stone-300">4.8★</span>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <div class="flex items-center justify-center gap-2">
+          <div class="w-4 h-4 rounded-full flex-shrink-0" style="background:#059669"></div>
+          <span class="text-xs font-mono text-stone-400">#059669</span>
+        </div>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="px-2.5 py-1 rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/25 text-xs font-bold">WL Activo</span>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="text-xs font-semibold text-emerald-400">✓ Activo</span>
+      </td>
+      <td class="py-3 px-4 text-right">
+        <div class="flex gap-1.5 justify-end">
+          <a href="white_label/wl_hub.html" class="px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/5 text-stone-300 text-xs no-underline hover:bg-white/10">Editar WL</a>
+          <a href="#" class="px-2.5 py-1.5 rounded-lg border border-white/8 bg-white/3 text-stone-400 text-xs no-underline hover:bg-white/8">Ajustes</a>
+        </div>
+      </td>
+    </tr>
+
+    <tr class="border-b border-white/5 hover:bg-white/3">
+      <td class="py-3 px-4">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-xl flex items-center justify-center text-white font-black text-sm flex-shrink-0"
+               style="background:#7c3aed">G</div>
+          <div>
+            <p class="text-sm font-semibold text-white">Grupo Hostelería Premium</p>
+            <p class="text-xs text-stone-500 font-mono">org_r9s0t1</p>
+          </div>
+        </div>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="text-sm text-stone-300">32</span>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="text-sm text-stone-300">4.6★</span>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <div class="flex items-center justify-center gap-2">
+          <div class="w-4 h-4 rounded-full flex-shrink-0" style="background:#7c3aed"></div>
+          <span class="text-xs font-mono text-stone-400">#7c3aed</span>
+        </div>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="px-2.5 py-1 rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/25 text-xs font-bold">WL Activo</span>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="text-xs font-semibold text-emerald-400">✓ Activo</span>
+      </td>
+      <td class="py-3 px-4 text-right">
+        <div class="flex gap-1.5 justify-end">
+          <a href="white_label/wl_hub.html" class="px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/5 text-stone-300 text-xs no-underline hover:bg-white/10">Editar WL</a>
+          <a href="#" class="px-2.5 py-1.5 rounded-lg border border-white/8 bg-white/3 text-stone-400 text-xs no-underline hover:bg-white/8">Ajustes</a>
+        </div>
+      </td>
+    </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="px-5 py-3 border-t border-white/8 flex items-center justify-between">
+          <p class="text-xs text-stone-500">8 tenants · 150 locales totales</p>
+          <div class="flex gap-2">
+            <button class="px-3 py-1.5 rounded-lg border border-white/10 text-stone-400 text-xs hover:bg-white/5">← Anterior</button>
+            <button class="px-3 py-1.5 rounded-lg border border-white/10 text-stone-400 text-xs hover:bg-white/5">Siguiente →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Plan limits -->
+      <div class="rounded-3xl border border-white/10 bg-white/5 p-5 mt-4">
+        <h2 class="text-sm font-bold text-stone-300 uppercase tracking-wider mb-4">Límites del Plan Enterprise</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <div class="flex justify-between text-xs mb-1.5">
+              <span class="text-stone-400">Tenants activos</span>
+              <span class="text-stone-300 font-semibold">8 / 20</span>
+            </div>
+            <div class="h-2 rounded-full bg-white/10 overflow-hidden">
+              <div class="h-full rounded-full bg-violet-500 bar-grow" style="width:40%"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1.5">
+              <span class="text-stone-400">Locales totales</span>
+              <span class="text-stone-300 font-semibold">150 / 500</span>
+            </div>
+            <div class="h-2 rounded-full bg-white/10 overflow-hidden">
+              <div class="h-full rounded-full bg-indigo-500 bar-grow" style="width:30%"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1.5">
+              <span class="text-stone-400">Dominios WL</span>
+              <span class="text-stone-300 font-semibold">8 / 20</span>
+            </div>
+            <div class="h-2 rounded-full bg-white/10 overflow-hidden">
+              <div class="h-full rounded-full bg-teal-500 bar-grow" style="width:40%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

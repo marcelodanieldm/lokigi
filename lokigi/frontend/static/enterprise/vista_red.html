@@ -1,0 +1,870 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Vista de Red · Dashboard Enterprise | Lokigi Enterprise</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Arial, "Helvetica Neue", sans-serif; }
+    .no-underline { text-decoration: none; }
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(14px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .fade-up { animation: fadeUp .35s ease both; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .spin { animation: spin .8s linear infinite; }
+    @keyframes pulse-dot {
+      0%,100% { opacity:1; transform:scale(1); }
+      50%  { opacity:.4; transform:scale(1.5); }
+    }
+    .pulse { animation: pulse-dot 1.4s ease-in-out infinite; }
+    @keyframes crisis-ring {
+      0%,100% { box-shadow:0 0 0 0 rgba(239,68,68,.5); }
+      50% { box-shadow:0 0 0 14px rgba(239,68,68,0); }
+    }
+    .crisis-ring { animation: crisis-ring 1.6s ease-in-out infinite; }
+    @keyframes worker-flash {
+      0%,100% { background:rgba(139,92,246,.1); }
+      50% { background:rgba(139,92,246,.25); }
+    }
+    .worker-active { animation: worker-flash 1s ease-in-out infinite; }
+    @keyframes bar-grow {
+      from { width:0; }
+    }
+    .bar-grow { animation: bar-grow 1.6s cubic-bezier(.4,0,.2,1) both; }
+    input,select {
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:10px;
+      color:#f1f5f9;
+      padding:9px 13px;
+      font-size:13px;
+      outline:none;
+      width:100%;
+    }
+    select option { background:#1c1917; }
+    pre {
+      background:rgba(0,0,0,.4);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:12px;
+      padding:16px;
+      font-size:12px;
+      color:#a3e635;
+      overflow-x:auto;
+      white-space:pre;
+    }
+</style>
+</head>
+<body class="min-h-screen bg-stone-950 text-stone-100">
+
+<nav class="sticky top-0 z-50 flex items-center gap-1 px-5 h-14
+     bg-stone-950/95 backdrop-blur-sm border-b border-white/10 shadow-md flex-wrap">
+  <div class="flex items-center gap-2.5 mr-4">
+    <a href="enterprise_landing.html"
+       class="flex items-center justify-center w-8 h-8 rounded-lg
+              bg-gradient-to-br from-violet-500 to-indigo-600
+              text-white font-black text-sm no-underline">L</a>
+    <a href="enterprise_landing.html"
+       class="font-bold text-white text-base no-underline">Lokigi</a>
+    <span class="px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300
+                 text-xs font-bold uppercase tracking-wider">Enterprise</span>
+  </div>
+  <a href="enterprise_hub.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">🏠 Hub</a>
+<a href="vista_red.html" class="px-3 py-2 rounded-lg text-sm font-semibold text-violet-200 bg-violet-500/20 border border-violet-400/20 no-underline">🗺 Vista de Red</a>
+<a href="consola_white_label.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">🏷 Consola WL</a>
+<a href="enterprise_landing.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">← Planes</a>
+
+</nav>
+
+<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 pb-20 fade-up">
+
+  <div class="flex items-start justify-between gap-4 mb-6 flex-wrap">
+    <div>
+      <p class="text-xs uppercase tracking-[.2em] text-violet-300/70 mb-1">Dashboard Enterprise · Pantalla 1</p>
+      <h1 class="text-3xl font-bold text-white">Vista de Red</h1>
+      <p class="text-stone-400 text-sm mt-1">Estado de reputación de toda la cadena en tiempo real.</p>
+    </div>
+    <div class="flex gap-2 flex-wrap">
+      <select class="!w-auto text-xs">
+        <option>Todas las zonas</option>
+        <option>Zona Norte</option>
+        <option>Zona Sur</option>
+        <option>Zona Este</option>
+      </select>
+      <select class="!w-auto text-xs">
+        <option>Últimos 30 días</option>
+        <option>Últimos 7 días</option>
+        <option>Este mes</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- KPI strip -->
+  <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+    <div class="rounded-2xl border border-white/10 bg-white/5 p-4 text-center">
+      <p class="text-2xl font-black text-white">50</p>
+      <p class="text-xs text-stone-500 mt-0.5">Locales</p>
+    </div>
+    <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-center">
+      <p class="text-2xl font-black text-emerald-400">87</p>
+      <p class="text-xs text-stone-500 mt-0.5">BAI Red Media</p>
+    </div>
+    <div class="rounded-2xl border border-yellow-500/20 bg-yellow-500/5 p-4 text-center">
+      <p class="text-2xl font-black text-yellow-400">4.5★</p>
+      <p class="text-xs text-stone-500 mt-0.5">Rating medio</p>
+    </div>
+    <div class="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-4 text-center">
+      <p class="text-2xl font-black text-rose-400">3</p>
+      <p class="text-xs text-stone-500 mt-0.5">Outliers críticos</p>
+    </div>
+    <div class="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 text-center">
+      <p class="text-2xl font-black text-amber-400">4</p>
+      <p class="text-xs text-stone-500 mt-0.5">Crisis activas</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+
+    <!-- Heatmap grid -->
+    <div class="xl:col-span-2 space-y-4">
+      <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
+        <div class="flex items-center justify-between mb-5 flex-wrap gap-2">
+          <h2 class="text-sm font-bold text-stone-300 uppercase tracking-wider">Mapa de Calor de la Red</h2>
+          <div class="flex gap-3 text-xs">
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>BAI ≥ 65</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span>45–64</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-rose-500 inline-block"></span>&lt; 45</span>
+          </div>
+        </div>
+
+        <!-- Map zones -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div>
+            <p class="text-xs text-stone-500 uppercase tracking-wider mb-3 font-semibold">Zona Norte</p>
+            <div class="flex flex-wrap gap-3">
+              
+    <div class="relative group flex flex-col items-center gap-1 cursor-pointer" title="Madrid Centro · BAI 91">
+      <div class="w-6 h-6 rounded-full bg-emerald-500 ring-2 ring-emerald-400/30 flex items-center justify-center
+                  text-white text-xs font-black hover:scale-125 transition-transform">
+        1
+      </div>
+      <span class="text-xs text-stone-500 hidden sm:block text-center leading-tight max-w-[64px] truncate">Centro</span>
+      <span class="text-xs text-emerald-400 hidden sm:block">▲</span>
+      <!-- Tooltip -->
+      <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 hidden group-hover:block
+                  w-40 rounded-xl border border-white/10 bg-stone-900 shadow-xl p-2.5 text-xs">
+        <p class="font-bold text-white mb-1">Madrid Centro</p>
+        <div class="flex justify-between text-stone-400"><span>BAI</span><span class="font-bold text-emerald-400">91</span></div>
+        <div class="flex justify-between text-stone-400"><span>Rating</span><span class="text-white">4.8★</span></div>
+        <div class="flex justify-between text-stone-400"><span>Zona</span><span class="text-stone-300">Norte</span></div>
+      </div>
+    </div>
+
+    <div class="relative group flex flex-col items-center gap-1 cursor-pointer" title="Pozuelo · BAI 90">
+      <div class="w-6 h-6 rounded-full bg-emerald-500 ring-2 ring-emerald-400/30 flex items-center justify-center
+                  text-white text-xs font-black hover:scale-125 transition-transform">
+        2
+      </div>
+      <span class="text-xs text-stone-500 hidden sm:block text-center leading-tight max-w-[64px] truncate">Pozuelo</span>
+      <span class="text-xs text-emerald-400 hidden sm:block">▲</span>
+      <!-- Tooltip -->
+      <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 hidden group-hover:block
+                  w-40 rounded-xl border border-white/10 bg-stone-900 shadow-xl p-2.5 text-xs">
+        <p class="font-bold text-white mb-1">Pozuelo</p>
+        <div class="flex justify-between text-stone-400"><span>BAI</span><span class="font-bold text-emerald-400">90</span></div>
+        <div class="flex justify-between text-stone-400"><span>Rating</span><span class="text-white">4.7★</span></div>
+        <div class="flex justify-between text-stone-400"><span>Zona</span><span class="text-stone-300">Norte</span></div>
+      </div>
+    </div>
+
+    <div class="relative group flex flex-col items-center gap-1 cursor-pointer" title="Tres Cantos · BAI 89">
+      <div class="w-6 h-6 rounded-full bg-emerald-500 ring-2 ring-emerald-400/30 flex items-center justify-center
+                  text-white text-xs font-black hover:scale-125 transition-transform">
+        3
+      </div>
+      <span class="text-xs text-stone-500 hidden sm:block text-center leading-tight max-w-[64px] truncate">Cantos</span>
+      <span class="text-xs text-emerald-400 hidden sm:block">▲</span>
+      <!-- Tooltip -->
+      <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 hidden group-hover:block
+                  w-40 rounded-xl border border-white/10 bg-stone-900 shadow-xl p-2.5 text-xs">
+        <p class="font-bold text-white mb-1">Tres Cantos</p>
+        <div class="flex justify-between text-stone-400"><span>BAI</span><span class="font-bold text-emerald-400">89</span></div>
+        <div class="flex justify-between text-stone-400"><span>Rating</span><span class="text-white">4.7★</span></div>
+        <div class="flex justify-between text-stone-400"><span>Zona</span><span class="text-stone-300">Norte</span></div>
+      </div>
+    </div>
+
+    <div class="relative group flex flex-col items-center gap-1 cursor-pointer" title="San Sebastián · BAI 88">
+      <div class="w-6 h-6 rounded-full bg-emerald-500 ring-2 ring-emerald-400/30 flex items-center justify-center
+                  text-white text-xs font-black hover:scale-125 transition-transform">
+        
+      </div>
+      <span class="text-xs text-stone-500 hidden sm:block text-center leading-tight max-w-[64px] truncate">Sebastián</span>
+      <span class="text-xs text-emerald-400 hidden sm:block">▲</span>
+      <!-- Tooltip -->
+      <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 hidden group-hover:block
+                  w-40 rounded-xl border border-white/10 bg-stone-900 shadow-xl p-2.5 text-xs">
+        <p class="font-bold text-white mb-1">San Sebastián</p>
+        <div class="flex justify-between text-stone-400"><span>BAI</span><span class="font-bold text-emerald-400">88</span></div>
+        <div class="flex justify-between text-stone-400"><span>Rating</span><span class="text-white">4.7★</span></div>
+        <div class="flex justify-between text-stone-400"><span>Zona</span><span class="text-stone-300">Norte</span></div>
+      </div>
+    </div>
+
+    <div class="relative group flex flex-col items-center gap-1 cursor-pointer" title="Majadahonda · BAI 87">
+      <div class="w-6 h-6 rounded-full bg-emerald-500 ring-2 ring-emerald-400/30 flex items-center justify-center
+                  text-white text-xs font-black hover:scale-125 transition-transform">
+        
+      </div>
+      <span class="text-xs text-stone-500 hidden sm:block text-center leading-tight max-w-[64px] truncate">Majadahonda</span>
+      <span class="text-xs text-stone-400 hidden sm:block">—</span>
+      <!-- Tooltip -->
+      <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 hidden group-hover:block
+                  w-40 rounded-xl border border-white/10 bg-stone-900 shadow-xl p-2.5 text-xs">
+        <p class="font-bold text-white mb-1">Majadahonda</p>
+        <div class="flex justify-between text-stone-400"><span>BAI</span><span class="font-bold text-emerald-400">87</span></div>
+        <div class="flex justify-between text-stone-400"><span>Rating</span><span class="text-white">4.6★</span></div>
+        <div class="flex justify-between text-stone-400"><span>Zona</span><span class="text-stone-300">Norte</span></div>
+      </div>
+    </div>
+
+    <div class="relative group flex flex-col items-center gap-1 cursor-pointer" title="Las Rozas · BAI 86">
+      <div class="w-6 h-6 rounded-full bg-emerald-500 ring-2 ring-emerald-400/30 flex items-center justify-center
+                  text-white text-xs font-black hover:scale-125 transition-transform">
+        
+      </div>
+      <span class="text-xs text-stone-500 hidden sm:block text-center leading-tight max-w-[64px] truncate">Rozas</span>
+      <span class="text-xs text-emerald-400 hidden sm:block">▲</span>
+      <!-- Tooltip -->
+      <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 hidden group-hover:block
+                  w-40 rounded-xl border border-white/10 bg-stone-900 shadow-xl p-2.5 text-xs">
+        <p class="font-bold text-white mb-1">Las Rozas</p>
+        <div class="flex justify-between text-stone-400"><span>BAI</span><span class="font-bold text-emerald-400">86</span></div>
+        <div class="flex justify-between text-stone-400"><span>Rating</span><span class="text-white">4.6★</span></div>
+        <div class="flex justify-between text-stone-400"><span>Zona</span><span class="text-stone-300">Norte</span></div>
+      </div>
+    </div>
+
+    <div class="relative group flex flex-col items-center gap-1 cursor-pointer" title="Alcobendas · BAI 84">
+      <div class="w-6 h-6 rounded-full bg-emerald-500 ring-2 ring-emerald-400/30 flex items-center justify-center
+                  text-white text-xs font-black hover:scale-125 transition-transform">
+        
+      </div>
+      <span class="text-xs text-stone-500 hidden sm:block text-center leading-tight max-w-[64px] truncate">Alcobendas</span>
+      <span class="text-xs text-emerald-400 hidden sm:block">▲</span>
+      <!-- Tooltip -->
+      <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 hidden group-hover:block
+                  w-40 rounded-xl border border-white/10 bg-stone-900 shadow-xl p-2.5 text-xs">
+        <p class="font-bold text-white mb-1">Alcobendas</p>
+        <div class="flex justify-between text-stone-400"><span>BAI</span><span class="font-bold text-emerald-400">84</span></div>
+        <div class="flex justify-between text-stone-400"><span>Rating</span><span class="text-white">4.6★</span></div>
+        <div class="flex justify-between text-stone-400"><span>Zona</span><span class="text-stone-300">Norte</span></div>
+      </div>
+    </div>
+
+    <div class="relative group flex flex-col items-center gap-1 cursor-pointer" title="El Escorial · BAI 83">
+      <div class="w-6 h-6 rounded-full bg-emerald-500 ring-2 ring-emerald-400/30 flex items-center justify-center
+                  text-white text-xs font-black hover:scale-125 transition-transform">
+        
+      </div>
+      <span class="text-xs text-stone-500 hidden sm:block text-center leading-tight max-w-[64px] truncate">Escorial</span>
+      <span class="text-xs text-emerald-400 hidden sm:block">▲</span>
+      <!-- Tooltip -->
+      <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 hidden group-hover:block
+                  w-40 rounded-xl border border-white/10 bg-stone-900 shadow-xl p-2.5 text-xs">
+        <p class="font-bold text-white mb-1">El Escorial</p>
+        <div class="flex justify-between text-stone-400"><span>BAI</span><span class="font-bold text-emerald-400">83</span></div>
+        <div class="flex justify-between text-stone-400"><span>Rating</span><span class="text-white">4.5★</span></div>
+        <div class="flex justify-between text-stone-400"><span>Zona</span><span class="text-stone-300">Norte</span></div>
+      </div>
+    </div>
+
+    <div class="relative group flex flex-col items-center gap-1 cursor-pointer" title="Colmenar Viejo · BAI 79">
+      <div class="w-6 h-6 rounded-full bg-emerald-500 ring-2 ring-emerald-400/30 flex items-center justify-center
+                  text-white text-xs font-black hover:scale-125 transition-transform">
+        
+      </div>
+      <span class="text-xs text-stone-500 hidden sm:block text-center leading-tight max-w-[64px] truncate">Viejo</span>
+      <span class="text-xs text-stone-400 hidden sm:block">—</span>
+      <!-- Tooltip -->
+      <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 hidden group-hover:block
+                  w-40 rounded-xl border border-white/10 bg-stone-900 shadow-xl p-2.5 text-xs">
+        <p class="font-bold text-white mb-1">Colmenar Viejo</p>
+        <div class="flex justify-between text-stone-400"><span>BAI</span><span class="font-bold text-emerald-400">79</span></div>
+        <div class="flex justify-between text-stone-400"><span>Rating</span><span class="text-white">4.4★</span></div>
+        <div class="flex justify-between text-stone-400"><span>Zona</span><span class="text-stone-300">Norte</span></div>
+      </div>
+    </div>
+
+    <div class="relative group flex flex-col items-center gap-1 cursor-pointer" title="Collado Villalba · BAI 77">
+      <div class="w-6 h-6 rounded-full bg-emerald-500 ring-2 ring-emerald-400/30 flex items-center justify-center
+                  text-white text-xs font-black hover:scale-125 transition-transform">
+        
+      </div>
+      <span class="text-xs text-stone-500 hidden sm:block text-center leading-tight max-w-[64px] truncate">Villalba</span>
+      <span class="text-xs text-stone-400 hidden sm:block">—</span>
+      <!-- Tooltip -->
+      <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 hidden group-hover:block
+                  w-40 rounded-xl border border-white/10 bg-stone-900 shadow-xl p-2.5 text-xs">
+        <p class="font-bold text-white mb-1">Collado Villalba</p>
+        <div class="flex justify-between text-stone-400"><span>BAI</span><span class="font-bold text-emerald-400">77</span></div>
+        <div class="flex justify-between text-stone-400"><span>Rating</span><span class="text-white">4.4★</span></div>
+        <div class="flex justify-between text-stone-400"><span>Zona</span><span class="text-stone-300">Norte</span></div>
+      </div>
+    </div>
+
+    <div class="relative group flex flex-col items-center gap-1 cursor-pointer" title="Villaviciosa · BAI 72">
+      <div class="w-6 h-6 rounded-full bg-emerald-500 ring-2 ring-emerald-400/30 flex items-center justify-center
+                  text-white text-xs font-black hover:scale-125 transition-transform">
+        
+      </div>
+      <span class="text-xs text-stone-500 hidden sm:block text-center leading-tight max-w-[64px] truncate">Villaviciosa</span>
+      <span class="text-xs text-emerald-400 hidden sm:block">▲</span>
+      <!-- Tooltip -->
+      <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 hidden group-hover:block
+                  w-40 rounded-xl border border-white/10 bg-stone-900 shadow-xl p-2.5 text-xs">
+        <p class="font-bold text-white mb-1">Villaviciosa</p>
+        <div class="flex justify-between text-stone-400"><span>BAI</span><span class="font-bold text-emerald-400">72</span></div>
+        <div class="flex justify-between text-stone-400"><span>Rating</span><span class="text-white">4.2★</span></div>
+        <div class="flex justify-between text-stone-400"><span>Zona</span><span class="text-stone-300">Norte</span></div>
+      </div>
+    </div>
+
+    <div class="relative group flex flex-col items-center gap-1 cursor-pointer" title="Boadilla · BAI 39">
+      <div class="w-6 h-6 rounded-full bg-rose-500 ring-2 ring-rose-400/40 crisis-ring flex items-center justify-center
+                  text-white text-xs font-black hover:scale-125 transition-transform">
+        
+      </div>
+      <span class="text-xs text-stone-500 hidden sm:block text-center leading-tight max-w-[64px] truncate">Boadilla</span>
+      <span class="text-xs text-rose-400 hidden sm:block">▼</span>
+      <!-- Tooltip -->
+      <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 hidden group-hover:block
+                  w-40 rounded-xl border border-white/10 bg-stone-900 shadow-xl p-2.5 text-xs">
+        <p class="font-bold text-white mb-1">Boadilla</p>
+        <div class="flex justify-between text-stone-400"><span>BAI</span><span class="font-bold text-rose-400">39</span></div>
+        <div class="flex justify-between text-stone-400"><span>Rating</span><span class="text-white">3.5★</span></div>
+        <div class="flex justify-between text-stone-400"><span>Zona</span><span class="text-stone-300">Norte</span></div>
+      </div>
+    </div>
+            </div>
+          </div>
+          <div>
+            <p class="text-xs text-stone-500 uppercase tracking-wider mb-3 font-semibold">Zona Sur</p>
+            <div class="flex flex-wrap gap-3">
+              
+    <div class="relative group flex flex-col items-center gap-1 cursor-pointer" title="Vallecas · BAI 85">
+      <div class="w-6 h-6 rounded-full bg-emerald-500 ring-2 ring-emerald-400/30 flex items-center justify-center
+                  text-white text-xs font-black hover:scale-125 transition-transform">
+        
+      </div>
+      <span class="text-xs text-stone-500 hidden sm:block text-center leading-tight max-w-[64px] truncate">Vallecas</span>
+      <span class="text-xs text-emerald-400 hidden sm:block">▲</span>
+      <!-- Tooltip -->
+      <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 hidden group-hover:block
+                  w-40 rounded-xl border border-white/10 bg-stone-900 shadow-xl p-2.5 text-xs">
+        <p class="font-bold text-white mb-1">Vallecas</p>
+        <div class="flex justify-between text-stone-400"><span>BAI</span><span class="font-bold text-emerald-400">85</span></div>
+        <div class="flex justify-between text-stone-400"><span>Rating</span><span class="text-white">4.6★</span></div>
+        <div class="flex justify-between text-stone-400"><span>Zona</span><span class="text-stone-300">Sur</span></div>
+      </div>
+    </div>
+
+    <div class="relative group flex flex-col items-center gap-1 cursor-pointer" title="Getafe · BAI 82">
+      <div class="w-6 h-6 rounded-full bg-emerald-500 ring-2 ring-emerald-400/30 flex items-center justify-center
+                  text-white text-xs font-black hover:scale-125 transition-transform">
+        
+      </div>
+      <span class="text-xs text-stone-500 hidden sm:block text-center leading-tight max-w-[64px] truncate">Getafe</span>
+      <span class="text-xs text-stone-400 hidden sm:block">—</span>
+      <!-- Tooltip -->
+      <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 hidden group-hover:block
+                  w-40 rounded-xl border border-white/10 bg-stone-900 shadow-xl p-2.5 text-xs">
+        <p class="font-bold text-white mb-1">Getafe</p>
+        <div class="flex justify-between text-stone-400"><span>BAI</span><span class="font-bold text-emerald-400">82</span></div>
+        <div class="flex justify-between text-stone-400"><span>Rating</span><span class="text-white">4.5★</span></div>
+        <div class="flex justify-between text-stone-400"><span>Zona</span><span class="text-stone-300">Sur</span></div>
+      </div>
+    </div>
+
+    <div class="relative group flex flex-col items-center gap-1 cursor-pointer" title="Aranjuez · BAI 81">
+      <div class="w-6 h-6 rounded-full bg-emerald-500 ring-2 ring-emerald-400/30 flex items-center justify-center
+                  text-white text-xs font-black hover:scale-125 transition-transform">
+        
+      </div>
+      <span class="text-xs text-stone-500 hidden sm:block text-center leading-tight max-w-[64px] truncate">Aranjuez</span>
+      <span class="text-xs text-emerald-400 hidden sm:block">▲</span>
+      <!-- Tooltip -->
+      <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 hidden group-hover:block
+                  w-40 rounded-xl border border-white/10 bg-stone-900 shadow-xl p-2.5 text-xs">
+        <p class="font-bold text-white mb-1">Aranjuez</p>
+        <div class="flex justify-between text-stone-400"><span>BAI</span><span class="font-bold text-emerald-400">81</span></div>
+        <div class="flex justify-between text-stone-400"><span>Rating</span><span class="text-white">4.5★</span></div>
+        <div class="flex justify-between text-stone-400"><span>Zona</span><span class="text-stone-300">Sur</span></div>
+      </div>
+    </div>
+
+    <div class="relative group flex flex-col items-center gap-1 cursor-pointer" title="Alcorcón · BAI 79">
+      <div class="w-6 h-6 rounded-full bg-emerald-500 ring-2 ring-emerald-400/30 flex items-center justify-center
+                  text-white text-xs font-black hover:scale-125 transition-transform">
+        
+      </div>
+      <span class="text-xs text-stone-500 hidden sm:block text-center leading-tight max-w-[64px] truncate">Alcorcón</span>
+      <span class="text-xs text-emerald-400 hidden sm:block">▲</span>
+      <!-- Tooltip -->
+      <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 hidden group-hover:block
+                  w-40 rounded-xl border border-white/10 bg-stone-900 shadow-xl p-2.5 text-xs">
+        <p class="font-bold text-white mb-1">Alcorcón</p>
+        <div class="flex justify-between text-stone-400"><span>BAI</span><span class="font-bold text-emerald-400">79</span></div>
+        <div class="flex justify-between text-stone-400"><span>Rating</span><span class="text-white">4.4★</span></div>
+        <div class="flex justify-between text-stone-400"><span>Zona</span><span class="text-stone-300">Sur</span></div>
+      </div>
+    </div>
+
+    <div class="relative group flex flex-col items-center gap-1 cursor-pointer" title="Móstoles · BAI 76">
+      <div class="w-6 h-6 rounded-full bg-emerald-500 ring-2 ring-emerald-400/30 flex items-center justify-center
+                  text-white text-xs font-black hover:scale-125 transition-transform">
+        
+      </div>
+      <span class="text-xs text-stone-500 hidden sm:block text-center leading-tight max-w-[64px] truncate">Móstoles</span>
+      <span class="text-xs text-stone-400 hidden sm:block">—</span>
+      <!-- Tooltip -->
+      <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 hidden group-hover:block
+                  w-40 rounded-xl border border-white/10 bg-stone-900 shadow-xl p-2.5 text-xs">
+        <p class="font-bold text-white mb-1">Móstoles</p>
+        <div class="flex justify-between text-stone-400"><span>BAI</span><span class="font-bold text-emerald-400">76</span></div>
+        <div class="flex justify-between text-stone-400"><span>Rating</span><span class="text-white">4.3★</span></div>
+        <div class="flex justify-between text-stone-400"><span>Zona</span><span class="text-stone-300">Sur</span></div>
+      </div>
+    </div>
+
+    <div class="relative group flex flex-col items-center gap-1 cursor-pointer" title="Leganés · BAI 74">
+      <div class="w-6 h-6 rounded-full bg-emerald-500 ring-2 ring-emerald-400/30 flex items-center justify-center
+                  text-white text-xs font-black hover:scale-125 transition-transform">
+        
+      </div>
+      <span class="text-xs text-stone-500 hidden sm:block text-center leading-tight max-w-[64px] truncate">Leganés</span>
+      <span class="text-xs text-rose-400 hidden sm:block">▼</span>
+      <!-- Tooltip -->
+      <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 hidden group-hover:block
+                  w-40 rounded-xl border border-white/10 bg-stone-900 shadow-xl p-2.5 text-xs">
+        <p class="font-bold text-white mb-1">Leganés</p>
+        <div class="flex justify-between text-stone-400"><span>BAI</span><span class="font-bold text-emerald-400">74</span></div>
+        <div class="flex justify-between text-stone-400"><span>Rating</span><span class="text-white">4.3★</span></div>
+        <div class="flex justify-between text-stone-400"><span>Zona</span><span class="text-stone-300">Sur</span></div>
+      </div>
+    </div>
+
+    <div class="relative group flex flex-col items-center gap-1 cursor-pointer" title="Fuenlabrada · BAI 71">
+      <div class="w-6 h-6 rounded-full bg-emerald-500 ring-2 ring-emerald-400/30 flex items-center justify-center
+                  text-white text-xs font-black hover:scale-125 transition-transform">
+        
+      </div>
+      <span class="text-xs text-stone-500 hidden sm:block text-center leading-tight max-w-[64px] truncate">Fuenlabrada</span>
+      <span class="text-xs text-stone-400 hidden sm:block">—</span>
+      <!-- Tooltip -->
+      <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 hidden group-hover:block
+                  w-40 rounded-xl border border-white/10 bg-stone-900 shadow-xl p-2.5 text-xs">
+        <p class="font-bold text-white mb-1">Fuenlabrada</p>
+        <div class="flex justify-between text-stone-400"><span>BAI</span><span class="font-bold text-emerald-400">71</span></div>
+        <div class="flex justify-between text-stone-400"><span>Rating</span><span class="text-white">4.2★</span></div>
+        <div class="flex justify-between text-stone-400"><span>Zona</span><span class="text-stone-300">Sur</span></div>
+      </div>
+    </div>
+
+    <div class="relative group flex flex-col items-center gap-1 cursor-pointer" title="Parla · BAI 68">
+      <div class="w-6 h-6 rounded-full bg-emerald-500 ring-2 ring-emerald-400/30 flex items-center justify-center
+                  text-white text-xs font-black hover:scale-125 transition-transform">
+        
+      </div>
+      <span class="text-xs text-stone-500 hidden sm:block text-center leading-tight max-w-[64px] truncate">Parla</span>
+      <span class="text-xs text-emerald-400 hidden sm:block">▲</span>
+      <!-- Tooltip -->
+      <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 hidden group-hover:block
+                  w-40 rounded-xl border border-white/10 bg-stone-900 shadow-xl p-2.5 text-xs">
+        <p class="font-bold text-white mb-1">Parla</p>
+        <div class="flex justify-between text-stone-400"><span>BAI</span><span class="font-bold text-emerald-400">68</span></div>
+        <div class="flex justify-between text-stone-400"><span>Rating</span><span class="text-white">4.1★</span></div>
+        <div class="flex justify-between text-stone-400"><span>Zona</span><span class="text-stone-300">Sur</span></div>
+      </div>
+    </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <p class="text-xs text-stone-500 uppercase tracking-wider mb-3 font-semibold">Zona Este</p>
+          <div class="flex flex-wrap gap-3">
+            
+    <div class="relative group flex flex-col items-center gap-1 cursor-pointer" title="Torrejón · BAI 88">
+      <div class="w-6 h-6 rounded-full bg-emerald-500 ring-2 ring-emerald-400/30 flex items-center justify-center
+                  text-white text-xs font-black hover:scale-125 transition-transform">
+        
+      </div>
+      <span class="text-xs text-stone-500 hidden sm:block text-center leading-tight max-w-[64px] truncate">Torrejón</span>
+      <span class="text-xs text-emerald-400 hidden sm:block">▲</span>
+      <!-- Tooltip -->
+      <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 hidden group-hover:block
+                  w-40 rounded-xl border border-white/10 bg-stone-900 shadow-xl p-2.5 text-xs">
+        <p class="font-bold text-white mb-1">Torrejón</p>
+        <div class="flex justify-between text-stone-400"><span>BAI</span><span class="font-bold text-emerald-400">88</span></div>
+        <div class="flex justify-between text-stone-400"><span>Rating</span><span class="text-white">4.7★</span></div>
+        <div class="flex justify-between text-stone-400"><span>Zona</span><span class="text-stone-300">Este</span></div>
+      </div>
+    </div>
+
+    <div class="relative group flex flex-col items-center gap-1 cursor-pointer" title="Alcalá · BAI 83">
+      <div class="w-6 h-6 rounded-full bg-emerald-500 ring-2 ring-emerald-400/30 flex items-center justify-center
+                  text-white text-xs font-black hover:scale-125 transition-transform">
+        
+      </div>
+      <span class="text-xs text-stone-500 hidden sm:block text-center leading-tight max-w-[64px] truncate">Alcalá</span>
+      <span class="text-xs text-emerald-400 hidden sm:block">▲</span>
+      <!-- Tooltip -->
+      <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 hidden group-hover:block
+                  w-40 rounded-xl border border-white/10 bg-stone-900 shadow-xl p-2.5 text-xs">
+        <p class="font-bold text-white mb-1">Alcalá</p>
+        <div class="flex justify-between text-stone-400"><span>BAI</span><span class="font-bold text-emerald-400">83</span></div>
+        <div class="flex justify-between text-stone-400"><span>Rating</span><span class="text-white">4.5★</span></div>
+        <div class="flex justify-between text-stone-400"><span>Zona</span><span class="text-stone-300">Este</span></div>
+      </div>
+    </div>
+
+    <div class="relative group flex flex-col items-center gap-1 cursor-pointer" title="Rivas · BAI 80">
+      <div class="w-6 h-6 rounded-full bg-emerald-500 ring-2 ring-emerald-400/30 flex items-center justify-center
+                  text-white text-xs font-black hover:scale-125 transition-transform">
+        
+      </div>
+      <span class="text-xs text-stone-500 hidden sm:block text-center leading-tight max-w-[64px] truncate">Rivas</span>
+      <span class="text-xs text-emerald-400 hidden sm:block">▲</span>
+      <!-- Tooltip -->
+      <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 hidden group-hover:block
+                  w-40 rounded-xl border border-white/10 bg-stone-900 shadow-xl p-2.5 text-xs">
+        <p class="font-bold text-white mb-1">Rivas</p>
+        <div class="flex justify-between text-stone-400"><span>BAI</span><span class="font-bold text-emerald-400">80</span></div>
+        <div class="flex justify-between text-stone-400"><span>Rating</span><span class="text-white">4.4★</span></div>
+        <div class="flex justify-between text-stone-400"><span>Zona</span><span class="text-stone-300">Este</span></div>
+      </div>
+    </div>
+
+    <div class="relative group flex flex-col items-center gap-1 cursor-pointer" title="San Fernando · BAI 78">
+      <div class="w-6 h-6 rounded-full bg-emerald-500 ring-2 ring-emerald-400/30 flex items-center justify-center
+                  text-white text-xs font-black hover:scale-125 transition-transform">
+        
+      </div>
+      <span class="text-xs text-stone-500 hidden sm:block text-center leading-tight max-w-[64px] truncate">Fernando</span>
+      <span class="text-xs text-stone-400 hidden sm:block">—</span>
+      <!-- Tooltip -->
+      <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 hidden group-hover:block
+                  w-40 rounded-xl border border-white/10 bg-stone-900 shadow-xl p-2.5 text-xs">
+        <p class="font-bold text-white mb-1">San Fernando</p>
+        <div class="flex justify-between text-stone-400"><span>BAI</span><span class="font-bold text-emerald-400">78</span></div>
+        <div class="flex justify-between text-stone-400"><span>Rating</span><span class="text-white">4.4★</span></div>
+        <div class="flex justify-between text-stone-400"><span>Zona</span><span class="text-stone-300">Este</span></div>
+      </div>
+    </div>
+
+    <div class="relative group flex flex-col items-center gap-1 cursor-pointer" title="Arganda · BAI 75">
+      <div class="w-6 h-6 rounded-full bg-emerald-500 ring-2 ring-emerald-400/30 flex items-center justify-center
+                  text-white text-xs font-black hover:scale-125 transition-transform">
+        
+      </div>
+      <span class="text-xs text-stone-500 hidden sm:block text-center leading-tight max-w-[64px] truncate">Arganda</span>
+      <span class="text-xs text-stone-400 hidden sm:block">—</span>
+      <!-- Tooltip -->
+      <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 hidden group-hover:block
+                  w-40 rounded-xl border border-white/10 bg-stone-900 shadow-xl p-2.5 text-xs">
+        <p class="font-bold text-white mb-1">Arganda</p>
+        <div class="flex justify-between text-stone-400"><span>BAI</span><span class="font-bold text-emerald-400">75</span></div>
+        <div class="flex justify-between text-stone-400"><span>Rating</span><span class="text-white">4.3★</span></div>
+        <div class="flex justify-between text-stone-400"><span>Zona</span><span class="text-stone-300">Este</span></div>
+      </div>
+    </div>
+
+    <div class="relative group flex flex-col items-center gap-1 cursor-pointer" title="Loeches · BAI 75">
+      <div class="w-6 h-6 rounded-full bg-emerald-500 ring-2 ring-emerald-400/30 flex items-center justify-center
+                  text-white text-xs font-black hover:scale-125 transition-transform">
+        
+      </div>
+      <span class="text-xs text-stone-500 hidden sm:block text-center leading-tight max-w-[64px] truncate">Loeches</span>
+      <span class="text-xs text-stone-400 hidden sm:block">—</span>
+      <!-- Tooltip -->
+      <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 hidden group-hover:block
+                  w-40 rounded-xl border border-white/10 bg-stone-900 shadow-xl p-2.5 text-xs">
+        <p class="font-bold text-white mb-1">Loeches</p>
+        <div class="flex justify-between text-stone-400"><span>BAI</span><span class="font-bold text-emerald-400">75</span></div>
+        <div class="flex justify-between text-stone-400"><span>Rating</span><span class="text-white">4.3★</span></div>
+        <div class="flex justify-between text-stone-400"><span>Zona</span><span class="text-stone-300">Este</span></div>
+      </div>
+    </div>
+
+    <div class="relative group flex flex-col items-center gap-1 cursor-pointer" title="Paracuellos · BAI 73">
+      <div class="w-6 h-6 rounded-full bg-emerald-500 ring-2 ring-emerald-400/30 flex items-center justify-center
+                  text-white text-xs font-black hover:scale-125 transition-transform">
+        
+      </div>
+      <span class="text-xs text-stone-500 hidden sm:block text-center leading-tight max-w-[64px] truncate">Paracuellos</span>
+      <span class="text-xs text-stone-400 hidden sm:block">—</span>
+      <!-- Tooltip -->
+      <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 hidden group-hover:block
+                  w-40 rounded-xl border border-white/10 bg-stone-900 shadow-xl p-2.5 text-xs">
+        <p class="font-bold text-white mb-1">Paracuellos</p>
+        <div class="flex justify-between text-stone-400"><span>BAI</span><span class="font-bold text-emerald-400">73</span></div>
+        <div class="flex justify-between text-stone-400"><span>Rating</span><span class="text-white">4.2★</span></div>
+        <div class="flex justify-between text-stone-400"><span>Zona</span><span class="text-stone-300">Este</span></div>
+      </div>
+    </div>
+
+    <div class="relative group flex flex-col items-center gap-1 cursor-pointer" title="Mejorada · BAI 70">
+      <div class="w-6 h-6 rounded-full bg-emerald-500 ring-2 ring-emerald-400/30 flex items-center justify-center
+                  text-white text-xs font-black hover:scale-125 transition-transform">
+        
+      </div>
+      <span class="text-xs text-stone-500 hidden sm:block text-center leading-tight max-w-[64px] truncate">Mejorada</span>
+      <span class="text-xs text-emerald-400 hidden sm:block">▲</span>
+      <!-- Tooltip -->
+      <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 hidden group-hover:block
+                  w-40 rounded-xl border border-white/10 bg-stone-900 shadow-xl p-2.5 text-xs">
+        <p class="font-bold text-white mb-1">Mejorada</p>
+        <div class="flex justify-between text-stone-400"><span>BAI</span><span class="font-bold text-emerald-400">70</span></div>
+        <div class="flex justify-between text-stone-400"><span>Rating</span><span class="text-white">4.2★</span></div>
+        <div class="flex justify-between text-stone-400"><span>Zona</span><span class="text-stone-300">Este</span></div>
+      </div>
+    </div>
+
+    <div class="relative group flex flex-col items-center gap-1 cursor-pointer" title="Coslada · BAI 44">
+      <div class="w-6 h-6 rounded-full bg-rose-500 ring-2 ring-rose-400/40 crisis-ring flex items-center justify-center
+                  text-white text-xs font-black hover:scale-125 transition-transform">
+        
+      </div>
+      <span class="text-xs text-stone-500 hidden sm:block text-center leading-tight max-w-[64px] truncate">Coslada</span>
+      <span class="text-xs text-rose-400 hidden sm:block">▼</span>
+      <!-- Tooltip -->
+      <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 hidden group-hover:block
+                  w-40 rounded-xl border border-white/10 bg-stone-900 shadow-xl p-2.5 text-xs">
+        <p class="font-bold text-white mb-1">Coslada</p>
+        <div class="flex justify-between text-stone-400"><span>BAI</span><span class="font-bold text-rose-400">44</span></div>
+        <div class="flex justify-between text-stone-400"><span>Rating</span><span class="text-white">3.7★</span></div>
+        <div class="flex justify-between text-stone-400"><span>Zona</span><span class="text-stone-300">Este</span></div>
+      </div>
+    </div>
+
+    <div class="relative group flex flex-col items-center gap-1 cursor-pointer" title="Daganzo · BAI 32">
+      <div class="w-6 h-6 rounded-full bg-rose-500 ring-2 ring-rose-400/40 crisis-ring flex items-center justify-center
+                  text-white text-xs font-black hover:scale-125 transition-transform">
+        
+      </div>
+      <span class="text-xs text-stone-500 hidden sm:block text-center leading-tight max-w-[64px] truncate">Daganzo</span>
+      <span class="text-xs text-rose-400 hidden sm:block">▼</span>
+      <!-- Tooltip -->
+      <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 hidden group-hover:block
+                  w-40 rounded-xl border border-white/10 bg-stone-900 shadow-xl p-2.5 text-xs">
+        <p class="font-bold text-white mb-1">Daganzo</p>
+        <div class="flex justify-between text-stone-400"><span>BAI</span><span class="font-bold text-rose-400">32</span></div>
+        <div class="flex justify-between text-stone-400"><span>Rating</span><span class="text-white">3.2★</span></div>
+        <div class="flex justify-between text-stone-400"><span>Zona</span><span class="text-stone-300">Este</span></div>
+      </div>
+    </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Outliers alert -->
+      <div class="rounded-3xl border border-rose-500/15 bg-rose-500/5 p-5">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <h2 class="text-sm font-bold text-rose-200 uppercase tracking-wider">Locales críticos (BAI &lt; 45)</h2>
+          <a href="network/network_crisis_escalation.html"
+             class="text-xs text-rose-400 no-underline hover:text-rose-300">Ver escalamiento →</a>
+        </div>
+        <div class="space-y-2">
+          
+        <div class="flex items-center gap-3 p-3 rounded-xl border border-rose-500/20 bg-rose-500/5">
+          <div class="w-8 h-8 rounded-xl bg-rose-500 crisis-ring flex items-center justify-center text-white text-xs font-black flex-shrink-0">!</div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-bold text-white truncate">Coslada</p>
+            <p class="text-xs text-stone-500">BAI 44 · Rating 3.7★</p>
+          </div>
+          <a href="network/network_crisis_escalation.html"
+             class="px-3 py-1.5 rounded-xl bg-rose-500/20 text-rose-300 text-xs font-semibold no-underline hover:bg-rose-500/30 flex-shrink-0">
+            Revisar →
+          </a>
+        </div>
+        <div class="flex items-center gap-3 p-3 rounded-xl border border-rose-500/20 bg-rose-500/5">
+          <div class="w-8 h-8 rounded-xl bg-rose-500 crisis-ring flex items-center justify-center text-white text-xs font-black flex-shrink-0">!</div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-bold text-white truncate">Boadilla</p>
+            <p class="text-xs text-stone-500">BAI 39 · Rating 3.5★</p>
+          </div>
+          <a href="network/network_crisis_escalation.html"
+             class="px-3 py-1.5 rounded-xl bg-rose-500/20 text-rose-300 text-xs font-semibold no-underline hover:bg-rose-500/30 flex-shrink-0">
+            Revisar →
+          </a>
+        </div>
+        <div class="flex items-center gap-3 p-3 rounded-xl border border-rose-500/20 bg-rose-500/5">
+          <div class="w-8 h-8 rounded-xl bg-rose-500 crisis-ring flex items-center justify-center text-white text-xs font-black flex-shrink-0">!</div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-bold text-white truncate">Daganzo</p>
+            <p class="text-xs text-stone-500">BAI 32 · Rating 3.2★</p>
+          </div>
+          <a href="network/network_crisis_escalation.html"
+             class="px-3 py-1.5 rounded-xl bg-rose-500/20 text-rose-300 text-xs font-semibold no-underline hover:bg-rose-500/30 flex-shrink-0">
+            Revisar →
+          </a>
+        </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ranking panel -->
+    <div class="space-y-4">
+      <div class="rounded-3xl border border-white/10 bg-white/5 p-5">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <h2 class="text-sm font-bold text-stone-300 uppercase tracking-wider">Top 10 Sucursales</h2>
+          <span class="text-xs text-stone-500">por BAI</span>
+        </div>
+        <div class="space-y-1.5">
+          
+        <div class="flex items-center gap-3 p-3 rounded-xl border border-violet-500/20 bg-violet-500/5">
+          <span class="text-lg flex-shrink-0 w-7 text-center">🥇</span>
+          <span class="flex-1 text-sm text-stone-300 truncate">Madrid Centro</span>
+          <div class="w-16 h-2 rounded-full bg-white/10 overflow-hidden">
+            <div class="h-full rounded-full bg-emerald-500" style="width:91%"></div>
+          </div>
+          <span class="text-xs font-bold text-emerald-400 w-8 text-right">91</span>
+          <span class="text-xs text-stone-400 w-10 text-right">4.8★</span>
+          <span class="text-xs text-emerald-400 w-4 text-center">▲</span>
+        </div>
+        <div class="flex items-center gap-3 p-3 rounded-xl border border-violet-500/20 bg-violet-500/5">
+          <span class="text-lg flex-shrink-0 w-7 text-center">🥈</span>
+          <span class="flex-1 text-sm text-stone-300 truncate">Pozuelo</span>
+          <div class="w-16 h-2 rounded-full bg-white/10 overflow-hidden">
+            <div class="h-full rounded-full bg-emerald-500" style="width:90%"></div>
+          </div>
+          <span class="text-xs font-bold text-emerald-400 w-8 text-right">90</span>
+          <span class="text-xs text-stone-400 w-10 text-right">4.7★</span>
+          <span class="text-xs text-emerald-400 w-4 text-center">▲</span>
+        </div>
+        <div class="flex items-center gap-3 p-3 rounded-xl border border-violet-500/20 bg-violet-500/5">
+          <span class="text-lg flex-shrink-0 w-7 text-center">🥉</span>
+          <span class="flex-1 text-sm text-stone-300 truncate">Tres Cantos</span>
+          <div class="w-16 h-2 rounded-full bg-white/10 overflow-hidden">
+            <div class="h-full rounded-full bg-emerald-500" style="width:89%"></div>
+          </div>
+          <span class="text-xs font-bold text-emerald-400 w-8 text-right">89</span>
+          <span class="text-xs text-stone-400 w-10 text-right">4.7★</span>
+          <span class="text-xs text-emerald-400 w-4 text-center">▲</span>
+        </div>
+        <div class="flex items-center gap-3 p-3 rounded-xl border border-white/6 bg-black/10">
+          <span class="text-lg flex-shrink-0 w-7 text-center"><span class="text-sm text-stone-500 font-mono">4</span></span>
+          <span class="flex-1 text-sm text-stone-300 truncate">Torrejón</span>
+          <div class="w-16 h-2 rounded-full bg-white/10 overflow-hidden">
+            <div class="h-full rounded-full bg-emerald-500" style="width:88%"></div>
+          </div>
+          <span class="text-xs font-bold text-emerald-400 w-8 text-right">88</span>
+          <span class="text-xs text-stone-400 w-10 text-right">4.7★</span>
+          <span class="text-xs text-emerald-400 w-4 text-center">▲</span>
+        </div>
+        <div class="flex items-center gap-3 p-3 rounded-xl border border-white/6 bg-black/10">
+          <span class="text-lg flex-shrink-0 w-7 text-center"><span class="text-sm text-stone-500 font-mono">5</span></span>
+          <span class="flex-1 text-sm text-stone-300 truncate">San Sebastián</span>
+          <div class="w-16 h-2 rounded-full bg-white/10 overflow-hidden">
+            <div class="h-full rounded-full bg-emerald-500" style="width:88%"></div>
+          </div>
+          <span class="text-xs font-bold text-emerald-400 w-8 text-right">88</span>
+          <span class="text-xs text-stone-400 w-10 text-right">4.7★</span>
+          <span class="text-xs text-emerald-400 w-4 text-center">▲</span>
+        </div>
+        <div class="flex items-center gap-3 p-3 rounded-xl border border-white/6 bg-black/10">
+          <span class="text-lg flex-shrink-0 w-7 text-center"><span class="text-sm text-stone-500 font-mono">6</span></span>
+          <span class="flex-1 text-sm text-stone-300 truncate">Majadahonda</span>
+          <div class="w-16 h-2 rounded-full bg-white/10 overflow-hidden">
+            <div class="h-full rounded-full bg-emerald-500" style="width:87%"></div>
+          </div>
+          <span class="text-xs font-bold text-emerald-400 w-8 text-right">87</span>
+          <span class="text-xs text-stone-400 w-10 text-right">4.6★</span>
+          <span class="text-xs text-stone-500 w-4 text-center">—</span>
+        </div>
+        <div class="flex items-center gap-3 p-3 rounded-xl border border-white/6 bg-black/10">
+          <span class="text-lg flex-shrink-0 w-7 text-center"><span class="text-sm text-stone-500 font-mono">7</span></span>
+          <span class="flex-1 text-sm text-stone-300 truncate">Las Rozas</span>
+          <div class="w-16 h-2 rounded-full bg-white/10 overflow-hidden">
+            <div class="h-full rounded-full bg-emerald-500" style="width:86%"></div>
+          </div>
+          <span class="text-xs font-bold text-emerald-400 w-8 text-right">86</span>
+          <span class="text-xs text-stone-400 w-10 text-right">4.6★</span>
+          <span class="text-xs text-emerald-400 w-4 text-center">▲</span>
+        </div>
+        <div class="flex items-center gap-3 p-3 rounded-xl border border-white/6 bg-black/10">
+          <span class="text-lg flex-shrink-0 w-7 text-center"><span class="text-sm text-stone-500 font-mono">8</span></span>
+          <span class="flex-1 text-sm text-stone-300 truncate">Vallecas</span>
+          <div class="w-16 h-2 rounded-full bg-white/10 overflow-hidden">
+            <div class="h-full rounded-full bg-emerald-500" style="width:85%"></div>
+          </div>
+          <span class="text-xs font-bold text-emerald-400 w-8 text-right">85</span>
+          <span class="text-xs text-stone-400 w-10 text-right">4.6★</span>
+          <span class="text-xs text-emerald-400 w-4 text-center">▲</span>
+        </div>
+        <div class="flex items-center gap-3 p-3 rounded-xl border border-white/6 bg-black/10">
+          <span class="text-lg flex-shrink-0 w-7 text-center"><span class="text-sm text-stone-500 font-mono">9</span></span>
+          <span class="flex-1 text-sm text-stone-300 truncate">Alcobendas</span>
+          <div class="w-16 h-2 rounded-full bg-white/10 overflow-hidden">
+            <div class="h-full rounded-full bg-emerald-500" style="width:84%"></div>
+          </div>
+          <span class="text-xs font-bold text-emerald-400 w-8 text-right">84</span>
+          <span class="text-xs text-stone-400 w-10 text-right">4.6★</span>
+          <span class="text-xs text-emerald-400 w-4 text-center">▲</span>
+        </div>
+        <div class="flex items-center gap-3 p-3 rounded-xl border border-white/6 bg-black/10">
+          <span class="text-lg flex-shrink-0 w-7 text-center"><span class="text-sm text-stone-500 font-mono">10</span></span>
+          <span class="flex-1 text-sm text-stone-300 truncate">Alcalá</span>
+          <div class="w-16 h-2 rounded-full bg-white/10 overflow-hidden">
+            <div class="h-full rounded-full bg-emerald-500" style="width:83%"></div>
+          </div>
+          <span class="text-xs font-bold text-emerald-400 w-8 text-right">83</span>
+          <span class="text-xs text-stone-400 w-10 text-right">4.5★</span>
+          <span class="text-xs text-emerald-400 w-4 text-center">▲</span>
+        </div>
+        </div>
+        <div class="mt-4 pt-4 border-t border-white/8">
+          <a href="hub/hub_ranking.html"
+             class="block text-center text-xs text-violet-400 no-underline hover:text-violet-300">
+            Ver ranking completo (50 locales) →
+          </a>
+        </div>
+      </div>
+
+      <!-- Quick actions -->
+      <div class="rounded-3xl border border-white/10 bg-white/5 p-5">
+        <h2 class="text-sm font-bold text-stone-300 uppercase tracking-wider mb-4">Acciones rápidas</h2>
+        <div class="space-y-2">
+          <a href="bulk/bulk_step1_compose.html"
+             class="flex items-center gap-3 p-3 rounded-xl border border-violet-500/20 bg-violet-500/5
+                    text-stone-300 text-xs font-semibold no-underline hover:bg-violet-500/10">
+            <span class="text-violet-400">📣</span>
+            Publicar promo en zona crítica
+          </a>
+          <a href="network/network_crisis_escalation.html"
+             class="flex items-center gap-3 p-3 rounded-xl border border-rose-500/20 bg-rose-500/5
+                    text-stone-300 text-xs font-semibold no-underline hover:bg-rose-500/10">
+            <span class="text-rose-400">🚨</span>
+            Ver alertas de crisis
+          </a>
+          <a href="reports/reports_hub.html"
+             class="flex items-center gap-3 p-3 rounded-xl border border-indigo-500/20 bg-indigo-500/5
+                    text-stone-300 text-xs font-semibold no-underline hover:bg-indigo-500/10">
+            <span class="text-indigo-400">📄</span>
+            Generar informe de red
+          </a>
+          <a href="hub/hub_audit_log.html"
+             class="flex items-center gap-3 p-3 rounded-xl border border-white/8 bg-white/3
+                    text-stone-300 text-xs font-semibold no-underline hover:bg-white/8">
+            <span class="text-stone-400">📋</span>
+            Log de actividad de agentes
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
