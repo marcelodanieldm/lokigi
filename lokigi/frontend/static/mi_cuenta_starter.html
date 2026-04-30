@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mi Cuenta | Lokigi Starter</title>
+  <style>
+    :root { --bg:#eff3f8; --card:#fff; --text:#0f172a; --muted:#64748b; --border:#dbe3ee; --primary:#0f62fe; --primary-dark:#0b4fd4; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Arial,"Helvetica Neue",sans-serif; color:var(--text);
+      background: radial-gradient(circle at 10% 0%, rgba(15,98,254,.12), transparent 30%),
+                  linear-gradient(180deg,#fff,var(--bg)); }
+    /* Nav */
+    .lokigi-nav { position:sticky;top:0;z-index:100;background:#fff;border-bottom:1px solid var(--border);
+      padding:0 20px;display:flex;align-items:center;gap:2px;height:58px;box-shadow:0 1px 4px rgba(15,23,42,.06); }
+    .lokigi-nav-brand { display:flex;align-items:center;gap:10px;margin-right:auto; }
+    .lokigi-nav-logo { display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;
+      border-radius:8px;background:#0f62fe;color:#fff;font-weight:900;font-size:14px;text-decoration:none; }
+    .lokigi-nav-name { font-weight:800;font-size:16px;color:#0f172a;text-decoration:none; }
+    .lokigi-nav-plan { display:inline-flex;padding:4px 10px;border-radius:999px;background:#eef5ff;
+      color:#0f62fe;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em; }
+    .lokigi-nav-link { display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:8px;
+      text-decoration:none;font-weight:600;font-size:14px;color:#475569; }
+    .lokigi-nav-link:hover { background:#f1f5f9;color:#0f172a; }
+    .lokigi-nav-link.active { color:#0f62fe;background:#eff6ff; }
+    .lokigi-nav-account { margin-left:4px;display:inline-flex;align-items:center;gap:7px;padding:8px 14px;
+      border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;color:#0f62fe;
+      background:#eef5ff;border:1px solid #bfdbfe; }
+    /* Content */
+    .wrap { max-width:760px; margin:0 auto; padding:32px 18px 56px; }
+    .page-head { margin-bottom:32px; }
+    .page-head h1 { margin:0 0 6px; font-size:30px; }
+    .page-head p { margin:0; color:var(--muted); font-size:15px; }
+    .section-card { background:var(--card); border:1px solid var(--border); border-radius:18px;
+      padding:22px 24px; margin-bottom:18px; scroll-margin-top:72px; }
+    .section-head { display:flex; align-items:center; gap:14px; margin-bottom:18px; }
+    .s-icon { display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;
+      border-radius:14px;font-size:20px;flex-shrink:0; }
+    .s-blue { background:#eef5ff; } .s-green { background:#ecfdf5; }
+    .s-yellow { background:#fffbeb; } .s-red { background:#fff1f2; }
+    .section-head h2 { margin:0; font-size:17px; }
+    .section-head p { margin:3px 0 0; color:var(--muted); font-size:13px; }
+    .row { display:flex;justify-content:space-between;align-items:center;padding:11px 0;
+      border-bottom:1px solid #f1f5f9;gap:10px; }
+    .row:last-child { border-bottom:none;padding-bottom:0; }
+    .row-label { font-size:13px; color:var(--muted); }
+    .row-value { font-size:14px; font-weight:700; color:var(--text); }
+    .badge-ok { display:inline-flex;padding:4px 10px;border-radius:999px;background:#ecfdf5;color:#166534;font-size:12px;font-weight:700; }
+    .badge-plan { display:inline-flex;padding:4px 10px;border-radius:999px;background:#eef5ff;color:#0f62fe;font-size:12px;font-weight:700; }
+    .tone-pill { display:inline-flex;padding:5px 12px;border-radius:999px;font-size:13px;font-weight:700;background:rgba(25,135,84,.12);color:#146c43; }
+    .btn-row { display:flex;gap:10px;flex-wrap:wrap;margin-top:18px; }
+    .btn { display:inline-flex;align-items:center;justify-content:center;text-decoration:none;
+      padding:10px 16px;border-radius:10px;border:1px solid var(--border);background:#fff;
+      color:var(--text);font-weight:700;font-size:14px; }
+    .btn:hover { background:#f8fafc; }
+    .btn-primary { background:var(--primary);border-color:var(--primary);color:#fff; }
+    .btn-primary:hover { background:var(--primary-dark); }
+    .btn-danger { background:#fff1f2;border-color:#fecdd3;color:#be123c; }
+    .btn-danger:hover { background:#fff5f5; }
+    /* Upgrade card */
+    .upgrade-card { background:linear-gradient(135deg,#0f172a,#0c4a6e); border:1px solid #0369a1;
+      border-radius:18px; padding:24px; margin-bottom:18px; color:#fff; }
+    .upgrade-card h2 { margin:0 0 8px; font-size:20px; }
+    .upgrade-card p { margin:0 0 16px; color:rgba(255,255,255,.75); font-size:14px; }
+    .feat-list { list-style:none;margin:0 0 20px;padding:0;display:grid;gap:8px; }
+    .feat-list li { display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,.9); }
+    .feat-list li::before { content:"✓";display:inline-flex;align-items:center;justify-content:center;
+      width:18px;height:18px;border-radius:999px;background:rgba(52,211,153,.2);color:#34d399;
+      font-size:11px;font-weight:900;flex-shrink:0; }
+    .btn-upgrade { display:inline-flex;align-items:center;justify-content:center;text-decoration:none;
+      padding:12px 20px;border-radius:12px;background:linear-gradient(135deg,#0f62fe,#7c3aed);
+      color:#fff;font-weight:700;font-size:15px; }
+    /* Danger */
+    .danger-zone { border:1px solid #fecdd3;background:#fff5f7;border-radius:18px;padding:22px 24px; }
+    .danger-zone h2 { margin:0 0 6px;font-size:17px;color:#be123c; }
+    .danger-zone p { margin:0 0 16px;font-size:14px;color:#9f1239; }
+  </style>
+</head>
+<body>
+  <nav class="lokigi-nav" role="navigation" aria-label="Navegación principal">
+    <div class="lokigi-nav-brand">
+      <a class="lokigi-nav-logo" href="starter_dashboard_preview.html">L</a>
+      <a class="lokigi-nav-name" href="starter_dashboard_preview.html">Lokigi</a>
+      <span class="lokigi-nav-plan">Starter</span>
+    </div>
+    <a class="lokigi-nav-link" href="starter_dashboard_preview.html">🏠 Dashboard</a>
+    <a class="lokigi-nav-link" href="starter_dashboard_preview.html#reviews-section">💬 Reseñas</a>
+    <a class="lokigi-nav-link" href="starter_dashboard_preview.html#historial">📊 Reportes</a>
+    <a class="lokigi-nav-account active" href="mi_cuenta_starter.html">👤 Mi Cuenta</a>
+  </nav>
+  <div class="wrap">
+    <div class="page-head">
+      <h1>Mi Cuenta</h1>
+      <p>Gestiona tu perfil, voz de marca y suscripción desde un solo lugar.</p>
+    </div>
+
+    <!-- Perfil del Negocio -->
+    <div class="section-card" id="perfil">
+      <div class="section-head">
+        <div class="s-icon s-blue">🏪</div>
+        <div><h2>Perfil del Negocio</h2><p>Datos de tu negocio conectado a Google Maps</p></div>
+      </div>
+      <div class="row"><span class="row-label">Nombre del negocio</span><span class="row-value">Panadería Demo</span></div>
+      <div class="row"><span class="row-label">Estado de conexión</span><span class="badge-ok">✓ Conectado — Google Maps</span></div>
+      <div class="row"><span class="row-label">Cuenta Google</span><span class="row-value">panaderia.demo@gmail.com</span></div>
+      <div class="row"><span class="row-label">Plan activo</span><span class="badge-plan">Plan Starter</span></div>
+      <div class="btn-row">
+        <a href="#" class="btn">✏️ Editar nombre</a>
+        <a href="#" class="btn">🔗 Reconectar Google</a>
+      </div>
+    </div>
+
+    <!-- Voz de Marca -->
+    <div class="section-card" id="voz-marca">
+      <div class="section-head">
+        <div class="s-icon s-green">🎤</div>
+        <div><h2>Voz de Marca</h2><p>Tono que usa la IA para redactar respuestas a reseñas</p></div>
+      </div>
+      <div class="row"><span class="row-label">Tono activo</span><span class="tone-pill">Cercano</span></div>
+      <div class="row"><span class="row-label">Descripción</span><span class="row-value" style="font-weight:400;color:#475569;">Cálido, empático y en primera persona.</span></div>
+      <div class="row"><span class="row-label">Palabras destacadas en reseñas</span><span class="row-value">masa madre · croissant · fresco</span></div>
+      <div class="btn-row">
+        <a href="#" class="btn btn-primary">Cambiar tono de voz</a>
+      </div>
+    </div>
+
+    <!-- Suscripción -->
+    <div class="section-card" id="suscripcion">
+      <div class="section-head">
+        <div class="s-icon s-yellow">💳</div>
+        <div><h2>Suscripción y Facturación</h2><p>Detalle de tu plan y próximo cobro</p></div>
+      </div>
+      <div class="row"><span class="row-label">Plan</span><span class="badge-plan">Starter — €29/mes</span></div>
+      <div class="row"><span class="row-label">Estado</span><span class="row-value" style="color:#16a34a;">✓ Activo</span></div>
+      <div class="row"><span class="row-label">Próxima renovación</span><span class="row-value">1 Junio 2026</span></div>
+      <div class="row"><span class="row-label">Método de pago</span><span class="row-value">•••• •••• •••• 4242</span></div>
+      <div class="btn-row">
+        <a href="cancellation/step1_subscription.html" class="btn">📄 Ver facturas</a>
+        <a href="#" class="btn">💳 Cambiar tarjeta</a>
+      </div>
+    </div>
+
+    <!-- Upgrade -->
+    <div class="upgrade-card">
+      <h2>✨ Pasa a Growth Edition</h2>
+      <p>Desbloquea inteligencia competitiva, scraping en tiempo real y radar estratégico.</p>
+      <ul class="feat-list">
+        <li>Radar de Guerra con 5 competidores monitorizados</li>
+        <li>Keyword Tracker — posicionamiento en tiempo real</li>
+        <li>Live Feed de movimientos de la competencia</li>
+        <li>AI Action Center con sugerencias de contenido</li>
+        <li>Informes PDF mensuales avanzados</li>
+      </ul>
+      <a href="onboarding/step1_search.html" class="btn-upgrade">🚀 Ver plan Growth — €79/mes</a>
+    </div>
+
+    <!-- Zona de peligro -->
+    <div class="danger-zone">
+      <h2>⚠️ Zona de peligro</h2>
+      <p>Acciones que modifican o cancelan tu suscripción activa.</p>
+      <div class="btn-row">
+        <a href="cancellation/step1_subscription.html" class="btn btn-danger">⏸ Pausar suscripción</a>
+        <a href="cancellation/step1_subscription.html" class="btn btn-danger">✕ Cancelar suscripción</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

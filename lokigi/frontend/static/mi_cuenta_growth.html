@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mi Cuenta | Lokigi Growth</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-stone-950 text-stone-100">
+  <nav class="sticky top-0 z-50 flex items-center gap-1 px-5 h-14 bg-stone-950/95 backdrop-blur-sm border-b border-white/10 shadow-md">
+    <div class="flex items-center gap-2.5 mr-auto">
+      <a href="growth_dashboard_preview.html" class="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-500 text-stone-950 font-black text-sm no-underline">L</a>
+      <a href="growth_dashboard_preview.html" class="font-bold text-white text-base no-underline">Lokigi</a>
+      <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold uppercase tracking-wider">Growth</span>
+    </div>
+    <a href="growth_dashboard_preview.html" class="px-3 py-2 rounded-lg text-sm text-stone-400 font-medium hover:text-white hover:bg-white/5 no-underline">🏠 Dashboard</a>
+    <a href="growth_dashboard_preview.html#reviews" class="px-3 py-2 rounded-lg text-sm text-stone-400 font-medium hover:text-white hover:bg-white/5 no-underline">💬 Reseñas</a>
+    <a href="growth_dashboard_preview.html#radar" class="px-3 py-2 rounded-lg text-sm text-stone-400 font-medium hover:text-white hover:bg-white/5 no-underline">📡 Competencia</a>
+    <a href="growth_dashboard_preview.html#reportes" class="px-3 py-2 rounded-lg text-sm text-stone-400 font-medium hover:text-white hover:bg-white/5 no-underline">📊 Reportes</a>
+    <a href="mi_cuenta_growth.html" class="ml-2 px-4 py-2 rounded-lg text-sm text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 font-semibold no-underline">👤 Mi Cuenta</a>
+  </nav>
+  <div class="mx-auto max-w-2xl px-4 py-8 sm:px-6 pb-16">
+    <div class="mb-8">
+      <p class="text-xs uppercase tracking-[.2em] text-emerald-300/70 mb-1">Configuración</p>
+      <h1 class="text-3xl font-bold text-white">Mi Cuenta</h1>
+      <p class="mt-1 text-stone-400 text-sm">Gestiona tu perfil, voz de marca, competidores y suscripción Growth.</p>
+    </div>
+
+    <!-- Perfil del Negocio -->
+    <section id="perfil" class="rounded-3xl border border-white/10 bg-white/5 p-6 mb-5 scroll-mt-16">
+      <div class="flex items-center gap-3 mb-5">
+        <div class="flex items-center justify-center w-10 h-10 rounded-2xl bg-sky-500/15 text-xl">🏪</div>
+        <div>
+          <h2 class="text-lg font-semibold text-white m-0">Perfil del Negocio</h2>
+          <p class="text-xs text-stone-400 mt-0.5">Datos de tu negocio en Google Maps</p>
+        </div>
+      </div>
+      <div class="space-y-0 divide-y divide-white/5">
+        <div class="flex justify-between items-center py-3">
+          <span class="text-sm text-stone-400">Nombre del negocio</span>
+          <span class="text-sm font-semibold text-white">La Terraza Demo</span>
+        </div>
+        <div class="flex justify-between items-center py-3">
+          <span class="text-sm text-stone-400">Estado</span>
+          <span class="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">✓ Conectado — Google Maps</span>
+        </div>
+        <div class="flex justify-between items-center py-3">
+          <span class="text-sm text-stone-400">Cuenta Google</span>
+          <span class="text-sm font-semibold text-white">laterraza.demo@gmail.com</span>
+        </div>
+        <div class="flex justify-between items-center py-3">
+          <span class="text-sm text-stone-400">Plan activo</span>
+          <span class="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Growth Edition</span>
+        </div>
+      </div>
+      <div class="flex gap-3 mt-5 flex-wrap">
+        <a href="#" class="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-sm font-semibold text-stone-300 hover:bg-white/10 no-underline">✏️ Editar nombre</a>
+        <a href="#" class="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-sm font-semibold text-stone-300 hover:bg-white/10 no-underline">🔗 Reconectar Google</a>
+      </div>
+    </section>
+
+    <!-- Voz de Marca -->
+    <section id="voz-marca" class="rounded-3xl border border-white/10 bg-white/5 p-6 mb-5 scroll-mt-16">
+      <div class="flex items-center gap-3 mb-5">
+        <div class="flex items-center justify-center w-10 h-10 rounded-2xl bg-emerald-500/15 text-xl">🎤</div>
+        <div>
+          <h2 class="text-lg font-semibold text-white m-0">Voz de Marca</h2>
+          <p class="text-xs text-stone-400 mt-0.5">Tono que usa la IA para redactar respuestas</p>
+        </div>
+      </div>
+      <div class="divide-y divide-white/5">
+        <div class="flex justify-between items-center py-3">
+          <span class="text-sm text-stone-400">Tono activo</span>
+          <span class="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-300 text-sm font-bold">Cercano</span>
+        </div>
+        <div class="flex justify-between items-center py-3">
+          <span class="text-sm text-stone-400">Descripción</span>
+          <span class="text-sm text-stone-300">Cálido, empático, en primera persona</span>
+        </div>
+      </div>
+      <div class="flex gap-3 mt-5">
+        <a href="onboarding/step4_brand_voice.html" class="px-4 py-2 rounded-xl bg-emerald-500 text-stone-950 text-sm font-bold hover:bg-emerald-400 no-underline">Cambiar tono de voz</a>
+      </div>
+    </section>
+
+    <!-- Competidores -->
+    <section id="competidores" class="rounded-3xl border border-white/10 bg-white/5 p-6 mb-5 scroll-mt-16">
+      <div class="flex items-center gap-3 mb-5">
+        <div class="flex items-center justify-center w-10 h-10 rounded-2xl bg-amber-500/15 text-xl">👁️</div>
+        <div>
+          <h2 class="text-lg font-semibold text-white m-0">Competidores Monitorizados</h2>
+          <p class="text-xs text-stone-400 mt-0.5">Gestiona el radar de scraping de tu zona</p>
+        </div>
+      </div>
+      <div class="divide-y divide-white/5">
+        <div class="flex justify-between items-center py-3">
+          <span class="text-sm text-stone-400">Activos en radar</span>
+          <span class="text-sm font-bold text-white">3 competidores</span>
+        </div>
+        <div class="flex justify-between items-center py-3">
+          <span class="text-sm text-stone-400">Zona monitoreada</span>
+          <span class="text-sm font-bold text-white">Madrid Centro</span>
+        </div>
+        <div class="flex justify-between items-center py-3">
+          <span class="text-sm text-stone-400">Frecuencia de scraping</span>
+          <span class="text-sm font-bold text-white">Cada 8 h</span>
+        </div>
+        <div class="flex justify-between items-center py-3">
+          <span class="text-sm text-stone-400">Keywords rastreadas</span>
+          <span class="text-sm font-bold text-white">5 keywords activas</span>
+        </div>
+      </div>
+      <div class="flex gap-3 mt-5 flex-wrap">
+        <a href="onboarding/step3_competitors.html" class="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-sm font-semibold text-stone-300 hover:bg-white/10 no-underline">⚙️ Configurar competidores</a>
+        <a href="onboarding/step2_keywords.html" class="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-sm font-semibold text-stone-300 hover:bg-white/10 no-underline">🔑 Configurar keywords</a>
+      </div>
+    </section>
+
+    <!-- Suscripción -->
+    <section id="suscripcion" class="rounded-3xl border border-white/10 bg-white/5 p-6 mb-5 scroll-mt-16">
+      <div class="flex items-center gap-3 mb-5">
+        <div class="flex items-center justify-center w-10 h-10 rounded-2xl bg-violet-500/15 text-xl">💳</div>
+        <div>
+          <h2 class="text-lg font-semibold text-white m-0">Suscripción y Facturación</h2>
+          <p class="text-xs text-stone-400 mt-0.5">Detalle de tu plan Growth</p>
+        </div>
+      </div>
+      <div class="divide-y divide-white/5">
+        <div class="flex justify-between items-center py-3">
+          <span class="text-sm text-stone-400">Plan</span>
+          <span class="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Growth — €79/mes</span>
+        </div>
+        <div class="flex justify-between items-center py-3">
+          <span class="text-sm text-stone-400">Estado</span>
+          <span class="text-sm font-semibold text-emerald-300">✓ Activo</span>
+        </div>
+        <div class="flex justify-between items-center py-3">
+          <span class="text-sm text-stone-400">Próxima renovación</span>
+          <span class="text-sm font-semibold text-white">1 Junio 2026</span>
+        </div>
+        <div class="flex justify-between items-center py-3">
+          <span class="text-sm text-stone-400">Método de pago</span>
+          <span class="text-sm font-semibold text-white">•••• •••• •••• 4242</span>
+        </div>
+      </div>
+      <div class="flex gap-3 mt-5 flex-wrap">
+        <a href="cancellation/step1_subscription.html" class="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-sm font-semibold text-stone-300 hover:bg-white/10 no-underline">📄 Ver facturas</a>
+        <a href="#" class="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-sm font-semibold text-stone-300 hover:bg-white/10 no-underline">💳 Cambiar tarjeta</a>
+      </div>
+    </section>
+
+    <!-- Zona de Peligro -->
+    <section class="rounded-3xl border border-rose-500/20 bg-rose-500/5 p-6">
+      <div class="flex items-center gap-3 mb-5">
+        <div class="flex items-center justify-center w-10 h-10 rounded-2xl bg-rose-500/15 text-xl">⚠️</div>
+        <div>
+          <h2 class="text-lg font-semibold text-rose-300 m-0">Zona de Peligro</h2>
+          <p class="text-xs text-rose-300/60 mt-0.5">Acciones que afectan o cancelan tu suscripción</p>
+        </div>
+      </div>
+      <div class="flex gap-3 flex-wrap">
+        <a href="cancellation/step1_subscription.html" class="px-4 py-2 rounded-xl border border-rose-500/20 bg-rose-500/10 text-sm font-semibold text-rose-300 hover:bg-rose-500/20 no-underline">⏸ Pausar suscripción</a>
+        <a href="cancellation/step1_subscription.html" class="px-4 py-2 rounded-xl border border-rose-500/20 bg-rose-500/10 text-sm font-semibold text-rose-300 hover:bg-rose-500/20 no-underline">↘ Bajar a Plan Starter</a>
+        <a href="cancellation/step1_subscription.html" class="px-4 py-2 rounded-xl border border-rose-500/20 bg-rose-500/10 text-sm font-semibold text-rose-300 hover:bg-rose-500/20 no-underline">✕ Cancelar suscripción</a>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

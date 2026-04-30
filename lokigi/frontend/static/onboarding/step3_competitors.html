@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lokigi Growth · Identificacion de Rivales</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' }</script>
+  <style>
+    body { background: #08111f; font-family: 'Inter', system-ui, sans-serif; }
+    .glass { background: rgba(255,255,255,0.04); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+    .step-done { background: #059669; }
+    .step-active { background: #0ea5e9; box-shadow: 0 0 12px rgba(14,165,233,0.45); }
+    .step-pending { background: rgba(255,255,255,0.12); }
+    .competitor-card.selected { border-color: rgba(14,165,233,0.8); background: rgba(14,165,233,0.08); box-shadow: 0 0 0 1px rgba(14,165,233,0.35); }
+  </style>
+</head>
+<body class="min-h-screen text-white flex flex-col items-center justify-start py-10 px-4">
+<div style="position:fixed;top:0;left:0;right:0;z-index:999;background:rgba(8,17,31,0.92);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.08);padding:10px 20px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><span style="color:#34d399;font-weight:800;margin-right:8px;font-size:14px;">Onboarding Growth</span><a href="step1_search.html" style="padding:8px 18px;border-radius:999px;text-decoration:none;font-size:13px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.55);">Paso 1: Buscar negocio</a><a href="step2_keywords.html" style="padding:8px 18px;border-radius:999px;text-decoration:none;font-size:13px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.55);">Paso 2: Keywords Radar</a><a href="step3_competitors.html" style="padding:8px 18px;border-radius:999px;text-decoration:none;font-size:13px;background:#10b981;color:#fff;font-weight:700;">Paso 3: Rivales</a><a href="step4_brand_voice.html" style="padding:8px 18px;border-radius:999px;text-decoration:none;font-size:13px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.55);">Paso 4: Voz de Marca</a><a href="step5_sync.html" style="padding:8px 18px;border-radius:999px;text-decoration:none;font-size:13px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.55);">Paso 5: Sincronización</a></div><div style="height:54px;"></div>
+  <div class="mb-8 flex items-center gap-3">
+    <div class="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center font-black text-lg shadow-lg">L</div>
+    <span class="text-xl font-bold tracking-tight">Lokigi</span>
+    <span class="text-xs text-sky-300 border border-sky-500/40 rounded-full px-2 py-0.5 ml-1">Growth Edition</span>
+  </div>
+
+  <div class="flex items-center gap-2 mb-10 flex-wrap justify-center">
+    <div class="flex items-center gap-2"><div class="step-done w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">✓</div><span class="text-sm text-emerald-400 hidden sm:inline">Cuenta</span></div>
+    <div class="w-10 h-px bg-emerald-600"></div>
+    <div class="flex items-center gap-2"><div class="step-done w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">✓</div><span class="text-sm text-emerald-400 hidden sm:inline">Google Business</span></div>
+    <div class="w-10 h-px bg-emerald-600"></div>
+    <div class="flex items-center gap-2"><div class="step-done w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">✓</div><span class="text-sm text-emerald-400 hidden sm:inline">Radar</span></div>
+    <div class="w-10 h-px bg-emerald-600"></div>
+    <div class="flex items-center gap-2"><div class="step-active w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">4</div><span class="text-sm text-white font-semibold hidden sm:inline">Rivales</span></div>
+    <div class="w-10 h-px bg-white/10"></div>
+    <div class="flex items-center gap-2"><div class="step-pending w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white/40">5</div><span class="text-sm text-white/40 hidden sm:inline">Voz</span></div>
+  </div>
+
+  <div class="glass rounded-3xl w-full max-w-6xl p-8">
+    <div class="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+      <div>
+        <p class="text-sky-300 text-xs uppercase tracking-[0.22em] font-semibold mb-3">Identificacion de Rivales</p>
+        <h1 class="text-3xl font-bold mb-2">Mapa inicial de los 10 negocios con mejor ranking</h1>
+        <p class="text-white/55 text-sm max-w-3xl">Lokigi ha hecho un scraping inicial alrededor de <span class="text-emerald-300 font-semibold">La Terraza Demo</span> usando tu ubicacion y tus keywords objetivo. Selecciona tus <strong>5 competidores directos</strong> para arrancar el benchmark Growth.</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        
+        <span class="rounded-full border border-sky-400/20 bg-sky-400/10 px-3 py-1 text-xs font-semibold text-sky-100">Pizza artesanal</span>
+        
+        <span class="rounded-full border border-sky-400/20 bg-sky-400/10 px-3 py-1 text-xs font-semibold text-sky-100">Delivery nocturno</span>
+        
+        <span class="rounded-full border border-sky-400/20 bg-sky-400/10 px-3 py-1 text-xs font-semibold text-sky-100">Brunch premium</span>
+        
+      </div>
+    </div>
+
+    <form id="competitors-form" action="/onboarding/step4/competitors" method="post" class="space-y-6">
+      <input type="hidden" name="user_id" value="00000000-0000-0000-0000-000000000001" />
+      <input type="hidden" name="place_id" value="ChIJdemo123456789" />
+      <input type="hidden" name="business_name" value="La Terraza Demo" />
+      <input type="hidden" name="keywords_csv" value="Pizza artesanal, Delivery nocturno, Brunch premium" />
+
+      <div class="grid gap-6 lg:grid-cols-[1.08fr_0.92fr]">
+        <section class="rounded-3xl border border-white/10 bg-white/5 p-4">
+          <div class="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <h2 class="font-semibold text-white">Mapa de ranking local</h2>
+              <p class="text-xs text-white/45">Marcador azul: tu negocio. Marcadores rojos: top 10 rivales detectados.</p>
+            </div>
+            <span class="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-white/60">10 resultados</span>
+          </div>
+          
+          <div class="flex min-h-[320px] items-center justify-center rounded-2xl border border-dashed border-white/15 bg-slate-950/40 text-sm text-white/45 text-center px-8">
+            No pudimos generar un mapa real en este entorno, pero la lista de ranking ya esta lista para que selecciones tus 5 rivales directos.
+          </div>
+          
+        </section>
+
+        <section class="space-y-3">
+          
+          <label class="competitor-card block rounded-2xl border border-white/10 bg-white/5 p-4 transition-all cursor-pointer" data-card>
+            <div class="flex items-start gap-4">
+              <input type="checkbox" name="selected_competitor_ids" value="ChIJrival001" class="competitor-checkbox mt-1 h-4 w-4 rounded border-white/20 bg-slate-900 text-sky-400" checked />
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-500/15 text-sm font-bold text-sky-100">1</span>
+                    <div class="min-w-0">
+                      <h3 class="truncate font-semibold text-white">El Rincón Gourmet</h3>
+                      <p class="truncate text-xs text-white/45">Calle Serrano 12, Madrid</p>
+                    </div>
+                  </div>
+                  <div class="text-right shrink-0">
+                    <div class="text-sm font-semibold text-amber-300">4.6</div>
+                    <div class="text-xs text-white/40">890 reseñas</div>
+                  </div>
+                </div>
+                <div class="mt-3 flex flex-wrap gap-2 text-xs">
+                  <span class="rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-white/60">Ranking #1</span>
+                  <span class="rounded-full border border-sky-400/15 bg-sky-400/10 px-2.5 py-1 text-sky-100">3 coincidencias radar</span>
+                </div>
+              </div>
+            </div>
+          </label>
+          
+          <label class="competitor-card block rounded-2xl border border-white/10 bg-white/5 p-4 transition-all cursor-pointer" data-card>
+            <div class="flex items-start gap-4">
+              <input type="checkbox" name="selected_competitor_ids" value="ChIJrival002" class="competitor-checkbox mt-1 h-4 w-4 rounded border-white/20 bg-slate-900 text-sky-400" checked />
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-500/15 text-sm font-bold text-sky-100">2</span>
+                    <div class="min-w-0">
+                      <h3 class="truncate font-semibold text-white">Bistró Central</h3>
+                      <p class="truncate text-xs text-white/45">Paseo del Prado 8, Madrid</p>
+                    </div>
+                  </div>
+                  <div class="text-right shrink-0">
+                    <div class="text-sm font-semibold text-amber-300">4.4</div>
+                    <div class="text-xs text-white/40">540 reseñas</div>
+                  </div>
+                </div>
+                <div class="mt-3 flex flex-wrap gap-2 text-xs">
+                  <span class="rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-white/60">Ranking #2</span>
+                  <span class="rounded-full border border-sky-400/15 bg-sky-400/10 px-2.5 py-1 text-sky-100">3 coincidencias radar</span>
+                </div>
+              </div>
+            </div>
+          </label>
+          
+          <label class="competitor-card block rounded-2xl border border-white/10 bg-white/5 p-4 transition-all cursor-pointer" data-card>
+            <div class="flex items-start gap-4">
+              <input type="checkbox" name="selected_competitor_ids" value="ChIJrival003" class="competitor-checkbox mt-1 h-4 w-4 rounded border-white/20 bg-slate-900 text-sky-400" checked />
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-500/15 text-sm font-bold text-sky-100">3</span>
+                    <div class="min-w-0">
+                      <h3 class="truncate font-semibold text-white">Sabores del Norte</h3>
+                      <p class="truncate text-xs text-white/45">Av. Castellana 200, Madrid</p>
+                    </div>
+                  </div>
+                  <div class="text-right shrink-0">
+                    <div class="text-sm font-semibold text-amber-300">4.1</div>
+                    <div class="text-xs text-white/40">310 reseñas</div>
+                  </div>
+                </div>
+                <div class="mt-3 flex flex-wrap gap-2 text-xs">
+                  <span class="rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-white/60">Ranking #3</span>
+                  <span class="rounded-full border border-sky-400/15 bg-sky-400/10 px-2.5 py-1 text-sky-100">2 coincidencias radar</span>
+                </div>
+              </div>
+            </div>
+          </label>
+          
+          <label class="competitor-card block rounded-2xl border border-white/10 bg-white/5 p-4 transition-all cursor-pointer" data-card>
+            <div class="flex items-start gap-4">
+              <input type="checkbox" name="selected_competitor_ids" value="ChIJrival004" class="competitor-checkbox mt-1 h-4 w-4 rounded border-white/20 bg-slate-900 text-sky-400" checked />
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-500/15 text-sm font-bold text-sky-100">4</span>
+                    <div class="min-w-0">
+                      <h3 class="truncate font-semibold text-white">La Cantina Moderna</h3>
+                      <p class="truncate text-xs text-white/45">Gran Vía 55, Madrid</p>
+                    </div>
+                  </div>
+                  <div class="text-right shrink-0">
+                    <div class="text-sm font-semibold text-amber-300">4.3</div>
+                    <div class="text-xs text-white/40">420 reseñas</div>
+                  </div>
+                </div>
+                <div class="mt-3 flex flex-wrap gap-2 text-xs">
+                  <span class="rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-white/60">Ranking #4</span>
+                  <span class="rounded-full border border-sky-400/15 bg-sky-400/10 px-2.5 py-1 text-sky-100">2 coincidencias radar</span>
+                </div>
+              </div>
+            </div>
+          </label>
+          
+          <label class="competitor-card block rounded-2xl border border-white/10 bg-white/5 p-4 transition-all cursor-pointer" data-card>
+            <div class="flex items-start gap-4">
+              <input type="checkbox" name="selected_competitor_ids" value="ChIJrival005" class="competitor-checkbox mt-1 h-4 w-4 rounded border-white/20 bg-slate-900 text-sky-400" checked />
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-500/15 text-sm font-bold text-sky-100">5</span>
+                    <div class="min-w-0">
+                      <h3 class="truncate font-semibold text-white">Tapas & Compañía</h3>
+                      <p class="truncate text-xs text-white/45">Calle Fuencarral 18, Madrid</p>
+                    </div>
+                  </div>
+                  <div class="text-right shrink-0">
+                    <div class="text-sm font-semibold text-amber-300">4.2</div>
+                    <div class="text-xs text-white/40">275 reseñas</div>
+                  </div>
+                </div>
+                <div class="mt-3 flex flex-wrap gap-2 text-xs">
+                  <span class="rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-white/60">Ranking #5</span>
+                  <span class="rounded-full border border-sky-400/15 bg-sky-400/10 px-2.5 py-1 text-sky-100">2 coincidencias radar</span>
+                </div>
+              </div>
+            </div>
+          </label>
+          
+          <label class="competitor-card block rounded-2xl border border-white/10 bg-white/5 p-4 transition-all cursor-pointer" data-card>
+            <div class="flex items-start gap-4">
+              <input type="checkbox" name="selected_competitor_ids" value="ChIJrival006" class="competitor-checkbox mt-1 h-4 w-4 rounded border-white/20 bg-slate-900 text-sky-400"  />
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-500/15 text-sm font-bold text-sky-100">6</span>
+                    <div class="min-w-0">
+                      <h3 class="truncate font-semibold text-white">Urban Kitchen MTD</h3>
+                      <p class="truncate text-xs text-white/45">Calle Alcalá 90, Madrid</p>
+                    </div>
+                  </div>
+                  <div class="text-right shrink-0">
+                    <div class="text-sm font-semibold text-amber-300">3.9</div>
+                    <div class="text-xs text-white/40">190 reseñas</div>
+                  </div>
+                </div>
+                <div class="mt-3 flex flex-wrap gap-2 text-xs">
+                  <span class="rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-white/60">Ranking #6</span>
+                  <span class="rounded-full border border-sky-400/15 bg-sky-400/10 px-2.5 py-1 text-sky-100">1 coincidencias radar</span>
+                </div>
+              </div>
+            </div>
+          </label>
+          
+          <label class="competitor-card block rounded-2xl border border-white/10 bg-white/5 p-4 transition-all cursor-pointer" data-card>
+            <div class="flex items-start gap-4">
+              <input type="checkbox" name="selected_competitor_ids" value="ChIJrival007" class="competitor-checkbox mt-1 h-4 w-4 rounded border-white/20 bg-slate-900 text-sky-400"  />
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-500/15 text-sm font-bold text-sky-100">7</span>
+                    <div class="min-w-0">
+                      <h3 class="truncate font-semibold text-white">Pizza Veloce</h3>
+                      <p class="truncate text-xs text-white/45">Av. América 34, Madrid</p>
+                    </div>
+                  </div>
+                  <div class="text-right shrink-0">
+                    <div class="text-sm font-semibold text-amber-300">4.0</div>
+                    <div class="text-xs text-white/40">355 reseñas</div>
+                  </div>
+                </div>
+                <div class="mt-3 flex flex-wrap gap-2 text-xs">
+                  <span class="rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-white/60">Ranking #7</span>
+                  <span class="rounded-full border border-sky-400/15 bg-sky-400/10 px-2.5 py-1 text-sky-100">2 coincidencias radar</span>
+                </div>
+              </div>
+            </div>
+          </label>
+          
+          <label class="competitor-card block rounded-2xl border border-white/10 bg-white/5 p-4 transition-all cursor-pointer" data-card>
+            <div class="flex items-start gap-4">
+              <input type="checkbox" name="selected_competitor_ids" value="ChIJrival008" class="competitor-checkbox mt-1 h-4 w-4 rounded border-white/20 bg-slate-900 text-sky-400"  />
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-500/15 text-sm font-bold text-sky-100">8</span>
+                    <div class="min-w-0">
+                      <h3 class="truncate font-semibold text-white">Café del Sol</h3>
+                      <p class="truncate text-xs text-white/45">Plaza Mayor 3, Madrid</p>
+                    </div>
+                  </div>
+                  <div class="text-right shrink-0">
+                    <div class="text-sm font-semibold text-amber-300">4.5</div>
+                    <div class="text-xs text-white/40">680 reseñas</div>
+                  </div>
+                </div>
+                <div class="mt-3 flex flex-wrap gap-2 text-xs">
+                  <span class="rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-white/60">Ranking #8</span>
+                  <span class="rounded-full border border-sky-400/15 bg-sky-400/10 px-2.5 py-1 text-sky-100">1 coincidencias radar</span>
+                </div>
+              </div>
+            </div>
+          </label>
+          
+          <label class="competitor-card block rounded-2xl border border-white/10 bg-white/5 p-4 transition-all cursor-pointer" data-card>
+            <div class="flex items-start gap-4">
+              <input type="checkbox" name="selected_competitor_ids" value="ChIJrival009" class="competitor-checkbox mt-1 h-4 w-4 rounded border-white/20 bg-slate-900 text-sky-400"  />
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-500/15 text-sm font-bold text-sky-100">9</span>
+                    <div class="min-w-0">
+                      <h3 class="truncate font-semibold text-white">El Mesón de la Abuela</h3>
+                      <p class="truncate text-xs text-white/45">Calle Toledo 21, Madrid</p>
+                    </div>
+                  </div>
+                  <div class="text-right shrink-0">
+                    <div class="text-sm font-semibold text-amber-300">4.1</div>
+                    <div class="text-xs text-white/40">230 reseñas</div>
+                  </div>
+                </div>
+                <div class="mt-3 flex flex-wrap gap-2 text-xs">
+                  <span class="rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-white/60">Ranking #9</span>
+                  <span class="rounded-full border border-sky-400/15 bg-sky-400/10 px-2.5 py-1 text-sky-100">1 coincidencias radar</span>
+                </div>
+              </div>
+            </div>
+          </label>
+          
+          <label class="competitor-card block rounded-2xl border border-white/10 bg-white/5 p-4 transition-all cursor-pointer" data-card>
+            <div class="flex items-start gap-4">
+              <input type="checkbox" name="selected_competitor_ids" value="ChIJrival010" class="competitor-checkbox mt-1 h-4 w-4 rounded border-white/20 bg-slate-900 text-sky-400"  />
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-500/15 text-sm font-bold text-sky-100">10</span>
+                    <div class="min-w-0">
+                      <h3 class="truncate font-semibold text-white">Fusion 360</h3>
+                      <p class="truncate text-xs text-white/45">Calle Hortaleza 5, Madrid</p>
+                    </div>
+                  </div>
+                  <div class="text-right shrink-0">
+                    <div class="text-sm font-semibold text-amber-300">3.8</div>
+                    <div class="text-xs text-white/40">145 reseñas</div>
+                  </div>
+                </div>
+                <div class="mt-3 flex flex-wrap gap-2 text-xs">
+                  <span class="rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-white/60">Ranking #10</span>
+                  <span class="rounded-full border border-sky-400/15 bg-sky-400/10 px-2.5 py-1 text-sky-100">1 coincidencias radar</span>
+                </div>
+              </div>
+            </div>
+          </label>
+          
+        </section>
+      </div>
+
+      <div class="flex flex-col gap-3">
+        <button id="continue-btn" type="button" class="w-full rounded-2xl bg-sky-500 py-3.5 font-bold text-sm text-white transition-all" onclick="window.location='step4_brand_voice.html'">Continuar a Voz de Marca →</button>
+        <p id="selection-hint" class="text-center text-white/30 text-xs">Selecciona exactamente 5 competidores directos</p>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    const checkboxes = Array.from(document.querySelectorAll('.competitor-checkbox'));
+    const continueBtn = document.getElementById('continue-btn');
+    const hint = document.getElementById('selection-hint');
+
+    function syncCompetitorSelection() {
+      const checked = checkboxes.filter((item) => item.checked);
+      checkboxes.forEach((checkbox) => {
+        const card = checkbox.closest('[data-card]');
+        if (card) {
+          card.classList.toggle('selected', checkbox.checked);
+        }
+      });
+
+      const ready = checked.length === 5;
+      continueBtn.disabled = !ready;
+      continueBtn.className = ready
+        ? 'w-full rounded-2xl bg-sky-500 hover:bg-sky-400 py-3.5 font-bold text-sm text-white shadow-lg shadow-sky-500/20 transition-all'
+        : 'w-full rounded-2xl bg-white/5 py-3.5 font-bold text-sm text-white/20 cursor-not-allowed transition-all';
+
+      if (ready) {
+        const names = checked.slice(0, 5).map((item) => item.closest('[data-card]')?.querySelector('h3')?.textContent?.trim()).filter(Boolean);
+        hint.textContent = 'Perfecto. Benchmark inicial listo contra: ' + names.join(' · ');
+      } else {
+        hint.textContent = 'Selecciona exactamente 5 competidores directos';
+      }
+    }
+
+    checkboxes.forEach((checkbox) => {
+      checkbox.addEventListener('change', (event) => {
+        const checked = checkboxes.filter((item) => item.checked);
+        if (checked.length > 5) {
+          event.target.checked = false;
+        }
+        syncCompetitorSelection();
+      });
+    });
+
+    syncCompetitorSelection();
+  </script>
+</body>
+</html>

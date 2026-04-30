@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lokigi Growth · Voz de Marca</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' }</script>
+  <script src="https://unpkg.com/htmx.org@1.9.12" integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2uodhyzR+nG5VhQ3TKo0YsFB7A6+8THZGB" crossorigin="anonymous"></script>
+  <style>
+    body { background: #0a0f1e; font-family: 'Inter', system-ui, sans-serif; }
+    .glass { background: rgba(255,255,255,0.04); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+    .step-done { background: #059669; }
+    .step-active { background: #10b981; box-shadow: 0 0 12px rgba(16,185,129,0.5); }
+    .step-pending { background: rgba(255,255,255,0.12); }
+    .tone-card { border: 2px solid transparent; cursor: pointer; transition: all 0.2s; }
+    .tone-card:hover { border-color: rgba(255,255,255,0.2); transform: translateY(-2px); }
+    .tone-card.selected-emerald { border-color: #10b981; background: rgba(16,185,129,0.1); box-shadow: 0 0 20px rgba(16,185,129,0.2); }
+    .tone-card.selected-blue   { border-color: #3b82f6; background: rgba(59,130,246,0.1); box-shadow: 0 0 20px rgba(59,130,246,0.2); }
+    .tone-card.selected-violet { border-color: #8b5cf6; background: rgba(139,92,246,0.1); box-shadow: 0 0 20px rgba(139,92,246,0.2); }
+    .star-filled { color: #fbbf24; }
+    .star-empty  { color: rgba(255,255,255,0.15); }
+  </style>
+</head>
+<body class="min-h-screen text-white flex flex-col items-center justify-start py-10 px-4">
+<div style="position:fixed;top:0;left:0;right:0;z-index:999;background:rgba(8,17,31,0.92);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.08);padding:10px 20px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><span style="color:#34d399;font-weight:800;margin-right:8px;font-size:14px;">Onboarding Growth</span><a href="step1_search.html" style="padding:8px 18px;border-radius:999px;text-decoration:none;font-size:13px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.55);">Paso 1: Buscar negocio</a><a href="step2_keywords.html" style="padding:8px 18px;border-radius:999px;text-decoration:none;font-size:13px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.55);">Paso 2: Keywords Radar</a><a href="step3_competitors.html" style="padding:8px 18px;border-radius:999px;text-decoration:none;font-size:13px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.55);">Paso 3: Rivales</a><a href="step4_brand_voice.html" style="padding:8px 18px;border-radius:999px;text-decoration:none;font-size:13px;background:#10b981;color:#fff;font-weight:700;">Paso 4: Voz de Marca</a><a href="step5_sync.html" style="padding:8px 18px;border-radius:999px;text-decoration:none;font-size:13px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.55);">Paso 5: Sincronización</a></div><div style="height:54px;"></div>
+
+  <!-- ── Logo ── -->
+  <div class="mb-8 flex items-center gap-3">
+    <div class="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center font-black text-lg shadow-lg">L</div>
+    <span class="text-xl font-bold tracking-tight">Lokigi</span>
+    <span class="text-xs text-sky-300 border border-sky-500/40 rounded-full px-2 py-0.5 ml-1">Growth Edition</span>
+  </div>
+
+  <!-- ── Stepper ── -->
+  <div class="flex items-center gap-2 mb-10">
+    <div class="flex items-center gap-2">
+      <div class="step-done w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">✓</div>
+      <span class="text-sm text-emerald-400 hidden sm:inline">Cuenta</span>
+    </div>
+    <div class="w-10 h-px bg-emerald-600"></div>
+    <div class="flex items-center gap-2">
+      <div class="step-done w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">✓</div>
+      <span class="text-sm text-emerald-400 hidden sm:inline">Google Business</span>
+    </div>
+    <div class="w-10 h-px bg-emerald-600"></div>
+    <div class="flex items-center gap-2">
+      <div class="step-done w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">✓</div>
+      <span class="text-sm text-emerald-400 hidden sm:inline">Radar</span>
+    </div>
+    <div class="w-10 h-px bg-emerald-600"></div>
+    <div class="flex items-center gap-2">
+      <div class="step-done w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">✓</div>
+      <span class="text-sm text-emerald-400 hidden sm:inline">Rivales</span>
+    </div>
+    <div class="w-10 h-px bg-emerald-600"></div>
+    <div class="flex items-center gap-2">
+      <div class="step-active w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">5</div>
+      <span class="text-sm text-white font-semibold hidden sm:inline">Voz de Marca</span>
+    </div>
+  </div>
+
+  <!-- ── Card ── -->
+  <div class="glass rounded-2xl w-full max-w-2xl p-8">
+
+    <div class="mb-7">
+      <h1 class="text-2xl font-bold mb-1">Elige la Voz de <span class="text-emerald-400">La Terraza Demo</span></h1>
+      <p class="text-white/50 text-sm">
+        Aquí tienes una reseña real de tu negocio. Lee cómo respondería Lokigi en cada tono y elige el que mejor te represente.
+      </p>
+    </div>
+
+    <!-- ── Sample review ── -->
+    <div class="mb-8 bg-white/5 rounded-xl p-5 border border-white/10 relative">
+      <div class="flex items-start gap-3">
+        <!-- Avatar -->
+        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-slate-600 to-slate-800 flex items-center justify-center text-sm font-bold shrink-0">
+          M
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="font-medium text-sm">María García</span>
+            <!-- Stars -->
+            <div class="flex gap-0.5 ml-1">
+              
+                <svg class="w-3 h-3 star-filled" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                </svg>
+              
+                <svg class="w-3 h-3 star-filled" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                </svg>
+              
+                <svg class="w-3 h-3 star-filled" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                </svg>
+              
+                <svg class="w-3 h-3 star-filled" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                </svg>
+              
+                <svg class="w-3 h-3 star-filled" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                </svg>
+              
+            </div>
+            <span class="text-white/25 text-xs ml-auto">Google Maps</span>
+          </div>
+          <p class="text-white/70 text-sm leading-relaxed">"Increíble experiencia, la pizza artesanal es la mejor que he probado en Madrid. El servicio fue atento y el ambiente muy acogedor."</p>
+        </div>
+      </div>
+      <!-- Label -->
+      <div class="absolute -top-3 left-4">
+        <span class="text-xs bg-slate-700 text-white/60 px-2 py-0.5 rounded-full border border-white/10">Reseña real de tu negocio</span>
+      </div>
+    </div>
+
+    <!-- ── Tone options ── -->
+    <p class="text-white/40 text-xs uppercase tracking-widest mb-4 font-semibold">¿Cómo respondería Lokigi?</p>
+
+    <form id="tone-form" class="space-y-4">
+      <input type="hidden" name="user_id" value="00000000-0000-0000-0000-000000000001" />
+      <input type="hidden" name="place_id" value="ChIJdemo123456789" />
+      <input type="hidden" name="business_name" value="La Terraza Demo" />
+      <input type="hidden" name="keywords_csv" value="Pizza artesanal, Delivery nocturno, Brunch premium" />
+      <input type="hidden" id="selected-tone" name="tone" value="" />
+
+      <div class="mb-5 flex flex-wrap gap-2">
+        
+        <span class="rounded-full border border-sky-400/20 bg-sky-400/10 px-3 py-1 text-xs font-semibold text-sky-100">Pizza artesanal</span>
+        
+        <span class="rounded-full border border-sky-400/20 bg-sky-400/10 px-3 py-1 text-xs font-semibold text-sky-100">Delivery nocturno</span>
+        
+        <span class="rounded-full border border-sky-400/20 bg-sky-400/10 px-3 py-1 text-xs font-semibold text-sky-100">Brunch premium</span>
+        
+        <span class="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-100">5 competidores listos</span>
+      </div>
+
+      
+      <div
+        class="tone-card glass rounded-xl p-5 select-none"
+        data-tone="cercano"
+        data-color="emerald"
+        onclick="selectTone(this)"
+      >
+        <div class="flex items-center gap-3 mb-3">
+          <span class="text-2xl">🤝</span>
+          <div>
+            <span class="font-semibold text-sm">Cercano y Cálido</span>
+            <p class="text-white/40 text-xs mt-0.5">Tono amigable, personal y empático. Ideal para negocios de barrio.</p>
+          </div>
+          <!-- Selected indicator -->
+          <div class="tone-check ml-auto hidden w-5 h-5 rounded-full flex items-center justify-center">
+            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+            </svg>
+          </div>
+        </div>
+        <!-- Reply preview -->
+        <div class="bg-black/20 rounded-lg px-4 py-3 border border-white/5 relative">
+          <div class="flex items-center gap-1.5 mb-2 opacity-50">
+            <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+            <span class="text-xs">Respuesta automática de Lokigi</span>
+          </div>
+          <p class="text-white/80 text-sm leading-relaxed italic">"¡Muchas gracias por tu visita, María! Nos alegra muchísimo que hayas disfrutado la experiencia. Te esperamos pronto con muchas novedades 🌟"</p>
+        </div>
+      </div>
+      
+      <div
+        class="tone-card glass rounded-xl p-5 select-none"
+        data-tone="formal"
+        data-color="blue"
+        onclick="selectTone(this)"
+      >
+        <div class="flex items-center gap-3 mb-3">
+          <span class="text-2xl">🎩</span>
+          <div>
+            <span class="font-semibold text-sm">Profesional y Formal</span>
+            <p class="text-white/40 text-xs mt-0.5">Correcto, elegante y corporativo. Perfecto para restaurantes premium.</p>
+          </div>
+          <!-- Selected indicator -->
+          <div class="tone-check ml-auto hidden w-5 h-5 rounded-full flex items-center justify-center">
+            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+            </svg>
+          </div>
+        </div>
+        <!-- Reply preview -->
+        <div class="bg-black/20 rounded-lg px-4 py-3 border border-white/5 relative">
+          <div class="flex items-center gap-1.5 mb-2 opacity-50">
+            <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+            <span class="text-xs">Respuesta automática de Lokigi</span>
+          </div>
+          <p class="text-white/80 text-sm leading-relaxed italic">"Estimada María, le agradecemos sinceramente su valoración. Es un placer para nuestro equipo brindarle la mejor experiencia. Quedamos a su disposición."</p>
+        </div>
+      </div>
+      
+      <div
+        class="tone-card glass rounded-xl p-5 select-none"
+        data-tone="moderno"
+        data-color="violet"
+        onclick="selectTone(this)"
+      >
+        <div class="flex items-center gap-3 mb-3">
+          <span class="text-2xl">⚡</span>
+          <div>
+            <span class="font-semibold text-sm">Moderno y Directo</span>
+            <p class="text-white/40 text-xs mt-0.5">Conciso, fresco y con personalidad. Conecta con audiencias jóvenes.</p>
+          </div>
+          <!-- Selected indicator -->
+          <div class="tone-check ml-auto hidden w-5 h-5 rounded-full flex items-center justify-center">
+            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+            </svg>
+          </div>
+        </div>
+        <!-- Reply preview -->
+        <div class="bg-black/20 rounded-lg px-4 py-3 border border-white/5 relative">
+          <div class="flex items-center gap-1.5 mb-2 opacity-50">
+            <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+            <span class="text-xs">Respuesta automática de Lokigi</span>
+          </div>
+          <p class="text-white/80 text-sm leading-relaxed italic">"¡Gracias María! 🙌 Tu opinión nos impulsa a seguir mejorando. ¡Vuelve cuando quieras!"</p>
+        </div>
+      </div>
+      
+    </form>
+
+    <!-- ── CTA ── -->
+    <div class="mt-8 flex flex-col gap-3">
+      <button
+        id="activate-btn" class="w-full py-3.5 rounded-xl font-bold text-sm transition-all bg-emerald-500 text-slate-950 cursor-pointer"
+        onclick="window.location='step5_sync.html'"
+        hx-include="#tone-form"
+        
+      >
+        Finalizar y Activar Lokigi ✦
+      </button>
+      <p id="select-hint" class="text-center text-white/30 text-xs">
+        Selecciona un tono para continuar
+      </p>
+    </div>
+
+  </div>
+
+  <!-- ── Hint ── -->
+  <p class="text-white/25 text-xs mt-6 max-w-sm text-center">
+    Puedes cambiar el tono de marca en cualquier momento desde tu panel de configuración.
+  </p>
+
+  <script>
+    function selectTone(card) {
+      const tone = card.dataset.tone;
+      const color = card.dataset.color;
+
+      // Reset all
+      document.querySelectorAll('.tone-card').forEach(c => {
+        c.classList.remove('selected-emerald', 'selected-blue', 'selected-violet');
+        c.querySelector('.tone-check').classList.add('hidden');
+        c.querySelector('.tone-check').classList.remove('flex');
+      });
+
+      // Select this one
+      card.classList.add(`selected-${color}`);
+      card.querySelector('.tone-check').classList.remove('hidden');
+      card.querySelector('.tone-check').classList.add('flex');
+
+      // Update hidden field
+      document.getElementById('selected-tone').value = tone;
+
+      // Enable CTA
+      const btn = document.getElementById('activate-btn');
+      btn.disabled = false;
+      btn.className = 'w-full py-3.5 rounded-xl font-bold text-sm transition-all bg-emerald-500 hover:bg-emerald-400 text-white shadow-lg shadow-emerald-500/25 cursor-pointer';
+
+      document.getElementById('select-hint').textContent = '¡Perfecto! Lokigi adoptará el tono ' + card.querySelector('.font-semibold').textContent.trim();
+    }
+  </script>
+</body>
+</html>

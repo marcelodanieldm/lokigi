@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lokigi Growth · Configurando el Radar</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' }</script>
+  <style>
+    body { background: #0a0f1e; font-family: 'Inter', system-ui, sans-serif; }
+    .glass { background: rgba(255,255,255,0.04); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+    .step-done { background: #059669; }
+    .step-active { background: #10b981; box-shadow: 0 0 12px rgba(16,185,129,0.5); }
+    .step-pending { background: rgba(255,255,255,0.12); }
+  </style>
+</head>
+<body class="min-h-screen text-white flex flex-col items-center justify-start py-10 px-4">
+<div style="position:fixed;top:0;left:0;right:0;z-index:999;background:rgba(8,17,31,0.92);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.08);padding:10px 20px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><span style="color:#34d399;font-weight:800;margin-right:8px;font-size:14px;">Onboarding Growth</span><a href="step1_search.html" style="padding:8px 18px;border-radius:999px;text-decoration:none;font-size:13px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.55);">Paso 1: Buscar negocio</a><a href="step2_keywords.html" style="padding:8px 18px;border-radius:999px;text-decoration:none;font-size:13px;background:#10b981;color:#fff;font-weight:700;">Paso 2: Keywords Radar</a><a href="step3_competitors.html" style="padding:8px 18px;border-radius:999px;text-decoration:none;font-size:13px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.55);">Paso 3: Rivales</a><a href="step4_brand_voice.html" style="padding:8px 18px;border-radius:999px;text-decoration:none;font-size:13px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.55);">Paso 4: Voz de Marca</a><a href="step5_sync.html" style="padding:8px 18px;border-radius:999px;text-decoration:none;font-size:13px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.55);">Paso 5: Sincronización</a></div><div style="height:54px;"></div>
+  <div class="mb-8 flex items-center gap-3">
+    <div class="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center font-black text-lg shadow-lg">L</div>
+    <span class="text-xl font-bold tracking-tight">Lokigi</span>
+    <span class="text-xs text-sky-300 border border-sky-500/40 rounded-full px-2 py-0.5 ml-1">Growth Edition</span>
+  </div>
+
+  <div class="flex items-center gap-2 mb-10">
+    <div class="flex items-center gap-2">
+      <div class="step-done w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">✓</div>
+      <span class="text-sm text-emerald-400 hidden sm:inline">Cuenta</span>
+    </div>
+    <div class="w-10 h-px bg-emerald-600"></div>
+    <div class="flex items-center gap-2">
+      <div class="step-done w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">✓</div>
+      <span class="text-sm text-emerald-400 hidden sm:inline">Google Business</span>
+    </div>
+    <div class="w-10 h-px bg-emerald-600"></div>
+    <div class="flex items-center gap-2">
+      <div class="step-active w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">3</div>
+      <span class="text-sm text-white font-semibold hidden sm:inline">Radar</span>
+    </div>
+    <div class="w-10 h-px bg-white/10"></div>
+    <div class="flex items-center gap-2">
+      <div class="step-pending w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white/40">4</div>
+      <span class="text-sm text-white/40 hidden sm:inline">Rivales</span>
+    </div>
+    <div class="w-10 h-px bg-white/10"></div>
+    <div class="flex items-center gap-2">
+      <div class="step-pending w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white/40">5</div>
+      <span class="text-sm text-white/40 hidden sm:inline">Voz</span>
+    </div>
+  </div>
+
+  <div class="glass rounded-2xl w-full max-w-3xl p-8">
+    <div class="mb-7">
+      <p class="text-sky-300 text-xs uppercase tracking-[0.22em] font-semibold mb-3">Configurando el Radar</p>
+      <h1 class="text-3xl font-bold mb-2">Elige tus 3 keywords principales</h1>
+      <p class="text-white/55 text-sm max-w-2xl">Usaremos estas búsquedas como objetivo inicial para detectar gaps de visibilidad, comparar a tu competencia y priorizar sugerencias Growth para <span class="text-emerald-300 font-semibold">La Terraza Demo</span>.</p>
+    </div>
+
+    <form id="keywords-form" class="space-y-5" action="/onboarding/step4" method="get">
+      <input type="hidden" name="user_id" value="00000000-0000-0000-0000-000000000001" />
+      <input type="hidden" name="place_id" value="ChIJdemo123456789" />
+      <input type="hidden" name="business_name" value="La Terraza Demo" />
+      <input type="hidden" id="keywords-csv" name="keywords_csv" value="Pizza artesanal, Delivery nocturno, Brunch premium" />
+
+      <div class="grid md:grid-cols-3 gap-4">
+        
+        <label class="block">
+          <span class="block text-xs uppercase tracking-[0.2em] text-white/35 mb-2">Keyword 1</span>
+          <input
+            type="text"
+            value="Pizza artesanal"
+            class="keyword-input w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-sky-400"
+            placeholder="Ej. Pizza artesanal"
+            maxlength="80"
+          />
+        </label>
+        
+        <label class="block">
+          <span class="block text-xs uppercase tracking-[0.2em] text-white/35 mb-2">Keyword 2</span>
+          <input
+            type="text"
+            value="Delivery nocturno"
+            class="keyword-input w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-sky-400"
+            placeholder="Ej. Pizza artesanal"
+            maxlength="80"
+          />
+        </label>
+        
+        <label class="block">
+          <span class="block text-xs uppercase tracking-[0.2em] text-white/35 mb-2">Keyword 3</span>
+          <input
+            type="text"
+            value="Brunch premium"
+            class="keyword-input w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-sky-400"
+            placeholder="Ej. Pizza artesanal"
+            maxlength="80"
+          />
+        </label>
+        
+      </div>
+
+      <div>
+        <p class="text-white/40 text-xs uppercase tracking-[0.2em] mb-3">Sugerencias rápidas</p>
+        <div class="flex flex-wrap gap-2">
+          
+          <button type="button" class="keyword-chip rounded-full border border-sky-400/20 bg-sky-400/8 px-3 py-1.5 text-sm text-sky-100 hover:bg-sky-400/16 transition-colors" data-keyword="Pizzería artesanal">Pizzería artesanal</button>
+          
+          <button type="button" class="keyword-chip rounded-full border border-sky-400/20 bg-sky-400/8 px-3 py-1.5 text-sm text-sky-100 hover:bg-sky-400/16 transition-colors" data-keyword="Delivery rápido">Delivery rápido</button>
+          
+          <button type="button" class="keyword-chip rounded-full border border-sky-400/20 bg-sky-400/8 px-3 py-1.5 text-sm text-sky-100 hover:bg-sky-400/16 transition-colors" data-keyword="Brunch fin de semana">Brunch fin de semana</button>
+          
+          <button type="button" class="keyword-chip rounded-full border border-sky-400/20 bg-sky-400/8 px-3 py-1.5 text-sm text-sky-100 hover:bg-sky-400/16 transition-colors" data-keyword="Cafetería con wifi">Cafetería con wifi</button>
+          
+          <button type="button" class="keyword-chip rounded-full border border-sky-400/20 bg-sky-400/8 px-3 py-1.5 text-sm text-sky-100 hover:bg-sky-400/16 transition-colors" data-keyword="Desayunos saludables">Desayunos saludables</button>
+          
+          <button type="button" class="keyword-chip rounded-full border border-sky-400/20 bg-sky-400/8 px-3 py-1.5 text-sm text-sky-100 hover:bg-sky-400/16 transition-colors" data-keyword="Menú ejecutivo">Menú ejecutivo</button>
+          
+          <button type="button" class="keyword-chip rounded-full border border-sky-400/20 bg-sky-400/8 px-3 py-1.5 text-sm text-sky-100 hover:bg-sky-400/16 transition-colors" data-keyword="Restaurante romántico">Restaurante romántico</button>
+          
+          <button type="button" class="keyword-chip rounded-full border border-sky-400/20 bg-sky-400/8 px-3 py-1.5 text-sm text-sky-100 hover:bg-sky-400/16 transition-colors" data-keyword="Terraza con vistas">Terraza con vistas</button>
+          
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+        <div class="flex items-start gap-3">
+          <div class="mt-1 h-9 w-9 shrink-0 rounded-xl bg-sky-500/15 text-sky-200 flex items-center justify-center font-bold">AI</div>
+          <div>
+            <h2 class="font-semibold text-white">Qué hará Lokigi con estas keywords</h2>
+            <p class="text-sm text-white/55 mt-1">1. Escanear qué términos dominan tus competidores. 2. Detectar oportunidades en tu descripción y servicios. 3. Priorizar alertas y recomendaciones alrededor de estas 3 búsquedas.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-3">
+        <button id="continue-btn" type="button" class="w-full rounded-2xl bg-sky-500 py-3.5 font-bold text-sm text-white transition-all" onclick="window.location='step3_competitors.html'">Continuar a Rivales →</button>
+        <p id="keywords-hint" class="text-center text-white/30 text-xs">Completa exactamente 3 keywords para continuar</p>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    const keywordInputs = Array.from(document.querySelectorAll('.keyword-input'));
+    const csvField = document.getElementById('keywords-csv');
+    const continueBtn = document.getElementById('continue-btn');
+    const hint = document.getElementById('keywords-hint');
+
+    function normalizedValues() {
+      const values = [];
+      const seen = new Set();
+      for (const input of keywordInputs) {
+        const value = input.value.trim().replace(/\s+/g, ' ');
+        if (!value) continue;
+        const key = value.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        values.push(value);
+      }
+      return values.slice(0, 3);
+    }
+
+    function syncKeywordsState() {
+      const values = normalizedValues();
+      csvField.value = values.join(', ');
+      const ready = values.length === 3;
+      continueBtn.disabled = !ready;
+      continueBtn.className = ready
+        ? 'w-full rounded-2xl bg-sky-500 hover:bg-sky-400 py-3.5 font-bold text-sm text-white shadow-lg shadow-sky-500/20 transition-all'
+        : 'w-full rounded-2xl bg-white/5 py-3.5 font-bold text-sm text-white/20 cursor-not-allowed transition-all';
+      hint.textContent = ready
+        ? 'Perfecto. Tu radar Growth empezará con: ' + values.join(' · ')
+        : 'Completa exactamente 3 keywords para continuar';
+    }
+
+    function fillNextEmpty(keyword) {
+      const normalized = normalizedValues().map((item) => item.toLowerCase());
+      if (normalized.includes(keyword.toLowerCase())) {
+        return;
+      }
+      const emptyInput = keywordInputs.find((input) => !input.value.trim());
+      const fallbackInput = keywordInputs[keywordInputs.length - 1];
+      (emptyInput || fallbackInput).value = keyword;
+      syncKeywordsState();
+    }
+
+    keywordInputs.forEach((input) => {
+      input.addEventListener('input', syncKeywordsState);
+      input.addEventListener('blur', syncKeywordsState);
+    });
+
+    document.querySelectorAll('.keyword-chip').forEach((chip) => {
+      chip.addEventListener('click', () => fillNextEmpty(chip.dataset.keyword || ''));
+    });
+
+    syncKeywordsState();
+  </script>
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Motivo confirmado | Lokigi</title>
+  <style>
+:root { --bg:#f2f6fb; --card:#fff; --text:#0f172a; --muted:#64748b; --border:#dbe3ee; --primary:#0f62fe; }
+* { box-sizing:border-box; }
+body { margin:0; font-family:Arial, 'Helvetica Neue', sans-serif; color:var(--text); background:linear-gradient(180deg,#ffffff,#f2f6fb); }
+.wrap { max-width:1100px; margin:0 auto; padding:20px; }
+.hero { background:linear-gradient(135deg,#082f49,#0f62fe); color:#fff; border-radius:20px; padding:24px; }
+.hero-top { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap:wrap; }
+.status-badge { display:inline-flex; padding:7px 12px; border-radius:999px; font-weight:700; font-size:12px; background:#0f766e; color:#fff; }
+.hero p { margin:8px 0 0; color:#dbeafe; max-width:620px; }
+.grid { display:grid; grid-template-columns:0.8fr 1.2fr; gap:16px; margin-top:16px; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:18px; padding:18px; }
+.metric { font-size:32px; font-weight:800; margin:4px 0; }
+.muted { color:var(--muted); }
+.btn { display:inline-flex; align-items:center; justify-content:center; text-decoration:none; padding:10px 14px; border-radius:10px; border:1px solid var(--border); background:#fff; color:var(--text); font-weight:700; cursor:pointer; }
+.btn.primary { background:var(--primary); border-color:var(--primary); color:#fff; }
+.btn.small { padding:8px 10px; font-size:13px; }
+.cta-row, .subscription-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+table { width:100%; border-collapse:collapse; }
+th, td { text-align:left; padding:12px 10px; border-bottom:1px solid var(--border); font-size:14px; }
+th { color:#475569; font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
+.empty-row { color:var(--muted); text-align:center; padding:18px 10px; }
+.notice { margin-top:16px; border-radius:12px; padding:12px 14px; border:1px solid #cbd5e1; background:#fff; }
+.notice.ok { background:#ecfdf5; border-color:#86efac; color:#166534; }
+/* cancel flow */
+.cancel-flow-backdrop { position:fixed; inset:0; background:rgba(15,23,42,.55); display:flex; align-items:center; justify-content:center; padding:18px; z-index:70; animation:fadeIn .18s ease-out; }
+.cancel-flow-card { width:min(760px,100%); background:#fff; border-radius:24px; padding:24px; box-shadow:0 28px 60px rgba(15,23,42,.28); animation:slideUp .24s cubic-bezier(.2,.8,.2,1); }
+.cancel-flow-kicker { display:inline-flex; padding:6px 10px; border-radius:999px; background:#eef5ff; color:#0f62fe; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
+.cancel-flow-card h2 { margin:12px 0 8px; font-size:30px; }
+.cancel-flow-copy { color:#475569; line-height:1.6; margin:0; }
+.pause-offer { margin-top:18px; border:1px solid #bfdbfe; background:linear-gradient(180deg,#f8fbff,#eef5ff); border-radius:18px; padding:18px; }
+.pause-offer-badge { display:inline-flex; padding:5px 9px; border-radius:999px; background:#0f62fe; color:#fff; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
+.pause-offer h3 { margin:12px 0 8px; }
+.pause-offer p { margin:0 0 14px; color:#334155; line-height:1.55; }
+.cancel-flow-actions { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top:18px; }
+.link-btn { border:none; background:transparent; color:#475569; font-weight:700; text-decoration:underline; cursor:pointer; padding:0; }
+.reason-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:18px; }
+.reason-btn { display:flex; flex-direction:column; gap:10px; align-items:flex-start; justify-content:flex-start; min-height:118px; border:1px solid var(--border); border-radius:18px; background:#fff; padding:16px; font:inherit; font-weight:700; color:#0f172a; cursor:pointer; text-align:left; text-decoration:none; }
+.reason-btn.selected { border-color:#0f62fe; background:#eef5ff; box-shadow:0 0 0 3px rgba(15,98,254,.12); }
+.reason-icon { font-size:26px; line-height:1; }
+.data-gift { margin-top:18px; border:1px dashed #94a3b8; border-radius:18px; padding:18px; background:#f8fafc; }
+.data-gift h3 { margin:0 0 8px; }
+.data-gift p { margin:0 0 14px; color:#475569; line-height:1.55; }
+.cancel-confirm-form { margin-top:12px; }
+/* farewell */
+.farewell { max-width:760px; margin:0 auto; padding:42px 20px; }
+.farewell-card { background:#fff; border:1px solid #dbe3ee; border-radius:24px; padding:30px; box-shadow:0 24px 60px rgba(15,23,42,.12); text-align:center; }
+.farewell-kicker { display:inline-flex; padding:7px 12px; border-radius:999px; background:#ecfdf5; color:#166534; font-size:12px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
+.download-note { margin-top:18px; padding:14px 16px; border-radius:16px; background:#eff6ff; border:1px solid #bfdbfe; color:#1e3a8a; }
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+@keyframes slideUp { from { opacity:0; transform:translateY(18px) scale(.98); } to { opacity:1; transform:translateY(0) scale(1); } }
+@media (max-width:900px) { .grid { grid-template-columns:1fr; } .reason-grid { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div style="position:fixed;top:0;left:0;right:0;z-index:999;background:rgba(255,255,255,0.95);backdrop-filter:blur(12px);border-bottom:1px solid #dbe3ee;padding:10px 20px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><span style="color:#0f62fe;font-weight:800;margin-right:8px;font-size:14px;">Cancelación</span><a href="step1_subscription.html" style="padding:8px 18px;border-radius:999px;text-decoration:none;font-size:13px;background:rgba(15,23,42,0.07);color:#475569;">Paso 1: Suscripción</a><a href="step2_cancel_choice.html" style="padding:8px 18px;border-radius:999px;text-decoration:none;font-size:13px;background:rgba(15,23,42,0.07);color:#475569;">Paso 2: ¿Pausar o Cancelar?</a><a href="step3_survey.html" style="padding:8px 18px;border-radius:999px;text-decoration:none;font-size:13px;background:rgba(15,23,42,0.07);color:#475569;">Paso 3: Encuesta de salida</a><a href="step4_survey_confirmed.html" style="padding:8px 18px;border-radius:999px;text-decoration:none;font-size:13px;background:#0f62fe;color:#fff;font-weight:700;">Paso 4: Motivo confirmado</a><a href="step5_pause_success.html" style="padding:8px 18px;border-radius:999px;text-decoration:none;font-size:13px;background:rgba(15,23,42,0.07);color:#475569;">Paso 5: Plan Pausa activo</a><a href="step6_goodbye.html" style="padding:8px 18px;border-radius:999px;text-decoration:none;font-size:13px;background:rgba(15,23,42,0.07);color:#475569;">Paso 6: Despedida</a></div><div style="height:54px;"></div>
+
+<div class="wrap" style="display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 54px);">
+  <div class="cancel-flow-card" role="dialog" aria-modal="true">
+    <div class="cancel-flow-kicker">Encuesta de salida</div>
+    <h2>Cuéntanos por qué te vas</h2>
+    <p class="cancel-flow-copy">Motivo registrado. Ya puedes descargar tu CSV y cerrar la sesión definitiva.</p>
+    <div class="reason-grid"><div class="reason-btn selected"><span class="reason-icon">💲</span><span style="font-size:15px">Precio</span><span style="font-weight:400;font-size:12px;color:#64748b">El costo no encaja con el valor percibido.</span></div><div class="reason-btn"><span class="reason-icon">⚙️</span><span style="font-size:15px">Difícil de usar</span><span style="font-weight:400;font-size:12px;color:#64748b">La configuración o el uso diario fue confuso.</span></div><div class="reason-btn"><span class="reason-icon">🔒</span><span style="font-size:15px">Cerré mi local</span><span style="font-weight:400;font-size:12px;color:#64748b">El negocio pausó su operación temporalmente.</span></div></div>
+    <div class="notice ok" style="margin-top:14px">
+      Motivo registrado: <strong>Precio</strong>. Ya puedes descargar tu CSV y cerrar la sesión definitiva cuando quieras.
+    </div>
+    <section class="data-gift">
+      <h3>Antes de irte, llévate tu historial</h3>
+      <p>Tu archivo con reseñas y respuestas IA está listo para descargar.</p>
+      <div class="cancel-confirm-form">
+        <a class="btn primary" href="step6_goodbye.html">Generar y Descargar historial (.CSV) →</a>
+      </div>
+    </section>
+    <div class="cancel-flow-actions">
+      <a class="btn" href="step3_survey.html">← Volver</a>
+      <a class="btn" href="step6_goodbye.html">Cerrar Sesión definitiva</a>
+    </div>
+  </div>
+</div>
+</body>
+</html>
