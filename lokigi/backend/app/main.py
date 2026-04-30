@@ -2746,20 +2746,21 @@ def api_locations(user_id: UUID, db: Session = Depends(get_db)) -> dict[str, Any
     """List available Google Business Profile locations for onboarding.
 
     Returns:
-    <div class="cancel-flow-card" role="dialog" aria-modal="true" aria-labelledby="cancel-flow-title">
-      <div class="cancel-flow-kicker">Retencion inteligente</div>
-      <h2 id="cancel-flow-title">Necesitas un respiro?</h2>
-      <p class="cancel-flow-copy">Antes de cancelar, te ofrecemos una pausa ligera para conservar el valor que ya construiste en Lokigi y salir sin friccion.</p>
-      <section class="pause-offer">
-        <div class="pause-offer-badge">Recomendada</div>
-        <h3>Pausar mi cuenta</h3>
-        <p>Mantendremos tus datos a salvo y tus reportes activos por solo $5/mes. Vuelve cuando quieras.</p>
-        <button class="btn primary" hx-post="/starter/subscription/cancel-flow/pause?user_id={user_id}" hx-target="#subscription-cancel-shell" hx-swap="innerHTML">Pausar mi cuenta</button>
-      </section>
-      <div class="cancel-flow-actions">
-        <button class="btn" type="button" onclick="document.getElementById('subscription-cancel-shell').innerHTML = '';">Seguir con mi plan</button>
-        <button class="link-btn" hx-get="/starter/subscription/cancel-flow/survey?user_id={user_id}" hx-target="#subscription-cancel-shell" hx-swap="innerHTML">No, quiero ir a la encuesta de salida</button>
-      </div>
+      - status='not-found': User does not exist
+      - status='need-oauth': User exists but not linked to Google. Includes oauth_url.
+      - status='connected': User is linked. Includes location details.
+    """
+    return list_locations_for_user(db, str(user_id))
+
+
+# ── Review Approval API ───────────────────────────────────────────────────────
+
+@app.get("/api/reviews/pending")
+def api_reviews_pending(user_id: UUID, db: Session = Depends(get_db)) -> list[dict[str, Any]]:
+    """List AUTO_REPLY reviews pending human approval for the given user."""
+    reviews = get_pending_approvals(db, str(user_id))
+    profile_settings = db.scalar(select(StarterProfileSettings).where(StarterProfileSettings.user_id == user_id))
+    response_schedule = profile_settings.response_schedule if profile_settings else "instant"
 
     return [
         {

@@ -7,6 +7,7 @@ Create Date: 2025-04-18 08:00:00.000000
 """
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects.postgresql import ENUM as PgEnum
 
 
 # revision identifiers, used by Alembic.
@@ -17,59 +18,29 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Create enum types
-    lifecycle_event_type_enum = sa.Enum(
-        'signup',
-        'first_connection',
-        'first_reply_generated',
-        'first_reply_approved',
-        'onboarding_complete',
-        'payment_method_added',
-        'subscription_activated',
-        'subscription_downgrade',
-        'subscription_paused',
-        'churn_initiated',
-        name='lifecycle_event_type',
-        create_type=True,
-    )
-    lifecycle_event_type_enum.create(op.get_bind())
-
-    churn_reason_enum = sa.Enum(
-        'price_too_high',
-        'lack_of_features',
-        'ease_of_use_difficulty',
-        'switched_competitor',
-        'not_using_enough',
-        'poor_support',
-        'technical_issues',
-        'personal_reasons',
-        'other',
-        name='churn_reason',
-        create_type=True,
-    )
-    churn_reason_enum.create(op.get_bind())
+    # Create enum types via raw SQL to avoid duplicate-type issues
+    op.execute(sa.text(
+        "CREATE TYPE lifecycle_event_type AS ENUM ("
+        "'signup', 'first_connection', 'first_reply_generated', 'first_reply_approved',"
+        "'onboarding_complete', 'payment_method_added', 'subscription_activated',"
+        "'subscription_downgrade', 'subscription_paused', 'churn_initiated')"
+    ))
+    op.execute(sa.text(
+        "CREATE TYPE churn_reason AS ENUM ("
+        "'price_too_high', 'lack_of_features', 'ease_of_use_difficulty',"
+        "'switched_competitor', 'not_using_enough', 'poor_support',"
+        "'technical_issues', 'personal_reasons', 'other')"
+    ))
 
     # 1. lifecycle_events - Track user journey milestones
     op.create_table(
         'lifecycle_events',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('user_id', sa.UUID(), nullable=False),
-        sa.Column('event_type', sa.Enum(
-            'signup',
-            'first_connection',
-            'first_reply_generated',
-            'first_reply_approved',
-            'onboarding_complete',
-            'payment_method_added',
-            'subscription_activated',
-            'subscription_downgrade',
-            'subscription_paused',
-            'churn_initiated',
-            name='lifecycle_event_type',
-        ), nullable=False),
+        sa.Column('event_type', PgEnum(name='lifecycle_event_type', create_type=False), nullable=False),
         sa.Column('metadata', sa.JSON(), nullable=True),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.ForeignKeyConstraint(['user_id'], ['user.id'], ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id'),
         sa.Index('ix_lifecycle_user_type', 'user_id', 'event_type'),
         sa.Index('ix_lifecycle_created_at', 'created_at'),
@@ -81,18 +52,7 @@ def upgrade() -> None:
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('user_id', sa.UUID(), nullable=False),
         sa.Column('cancellation_date', sa.Date(), nullable=False),
-        sa.Column('primary_reason', sa.Enum(
-            'price_too_high',
-            'lack_of_features',
-            'ease_of_use_difficulty',
-            'switched_competitor',
-            'not_using_enough',
-            'poor_support',
-            'technical_issues',
-            'personal_reasons',
-            'other',
-            name='churn_reason',
-        ), nullable=False),
+        sa.Column('primary_reason', PgEnum(name='churn_reason', create_type=False), nullable=False),
         sa.Column('secondary_reasons', sa.JSON(), nullable=True),
         sa.Column('satisfaction_score', sa.Integer(), nullable=False),
         sa.Column('free_text_feedback', sa.String(1000), nullable=True),
@@ -100,7 +60,7 @@ def upgrade() -> None:
         sa.Column('would_return_if_price_reduction', sa.Boolean(), default=False),
         sa.Column('reduction_amount_percent', sa.Integer(), nullable=True),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.ForeignKeyConstraint(['user_id'], ['user.id'], ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id'),
         sa.Index('ix_churn_survey_reason', 'primary_reason'),
         sa.Index('ix_churn_survey_date', 'cancellation_date'),
@@ -125,7 +85,7 @@ def upgrade() -> None:
         sa.Column('days_subscribed', sa.Integer(), default=0),
         sa.Column('subscription_plan', sa.String(50), default='starter'),
         sa.Column('captured_at', sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.ForeignKeyConstraint(['user_id'], ['user.id'], ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id'),
         sa.UniqueConstraint('user_id', name='uq_telemetry_one_per_user'),
         sa.Index('ix_telemetry_approval_rate', 'approval_rate'),
@@ -148,7 +108,7 @@ def upgrade() -> None:
         sa.Column('alert_message', sa.Text(), nullable=False),
         sa.Column('details', sa.JSON(), nullable=True),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.ForeignKeyConstraint(['acknowledged_by_user_id'], ['user.id'], ondelete='SET NULL'),
+        sa.ForeignKeyConstraint(['acknowledged_by_user_id'], ['users.id'], ondelete='SET NULL'),
         sa.PrimaryKeyConstraint('id'),
         sa.Index('ix_alert_severity', 'severity'),
         sa.Index('ix_alert_triggered_at', 'triggered_at'),
@@ -162,14 +122,5 @@ def downgrade() -> None:
     op.drop_table('churn_telemetry_snapshot')
     op.drop_table('churn_surveys')
     op.drop_table('lifecycle_events')
-    
-    # Drop enums
-    sa.Enum('price_too_high', 'lack_of_features', 'ease_of_use_difficulty',
-            'switched_competitor', 'not_using_enough', 'poor_support',
-            'technical_issues', 'personal_reasons', 'other',
-            name='churn_reason').drop(op.get_bind())
-    
-    sa.Enum('signup', 'first_connection', 'first_reply_generated',
-            'first_reply_approved', 'onboarding_complete', 'payment_method_added',
-            'subscription_activated', 'subscription_downgrade', 'subscription_paused',
-            'churn_initiated', name='lifecycle_event_type').drop(op.get_bind())
+    op.execute(sa.text('DROP TYPE IF EXISTS churn_reason'))
+    op.execute(sa.text('DROP TYPE IF EXISTS lifecycle_event_type'))
