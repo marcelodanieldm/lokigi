@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Centro de Control de Miembros · Lokigi Enterprise</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --c-primary: #7c3aed;
+      --c-secondary: #4f46e5;
+    }
+    body { background: #0c0a09; color: #f1f5f9; font-family: "Inter", sans-serif; }
+
+    /* ── Badge role colors ── */
+    .badge-superadmin      { background: rgba(245,158,11,.15); color:#fbbf24; border:1px solid rgba(245,158,11,.3); }
+    .badge-network_manager { background: rgba(124,58,237,.15); color:#a78bfa; border:1px solid rgba(124,58,237,.3); }
+    .badge-store_manager   { background: rgba(59,130,246,.15); color:#60a5fa; border:1px solid rgba(59,130,246,.3); }
+    .badge-store_staff     { background: rgba(120,113,108,.15);color:#a8a29e; border:1px solid rgba(120,113,108,.3); }
+
+    .card { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.10); border-radius:16px; }
+    .row-hover:hover { background:rgba(255,255,255,.05); }
+
+    /* ── Sidebar nav ── */
+    .nav-item { display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;
+                cursor:pointer;font-size:14px;font-weight:500;color:#78716c;transition:.15s; }
+    .nav-item:hover { background:rgba(255,255,255,.06);color:#f1f5f9; }
+    .nav-item.active { background:rgba(124,58,237,.18);color:#a78bfa;
+                       border:1px solid rgba(124,58,237,.30); }
+
+    /* ── Invite button ── */
+    .btn-primary { background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;
+                   font-weight:700;font-size:13px;border-radius:10px;padding:9px 18px;
+                   cursor:pointer;border:none;transition:.15s; }
+    .btn-primary:hover { opacity:.88; }
+    .btn-ghost  { background:transparent;color:#a78bfa;border:1.5px solid rgba(124,58,237,.45);
+                  font-weight:600;font-size:13px;border-radius:10px;padding:8px 16px;
+                  cursor:pointer;transition:.15s; }
+    .btn-ghost:hover { background:rgba(124,58,237,.12); }
+    .btn-danger { background:rgba(239,68,68,.12);color:#f87171;
+                  border:1px solid rgba(239,68,68,.25);font-weight:600;font-size:12px;
+                  border-radius:8px;padding:5px 12px;cursor:pointer;transition:.15s; }
+    .btn-danger:hover { background:rgba(239,68,68,.22); }
+
+    @keyframes fadeUp { from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)} }
+    .fade-up { animation: fadeUp .3s ease both; }
+
+    /* ── Modal ── */
+    .modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.7);
+                     backdrop-filter:blur(4px);z-index:50;
+                     display:flex;align-items:center;justify-content:center; }
+    .modal-box { background:#1c1917;border:1px solid rgba(255,255,255,.12);
+                 border-radius:20px;padding:28px;width:520px;max-width:95vw; }
+    .input-field { width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
+                   color:#f1f5f9;font-size:14px;border-radius:10px;padding:10px 14px;
+                   outline:none;transition:.15s; }
+    .input-field:focus { border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.2); }
+    .select-field { width:100%;background:#1c1917;border:1px solid rgba(255,255,255,.12);
+                    color:#f1f5f9;font-size:14px;border-radius:10px;padding:10px 14px;
+                    outline:none;appearance:none;cursor:pointer; }
+
+    /* ── Location chips ── */
+    .loc-chip { display:inline-flex;align-items:center;gap:6px;padding:4px 10px;
+                border-radius:999px;background:rgba(124,58,237,.12);
+                border:1px solid rgba(124,58,237,.25);font-size:12px;color:#a78bfa; }
+    .loc-chip .remove { cursor:pointer;opacity:.6; }
+    .loc-chip .remove:hover { opacity:1; }
+  </style>
+</head>
+<body class="min-h-screen flex">
+
+  <!-- ── SIDEBAR ──────────────────────────────────────────────────────── -->
+  <aside class="w-60 shrink-0 border-r border-white/10 flex flex-col py-5 px-3 gap-1 sticky top-0 h-screen">
+    <!-- Logo -->
+    <div class="flex items-center gap-2.5 px-3 mb-5">
+      <div class="w-8 h-8 rounded-lg flex items-center justify-center font-black text-white text-sm"
+           style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">L</div>
+      <span class="font-bold text-white text-[15px]">Lokigi Enterprise</span>
+    </div>
+
+    <div class="nav-item active">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      Centro de Miembros
+    </div>
+    <div class="nav-item">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      Vista de Red
+    </div>
+    <div class="nav-item">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+      Reportes
+    </div>
+    <div class="nav-item">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+      Crisis
+    </div>
+    <div class="nav-item">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      White Label
+    </div>
+
+    <!-- Role legend -->
+    <div class="mt-auto px-2 pt-4 border-t border-white/10">
+      <p class="text-[11px] text-stone-500 mb-2 font-semibold uppercase tracking-wider">Leyenda de Roles</p>
+      <div class="flex flex-col gap-1.5">
+        <div class="flex items-center gap-2"><span class="badge-superadmin text-[10px] px-2 py-0.5 rounded-full font-semibold">SuperAdmin</span><span class="text-[11px] text-stone-500">Agencia completa</span></div>
+        <div class="flex items-center gap-2"><span class="badge-network_manager text-[10px] px-2 py-0.5 rounded-full font-semibold">Network Mgr</span><span class="text-[11px] text-stone-500">Todos los locales</span></div>
+        <div class="flex items-center gap-2"><span class="badge-store_manager text-[10px] px-2 py-0.5 rounded-full font-semibold">Store Mgr</span><span class="text-[11px] text-stone-500">Locales asignados</span></div>
+        <div class="flex items-center gap-2"><span class="badge-store_staff text-[10px] px-2 py-0.5 rounded-full font-semibold">Store Staff</span><span class="text-[11px] text-stone-500">1 local específico</span></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── MAIN CONTENT ──────────────────────────────────────────────────── -->
+  <main class="flex-1 overflow-auto p-7 max-w-[1200px]">
+
+    <!-- Header -->
+    <div class="flex items-start justify-between mb-7 fade-up">
+      <div>
+        <h1 class="text-2xl font-black text-white">Centro de Control de Miembros</h1>
+        <p class="text-stone-400 text-sm mt-1">Gestión de accesos, roles y locales asignados · Organización: <span class="text-violet-400 font-semibold">FranquiciaMax S.A.</span></p>
+      </div>
+      <button class="btn-primary flex items-center gap-2" onclick="openInviteModal()">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+        Invitar Miembro
+      </button>
+    </div>
+
+    <!-- KPI strip -->
+    <div class="grid grid-cols-4 gap-4 mb-7 fade-up" style="animation-delay:.05s">
+      <div class="card p-4">
+        <p class="text-stone-400 text-xs font-semibold uppercase tracking-wider mb-1">Total Miembros</p>
+        <p class="text-3xl font-black text-white">14</p>
+        <p class="text-xs text-emerald-400 mt-1">+2 este mes</p>
+      </div>
+      <div class="card p-4">
+        <p class="text-stone-400 text-xs font-semibold uppercase tracking-wider mb-1">SuperAdmins</p>
+        <p class="text-3xl font-black text-amber-400">2</p>
+        <p class="text-xs text-stone-500 mt-1">Acceso completo</p>
+      </div>
+      <div class="card p-4">
+        <p class="text-stone-400 text-xs font-semibold uppercase tracking-wider mb-1">Managers</p>
+        <p class="text-3xl font-black text-violet-400">5</p>
+        <p class="text-xs text-stone-500 mt-1">Network + Store</p>
+      </div>
+      <div class="card p-4">
+        <p class="text-stone-400 text-xs font-semibold uppercase tracking-wider mb-1">Invitaciones</p>
+        <p class="text-3xl font-black text-blue-400">3</p>
+        <p class="text-xs text-amber-400 mt-1">Pendientes de aceptar</p>
+      </div>
+    </div>
+
+    <!-- Members table -->
+    <div class="card fade-up" style="animation-delay:.1s">
+      <!-- Table header -->
+      <div class="flex items-center justify-between px-5 py-4 border-b border-white/10">
+        <h2 class="font-bold text-white text-[15px]">Miembros Activos</h2>
+        <!-- Search + filter -->
+        <div class="flex items-center gap-2">
+          <div class="relative">
+            <input type="text" placeholder="Buscar miembro…"
+                   class="bg-white/6 border border-white/10 text-sm text-stone-200 placeholder-stone-500
+                          rounded-lg px-3 py-1.5 pl-8 outline-none focus:border-violet-500 w-52" />
+            <svg class="absolute left-2.5 top-2 w-3.5 h-3.5 text-stone-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          </div>
+          <select class="bg-[#1c1917] border border-white/10 text-stone-300 text-sm rounded-lg px-3 py-1.5 outline-none">
+            <option value="">Todos los roles</option>
+            <option>SuperAdmin</option>
+            <option>Network Manager</option>
+            <option>Store Manager</option>
+            <option>Store Staff</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Column headers -->
+      <div class="grid grid-cols-[minmax(200px,1fr)_140px_180px_120px_100px] gap-4 px-5 py-2.5
+                  text-[11px] text-stone-500 font-semibold uppercase tracking-wider border-b border-white/10">
+        <span>Miembro</span>
+        <span>Rol</span>
+        <span>Locales Asignados</span>
+        <span>Último Acceso</span>
+        <span>Acciones</span>
+      </div>
+
+      <!-- Rows -->
+      <div id="members-list">
+
+        <!-- Row 1: SuperAdmin -->
+        <div class="grid grid-cols-[minmax(200px,1fr)_140px_180px_120px_100px] gap-4 px-5 py-3.5
+                    items-center border-b border-white/[.06] row-hover cursor-default transition"
+             data-member-id="usr_001">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm shrink-0"
+                 style="background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#1c1917">CR</div>
+            <div>
+              <p class="text-[14px] font-semibold text-white">Carlos Ramírez</p>
+              <p class="text-[12px] text-stone-500">carlos@agencia.com</p>
+            </div>
+          </div>
+          <span class="badge-superadmin text-[11px] px-2.5 py-1 rounded-full font-semibold w-fit">SuperAdmin</span>
+          <span class="text-stone-400 text-[13px]">
+            <span class="text-violet-400 font-semibold">Todos</span> (50 locales)
+          </span>
+          <span class="text-stone-400 text-[12px]">Hace 5 min</span>
+          <div class="flex gap-1.5">
+            <button class="btn-ghost text-[11px] py-1 px-2.5" onclick="openLocationsModal('usr_001','Carlos Ramírez','superadmin')">Locales</button>
+          </div>
+        </div>
+
+        <!-- Row 2: Network Manager -->
+        <div class="grid grid-cols-[minmax(200px,1fr)_140px_180px_120px_100px] gap-4 px-5 py-3.5
+                    items-center border-b border-white/[.06] row-hover cursor-default transition">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm shrink-0"
+                 style="background:rgba(124,58,237,.25);color:#a78bfa">AL</div>
+            <div>
+              <p class="text-[14px] font-semibold text-white">Ana López</p>
+              <p class="text-[12px] text-stone-500">ana@franquiciamax.com</p>
+            </div>
+          </div>
+          <span class="badge-network_manager text-[11px] px-2.5 py-1 rounded-full font-semibold w-fit">Network Manager</span>
+          <span class="text-stone-400 text-[13px]">
+            <span class="text-violet-400 font-semibold">Todos</span> (50 locales)
+          </span>
+          <span class="text-stone-400 text-[12px]">Hace 2h</span>
+          <div class="flex gap-1.5">
+            <button class="btn-ghost text-[11px] py-1 px-2.5" onclick="openLocationsModal('usr_002','Ana López','network_manager')">Locales</button>
+            <button class="btn-danger" onclick="confirmRemove('Ana López')">✕</button>
+          </div>
+        </div>
+
+        <!-- Row 3: Store Manager -->
+        <div class="grid grid-cols-[minmax(200px,1fr)_140px_180px_120px_100px] gap-4 px-5 py-3.5
+                    items-center border-b border-white/[.06] row-hover cursor-default transition">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm shrink-0"
+                 style="background:rgba(59,130,246,.25);color:#60a5fa">MG</div>
+            <div>
+              <p class="text-[14px] font-semibold text-white">Miguel García</p>
+              <p class="text-[12px] text-stone-500">miguel@zona-norte.com</p>
+            </div>
+          </div>
+          <span class="badge-store_manager text-[11px] px-2.5 py-1 rounded-full font-semibold w-fit">Store Manager</span>
+          <span class="text-stone-400 text-[13px]">8 de 50 locales</span>
+          <span class="text-stone-400 text-[12px]">Ayer</span>
+          <div class="flex gap-1.5">
+            <button class="btn-ghost text-[11px] py-1 px-2.5" onclick="openLocationsModal('usr_003','Miguel García','store_manager')">Locales</button>
+            <button class="btn-danger" onclick="confirmRemove('Miguel García')">✕</button>
+          </div>
+        </div>
+
+        <!-- Row 4: Store Manager -->
+        <div class="grid grid-cols-[minmax(200px,1fr)_140px_180px_120px_100px] gap-4 px-5 py-3.5
+                    items-center border-b border-white/[.06] row-hover cursor-default transition">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm shrink-0"
+                 style="background:rgba(59,130,246,.25);color:#60a5fa">SF</div>
+            <div>
+              <p class="text-[14px] font-semibold text-white">Sofía Fernández</p>
+              <p class="text-[12px] text-stone-500">sofia@zona-sur.com</p>
+            </div>
+          </div>
+          <span class="badge-store_manager text-[11px] px-2.5 py-1 rounded-full font-semibold w-fit">Store Manager</span>
+          <span class="text-stone-400 text-[13px]">12 de 50 locales</span>
+          <span class="text-stone-400 text-[12px]">Hace 3h</span>
+          <div class="flex gap-1.5">
+            <button class="btn-ghost text-[11px] py-1 px-2.5" onclick="openLocationsModal('usr_004','Sofía Fernández','store_manager')">Locales</button>
+            <button class="btn-danger" onclick="confirmRemove('Sofía Fernández')">✕</button>
+          </div>
+        </div>
+
+        <!-- Row 5: Store Staff -->
+        <div class="grid grid-cols-[minmax(200px,1fr)_140px_180px_120px_100px] gap-4 px-5 py-3.5
+                    items-center border-b border-white/[.06] row-hover cursor-default transition">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm shrink-0"
+                 style="background:rgba(120,113,108,.25);color:#a8a29e">JP</div>
+            <div>
+              <p class="text-[14px] font-semibold text-white">Juan Pérez</p>
+              <p class="text-[12px] text-stone-500">juan@local-callao.com</p>
+            </div>
+          </div>
+          <span class="badge-store_staff text-[11px] px-2.5 py-1 rounded-full font-semibold w-fit">Store Staff</span>
+          <div class="flex flex-wrap gap-1">
+            <span class="loc-chip">Local Callao</span>
+          </div>
+          <span class="text-stone-400 text-[12px]">Hace 1h</span>
+          <div class="flex gap-1.5">
+            <button class="btn-ghost text-[11px] py-1 px-2.5" onclick="openLocationsModal('usr_005','Juan Pérez','store_staff')">Locales</button>
+            <button class="btn-danger" onclick="confirmRemove('Juan Pérez')">✕</button>
+          </div>
+        </div>
+
+        <!-- Row 6: Store Staff -->
+        <div class="grid grid-cols-[minmax(200px,1fr)_140px_180px_120px_100px] gap-4 px-5 py-3.5
+                    items-center border-b border-white/[.06] row-hover cursor-default transition">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm shrink-0"
+                 style="background:rgba(120,113,108,.25);color:#a8a29e">LT</div>
+            <div>
+              <p class="text-[14px] font-semibold text-white">Lucía Torres</p>
+              <p class="text-[12px] text-stone-500">lucia@local-miraflores.com</p>
+            </div>
+          </div>
+          <span class="badge-store_staff text-[11px] px-2.5 py-1 rounded-full font-semibold w-fit">Store Staff</span>
+          <div class="flex flex-wrap gap-1">
+            <span class="loc-chip">Local Miraflores</span>
+          </div>
+          <span class="text-stone-400 text-[12px]">Hace 20 min</span>
+          <div class="flex gap-1.5">
+            <button class="btn-ghost text-[11px] py-1 px-2.5" onclick="openLocationsModal('usr_006','Lucía Torres','store_staff')">Locales</button>
+            <button class="btn-danger" onclick="confirmRemove('Lucía Torres')">✕</button>
+          </div>
+        </div>
+
+        <!-- Row: Pending invite -->
+        <div class="grid grid-cols-[minmax(200px,1fr)_140px_180px_120px_100px] gap-4 px-5 py-3.5
+                    items-center row-hover cursor-default transition opacity-60">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full border-2 border-dashed border-stone-600
+                        flex items-center justify-center text-stone-500 text-lg shrink-0">?</div>
+            <div>
+              <p class="text-[14px] font-semibold text-stone-300">gerente.este@sucursal.com</p>
+              <p class="text-[12px] text-amber-500">⏳ Invitación pendiente</p>
+            </div>
+          </div>
+          <span class="badge-store_manager text-[11px] px-2.5 py-1 rounded-full font-semibold w-fit">Store Manager</span>
+          <span class="text-stone-500 text-[12px]">—</span>
+          <span class="text-stone-500 text-[12px]">Nunca</span>
+          <div class="flex gap-1.5">
+            <button class="btn-ghost text-[11px] py-1 px-2.5 opacity-60 cursor-not-allowed">Reenviar</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Activity log -->
+    <div class="card mt-6 fade-up" style="animation-delay:.15s">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-white/10">
+        <div>
+          <h2 class="font-bold text-white text-[15px]">Log de Actividad</h2>
+          <p class="text-stone-500 text-[12px] mt-0.5">Auditoría de acciones críticas en la organización</p>
+        </div>
+        <button class="btn-ghost text-[12px] flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          Exportar CSV
+        </button>
+      </div>
+
+      <div class="divide-y divide-white/[.06]">
+
+        <!-- Log entries -->
+        <div class="flex items-start gap-4 px-5 py-3.5">
+          <div class="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-bold"
+               style="background:rgba(124,58,237,.2);color:#a78bfa">AL</div>
+          <div class="flex-1 min-w-0">
+            <p class="text-[13px] text-stone-200">
+              <span class="font-semibold text-white">Ana López</span>
+              aprobó una respuesta para la reseña
+              <span class="text-violet-400 font-medium">#REV-4892</span>
+              en <span class="text-blue-400">Local Callao</span>
+            </p>
+            <p class="text-[11px] text-stone-500 mt-0.5">Hace 12 min · Network Manager · 192.168.1.45</p>
+          </div>
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 shrink-0">review.reply.approved</span>
+        </div>
+
+        <div class="flex items-start gap-4 px-5 py-3.5">
+          <div class="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-bold"
+               style="background:rgba(245,158,11,.2);color:#fbbf24">CR</div>
+          <div class="flex-1 min-w-0">
+            <p class="text-[13px] text-stone-200">
+              <span class="font-semibold text-white">Carlos Ramírez</span>
+              invitó a
+              <span class="font-semibold text-white">gerente.este@sucursal.com</span>
+              con rol <span class="text-blue-400">Store Manager</span>
+            </p>
+            <p class="text-[11px] text-stone-500 mt-0.5">Hace 34 min · SuperAdmin · 10.0.0.12</p>
+          </div>
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/20 shrink-0">user.invited</span>
+        </div>
+
+        <div class="flex items-start gap-4 px-5 py-3.5">
+          <div class="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-bold"
+               style="background:rgba(239,68,68,.2);color:#f87171">SYS</div>
+          <div class="flex-1 min-w-0">
+            <p class="text-[13px] text-stone-200">
+              <span class="font-semibold text-rose-400">Crisis detectada</span>
+              en <span class="text-blue-400">Local San Isidro</span>
+              — keyword: <span class="text-rose-300 font-mono text-[12px]">"intoxicación"</span>
+              en reseña <span class="text-violet-400">#REV-4891</span>
+            </p>
+            <p class="text-[11px] text-stone-500 mt-0.5">Hace 1h 15 min · Sistema · —</p>
+          </div>
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/20 shrink-0">crisis.alert.raised</span>
+        </div>
+
+        <div class="flex items-start gap-4 px-5 py-3.5">
+          <div class="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-bold"
+               style="background:rgba(59,130,246,.2);color:#60a5fa">MG</div>
+          <div class="flex-1 min-w-0">
+            <p class="text-[13px] text-stone-200">
+              <span class="font-semibold text-white">Miguel García</span>
+              exportó el reporte consolidado de
+              <span class="font-medium text-stone-300">Zona Norte — Abril 2026</span>
+            </p>
+            <p class="text-[11px] text-stone-500 mt-0.5">Hace 2h · Store Manager · 172.16.0.8</p>
+          </div>
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-400 border border-violet-500/20 shrink-0">report.exported</span>
+        </div>
+
+        <div class="flex items-start gap-4 px-5 py-3.5">
+          <div class="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-bold"
+               style="background:rgba(245,158,11,.2);color:#fbbf24">CR</div>
+          <div class="flex-1 min-w-0">
+            <p class="text-[13px] text-stone-200">
+              <span class="font-semibold text-white">Carlos Ramírez</span>
+              actualizó los colores de marca de la organización
+              <span class="text-stone-400">(primary: #7c3aed → #6d28d9)</span>
+            </p>
+            <p class="text-[11px] text-stone-500 mt-0.5">Ayer 18:42 · SuperAdmin · 10.0.0.12</p>
+          </div>
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20 shrink-0">org.white_label.updated</span>
+        </div>
+
+      </div>
+
+      <!-- Pagination -->
+      <div class="flex items-center justify-between px-5 py-3.5 border-t border-white/10">
+        <p class="text-[12px] text-stone-500">Mostrando 5 de 148 eventos</p>
+        <div class="flex gap-2">
+          <button class="btn-ghost text-[12px] py-1.5 px-3 opacity-40 cursor-not-allowed">← Anterior</button>
+          <button class="btn-ghost text-[12px] py-1.5 px-3">Siguiente →</button>
+        </div>
+      </div>
+    </div>
+
+  </main><!-- /main -->
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       MODAL: INVITE MEMBER
+  ══════════════════════════════════════════════════════════════════════ -->
+  <div id="inviteModal" class="modal-overlay hidden" onclick="closeOnBackdrop(event,'inviteModal')">
+    <div class="modal-box fade-up">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-lg font-black text-white">Invitar Nuevo Miembro</h3>
+        <button class="text-stone-500 hover:text-white transition" onclick="closeModal('inviteModal')">✕</button>
+      </div>
+
+      <div class="flex flex-col gap-4">
+        <div>
+          <label class="text-[12px] text-stone-400 font-semibold uppercase tracking-wider mb-1.5 block">Email</label>
+          <input type="email" placeholder="gerente@empresa.com" class="input-field" />
+        </div>
+
+        <div>
+          <label class="text-[12px] text-stone-400 font-semibold uppercase tracking-wider mb-1.5 block">Rol</label>
+          <select class="select-field" id="inviteRoleSelect" onchange="toggleLocationPicker()">
+            <option value="">— Seleccionar rol —</option>
+            <option value="network_manager">Network Manager (todos los locales)</option>
+            <option value="store_manager">Store Manager (locales asignados)</option>
+            <option value="store_staff">Store Staff (1 local)</option>
+          </select>
+          <!-- Role description hint -->
+          <div id="roleHint" class="mt-2 text-[12px] text-stone-500 hidden"></div>
+        </div>
+
+        <!-- Location picker — only visible for manager/staff -->
+        <div id="locationPickerBlock" class="hidden">
+          <label class="text-[12px] text-stone-400 font-semibold uppercase tracking-wider mb-1.5 block">Asignar Locales</label>
+          <select class="select-field mb-2" id="locationPickerSelect">
+            <option value="">— Seleccionar local —</option>
+            <option>Local Callao</option>
+            <option>Local Miraflores</option>
+            <option>Local San Isidro</option>
+            <option>Local Barranco</option>
+            <option>Local Surco</option>
+          </select>
+          <button type="button" class="btn-ghost text-[12px]" onclick="addLocationChip()">+ Agregar</button>
+          <div id="selectedLocations" class="flex flex-wrap gap-1.5 mt-2 min-h-[28px]"></div>
+        </div>
+
+        <div>
+          <label class="text-[12px] text-stone-400 font-semibold uppercase tracking-wider mb-1.5 block">Mensaje personalizado <span class="text-stone-600">(opcional)</span></label>
+          <textarea placeholder="Hola, te invito a gestionar las reseñas de…" rows="2"
+                    class="input-field resize-none"></textarea>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-2">
+          <button class="btn-ghost" onclick="closeModal('inviteModal')">Cancelar</button>
+          <button class="btn-primary flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            Enviar Invitación
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       MODAL: LOCATION ASSIGNMENT
+  ══════════════════════════════════════════════════════════════════════ -->
+  <div id="locationsModal" class="modal-overlay hidden" onclick="closeOnBackdrop(event,'locationsModal')">
+    <div class="modal-box fade-up" style="width:580px">
+      <div class="flex items-center justify-between mb-5">
+        <div>
+          <h3 class="text-lg font-black text-white" id="locationsModalTitle">Locales Asignados</h3>
+          <p class="text-stone-500 text-[12px]" id="locationsModalSubtitle"></p>
+        </div>
+        <button class="text-stone-500 hover:text-white transition" onclick="closeModal('locationsModal')">✕</button>
+      </div>
+
+      <!-- All-locations notice for high-privilege roles -->
+      <div id="allLocationsNotice" class="hidden mb-4 p-3 rounded-xl
+           bg-violet-500/10 border border-violet-500/20 text-[13px] text-violet-300">
+        <span class="font-bold">Acceso completo.</span>
+        Este rol tiene acceso a todos los locales de la organización por defecto.
+        No se pueden restringir locales individuales.
+      </div>
+
+      <!-- Location grid (shown for manager/staff) -->
+      <div id="locationGrid" class="grid grid-cols-2 gap-2 max-h-72 overflow-y-auto pr-1 mb-4">
+        <!-- populated by JS -->
+      </div>
+
+      <div class="flex justify-end gap-3 pt-2 border-t border-white/10">
+        <button class="btn-ghost" onclick="closeModal('locationsModal')">Cancelar</button>
+        <button id="saveLocationsBtn" class="btn-primary">Guardar Cambios</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       SCRIPTS
+  ══════════════════════════════════════════════════════════════════════ -->
+  <script>
+    const ALL_LOCATIONS = [
+      "Local Callao","Local Miraflores","Local San Isidro","Local Barranco",
+      "Local Surco","Local Jesús María","Local Lince","Local Pueblo Libre",
+      "Local Ate","Local La Molina","Local SJL","Local Comas",
+    ];
+
+    const ROLE_HINTS = {
+      network_manager: "✦ Acceso a todos los locales de la organización. Puede publicar en masa, ver reportes consolidados y gestionar crisis.",
+      store_manager:   "✦ Accede solo a los locales que le asignes. Puede ver el radar competitivo y aprobar respuestas.",
+      store_staff:     "✦ Solo puede responder reseñas del local asignado. Sin acceso a métricas globales ni reportes.",
+    };
+
+    // ── Invite modal ──────────────────────────────────────────────────────
+    function openInviteModal() {
+      document.getElementById("inviteModal").classList.remove("hidden");
+    }
+    function toggleLocationPicker() {
+      const role = document.getElementById("inviteRoleSelect").value;
+      const hint = document.getElementById("roleHint");
+      const block = document.getElementById("locationPickerBlock");
+
+      if (role && ROLE_HINTS[role]) {
+        hint.textContent = ROLE_HINTS[role];
+        hint.classList.remove("hidden");
+      } else {
+        hint.classList.add("hidden");
+      }
+
+      if (role === "store_manager" || role === "store_staff") {
+        block.classList.remove("hidden");
+      } else {
+        block.classList.add("hidden");
+      }
+    }
+
+    const selectedLocSet = new Set();
+    function addLocationChip() {
+      const sel = document.getElementById("locationPickerSelect");
+      const val = sel.value;
+      if (!val || selectedLocSet.has(val)) return;
+      selectedLocSet.add(val);
+      const container = document.getElementById("selectedLocations");
+      const chip = document.createElement("span");
+      chip.className = "loc-chip";
+      chip.innerHTML = `${val} <span class="remove" onclick="removeChip(this,'${val}')">×</span>`;
+      container.appendChild(chip);
+    }
+    function removeChip(el, val) {
+      selectedLocSet.delete(val);
+      el.parentElement.remove();
+    }
+
+    // ── Locations modal ───────────────────────────────────────────────────
+    function openLocationsModal(userId, name, role) {
+      document.getElementById("locationsModalTitle").textContent = name;
+      document.getElementById("locationsModalSubtitle").textContent =
+        `Rol: ${roleBadgeLabel(role)} · ID: ${userId}`;
+
+      const isHighPriv = role === "superadmin" || role === "network_manager";
+      document.getElementById("allLocationsNotice").classList.toggle("hidden", !isHighPriv);
+      document.getElementById("locationGrid").classList.toggle("hidden", isHighPriv);
+      document.getElementById("saveLocationsBtn").disabled = isHighPriv;
+
+      if (!isHighPriv) {
+        const grid = document.getElementById("locationGrid");
+        grid.innerHTML = ALL_LOCATIONS.map(loc => `
+          <label class="flex items-center gap-2.5 p-2.5 rounded-lg cursor-pointer
+                        bg-white/[.04] border border-white/[.08] hover:border-violet-500/40 transition">
+            <input type="checkbox" class="rounded accent-violet-500" />
+            <span class="text-[13px] text-stone-200">${loc}</span>
+          </label>
+        `).join("");
+      }
+
+      document.getElementById("locationsModal").classList.remove("hidden");
+    }
+
+    function roleBadgeLabel(role) {
+      return { superadmin:"SuperAdmin", network_manager:"Network Manager",
+               store_manager:"Store Manager", store_staff:"Store Staff" }[role] || role;
+    }
+
+    // ── Generic modal helpers ─────────────────────────────────────────────
+    function closeModal(id) { document.getElementById(id).classList.add("hidden"); }
+    function closeOnBackdrop(e, id) { if (e.target === document.getElementById(id)) closeModal(id); }
+
+    function confirmRemove(name) {
+      if (confirm(`¿Eliminar a ${name} de la organización? Esta acción no se puede deshacer.`)) {
+        alert(`${name} ha sido eliminado. (Demo)`);
+      }
+    }
+  </script>
+</body>
+</html>
