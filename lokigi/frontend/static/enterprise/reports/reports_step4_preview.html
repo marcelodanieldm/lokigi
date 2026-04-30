@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Paso 4 — Vista Previa PDF | Reportes Ejecutivos · Lokigi Enterprise</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Arial, "Helvetica Neue", sans-serif; }
+    .no-underline { text-decoration: none; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp .35s ease both; }
+    @keyframes progress {
+      from { width: 0; }
+    }
+    .bar-anim { animation: progress 1.4s cubic-bezier(.4,0,.2,1) both; }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .spin { animation: spin 1s linear infinite; }
+    @keyframes pulse-glow {
+      0%,100% { opacity: 1; }
+      50% { opacity: .45; }
+    }
+    .pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+    input, select, textarea {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      color: #f1f5f9;
+      padding: 10px 14px;
+      font-size: 14px;
+      width: 100%;
+      outline: none;
+    }
+    select option { background: #1c1917; }
+    /* PDF preview simulation */
+    .pdf-page {
+      background: #fff;
+      color: #111;
+      border-radius: 12px;
+      padding: 32px 36px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.6);
+      max-width: 520px;
+      margin: 0 auto;
+    }
+    .pdf-page h1 { font-size: 20px; font-weight: 900; color: #111; margin: 0 0 4px; }
+    .pdf-page h2 { font-size: 13px; font-weight: 700; color: #444; margin: 16px 0 6px; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; }
+    .pdf-page p, .pdf-page li { font-size: 11px; color: #374151; line-height: 1.6; margin: 0; }
+    .pdf-page .kpi-row { display: flex; gap: 12px; margin: 10px 0; }
+    .pdf-page .kpi-box { flex: 1; background: #f3f4f6; border-radius: 8px; padding: 8px; text-align: center; }
+    .pdf-page .kpi-box strong { font-size: 18px; font-weight: 900; display: block; color: #111; }
+    .pdf-page .kpi-box span { font-size: 9px; color: #6b7280; text-transform: uppercase; letter-spacing: .05em; }
+    .pdf-page .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .pdf-page .bar-label { width: 130px; font-size: 10px; color: #374151; flex-shrink: 0; text-align: right; }
+    .pdf-page .bar-track { flex: 1; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
+    .pdf-page .bar-fill { height: 100%; background: #7c3aed; border-radius: 4px; }
+    .pdf-page .bar-val { font-size: 10px; font-weight: 700; color: #111; width: 32px; }
+    .pdf-page footer { margin-top: 20px; padding-top: 10px; border-top: 1px solid #e5e7eb; font-size: 9px; color: #9ca3af; text-align: center; }
+  </style>
+</head>
+<body class="min-h-screen bg-stone-950 text-stone-100">
+
+<nav class="sticky top-0 z-50 flex items-center gap-1 px-5 h-14
+     bg-stone-950/95 backdrop-blur-sm border-b border-white/10 shadow-md flex-wrap">
+  <div class="flex items-center gap-2.5 mr-4">
+    <a href="../enterprise_landing.html"
+       class="flex items-center justify-center w-8 h-8 rounded-lg
+              bg-gradient-to-br from-violet-500 to-indigo-600
+              text-white font-black text-sm no-underline">L</a>
+    <a href="../enterprise_landing.html"
+       class="font-bold text-white text-base no-underline">Lokigi</a>
+    <span class="px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300
+                 text-xs font-bold uppercase tracking-wider">Enterprise</span>
+    <span class="text-stone-600">·</span>
+    <span class="text-stone-400 text-xs font-semibold">Reportes Ejecutivos</span>
+  </div>
+  <a href="reports_hub.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">📊 Hub</a>
+<a href="reports_step1_agg.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">1 · Agregación</a>
+<a href="reports_step2_roi.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">2 · ROI Marca</a>
+<a href="reports_step3_compose.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">3 · Composición</a>
+<a href="reports_step4_preview.html" class="px-3 py-2 rounded-lg text-sm font-semibold text-violet-200 bg-violet-500/20 border border-violet-400/20 no-underline">4 · Preview</a>
+<a href="reports_step5_send.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">5 · Envío</a>
+
+</nav>
+
+<div class="mx-auto max-w-4xl px-4 py-10 sm:px-6 pb-20 fade-up">
+
+  <div class="mb-8">
+    <p class="text-xs uppercase tracking-[.2em] text-violet-300/70 mb-1">Reportes Ejecutivos · Paso 4</p>
+    <h1 class="text-3xl font-bold text-white">Vista Previa del Informe</h1>
+    <p class="mt-1 text-stone-400 text-sm">
+      Revisa el documento generado antes de enviarlo. El PDF incluye tu branding, las secciones seleccionadas
+      y los datos agregados de toda la red.
+    </p>
+  </div>
+
+  <!-- Actions bar -->
+  <div class="flex flex-wrap gap-3 mb-8">
+    <button class="px-5 py-2.5 rounded-xl border border-white/10 bg-white/5 text-stone-300 text-sm font-semibold hover:bg-white/10 flex items-center gap-2">
+      🔄 Regenerar
+    </button>
+    <button class="px-5 py-2.5 rounded-xl border border-white/10 bg-white/5 text-stone-300 text-sm font-semibold hover:bg-white/10 flex items-center gap-2">
+      ✏️ Editar secciones
+    </button>
+    <button class="px-5 py-2.5 rounded-xl border border-white/10 bg-white/5 text-stone-300 text-sm font-semibold hover:bg-white/10 flex items-center gap-2">
+      📥 Descargar PDF
+    </button>
+    <a href="reports_step5_send.html"
+       class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600
+              text-white font-bold text-sm hover:from-violet-500 hover:to-indigo-500 no-underline flex items-center gap-2">
+      📧 Enviar →
+    </a>
+  </div>
+
+  <!-- PDF simulation -->
+  <div class="pdf-page">
+
+    <!-- Cover -->
+    <div style="text-align:center;padding:16px 0 24px;border-bottom:2px solid #7c3aed;margin-bottom:20px">
+      <div style="background:linear-gradient(135deg,#7c3aed,#4f46e5);width:40px;height:40px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:900;margin-bottom:10px">L</div>
+      <div style="font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Marketing Digital Pro SL</div>
+      <h1 style="font-size:18px;font-weight:900;color:#111;margin:0 0 4px">Informe Ejecutivo de Reputación</h1>
+      <p style="font-size:13px;font-weight:700;color:#7c3aed;margin:0 0 8px">Abril 2026</p>
+      <p style="font-size:10px;color:#6b7280;margin:0">Análisis consolidado · 50 locales · 4 cadenas</p>
+      <p style="font-size:10px;color:#6b7280;margin:4px 0 0">Preparado para: <strong style="color:#374151">Comité Directivo — Grupo Gastronómico Sur</strong></p>
+      <p style="font-size:9px;color:#9ca3af;margin:8px 0 0">Confidencial · 30 de abril de 2026</p>
+    </div>
+
+    <!-- Executive summary -->
+    <h2>1. Resumen Ejecutivo</h2>
+    <div class="kpi-row">
+      <div class="kpi-box">
+        <strong style="color:#7c3aed">87</strong>
+        <span>Brand Authority</span>
+      </div>
+      <div class="kpi-box">
+        <strong>4.3★</strong>
+        <span>Nota media red</span>
+      </div>
+      <div class="kpi-box">
+        <strong style="color:#10b981">+18%</strong>
+        <span>Conversiones GBP</span>
+      </div>
+      <div class="kpi-box">
+        <strong style="color:#10b981">50</strong>
+        <span>Locales activos</span>
+      </div>
+    </div>
+    <p style="margin:8px 0 4px"><strong>Conclusiones clave del período:</strong></p>
+    <ul style="padding-left:16px;margin:4px 0 8px">
+      <li>La red alcanza un BAI de 87/100, +6 pp respecto al Q1, situándola 28 pp por encima de la media sectorial.</li>
+      <li>2 alertas de crisis resueltas con tiempo de respuesta &lt; 5 min gracias a la detección NLP automática.</li>
+      <li>El Mar — Barceloneta (#1) establece un nuevo récord histórico de 4.8★ y sirve de referente de protocolo.</li>
+    </ul>
+
+    <!-- Reputation section -->
+    <h2>2. Análisis de Reputación</h2>
+    <p>La nota media ponderada de la red es <strong>4.3★</strong>, con tendencia ascendente (+0.3★ en 12 meses). El 86% de los 50 locales operan con nota ≥ 4.0★.</p>
+    <div style="margin:10px 0">
+      <div class="bar-row">
+        <span class="bar-label">Hoteles Solimar</span>
+        <div class="bar-track"><div class="bar-fill" style="width:92%;background:#7c3aed"></div></div>
+        <span class="bar-val">4.5★</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">Rest. El Mar</span>
+        <div class="bar-track"><div class="bar-fill" style="width:88%;background:#10b981"></div></div>
+        <span class="bar-val">4.4★</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">Café Rápido</span>
+        <div class="bar-track"><div class="bar-fill" style="width:86%;background:#6366f1"></div></div>
+        <span class="bar-val">4.3★</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">Pizzas Norte</span>
+        <div class="bar-track"><div class="bar-fill" style="width:82%;background:#f59e0b"></div></div>
+        <span class="bar-val">4.1★</span>
+      </div>
+    </div>
+
+    <!-- ROI section -->
+    <h2>3. ROI de Marca — Brand Authority Index</h2>
+    <p>El BAI combina nota media (40%), sentimiento NLP (40%) y volumen de reseñas (20%). El índice actual de <strong>87/100</strong> equivale a €124.000 en valor publicitario equivalente (+18.4% conversiones GBP respecto al año anterior).</p>
+
+    <!-- Actions -->
+    <h2>7. Plan de Acción</h2>
+    <ul style="padding-left:16px;margin:4px 0">
+      <li><strong>Urgente:</strong> Cerrar crisis en El Mar — Sarrià y Pizza Norte — Getafe Sur (semana 1 mayo).</li>
+      <li><strong>Corto plazo:</strong> Iniciar formación en 7 locales identificados (mayo 2026).</li>
+      <li><strong>Medio plazo:</strong> Exportar protocolo de Barceloneta a los 5 locales con nota &lt; 4.0★.</li>
+      <li><strong>Seguimiento:</strong> Auditoría de seguimiento programada para el 30 de mayo 2026.</li>
+    </ul>
+
+    <footer>
+      Marketing Digital Pro SL · informes@tuagencia.com · Generado por Lokigi Enterprise
+      <br/>Informe confidencial — uso interno y para el cliente. Prohibida su difusión externa.
+    </footer>
+  </div>
+
+  <p class="text-center text-xs text-stone-600 mt-4">Simulación de portada · El documento completo tiene 9 páginas</p>
+
+  <!-- Nav -->
+  <div class="flex justify-between items-center mt-8">
+    <a href="reports_step3_compose.html"
+       class="px-5 py-3 rounded-2xl border border-white/10 bg-white/5
+              text-stone-300 font-semibold text-sm hover:bg-white/10 no-underline">
+      ← Composición
+    </a>
+    <a href="reports_step5_send.html"
+       class="px-8 py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600
+              text-white font-bold text-sm hover:from-violet-500 hover:to-indigo-500 no-underline">
+      Configurar envío →
+    </a>
+  </div>
+</div>
+</body>
+</html>

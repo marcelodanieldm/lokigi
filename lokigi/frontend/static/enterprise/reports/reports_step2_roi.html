@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Paso 2 — ROI de Marca | Reportes Ejecutivos · Lokigi Enterprise</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Arial, "Helvetica Neue", sans-serif; }
+    .no-underline { text-decoration: none; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp .35s ease both; }
+    @keyframes progress {
+      from { width: 0; }
+    }
+    .bar-anim { animation: progress 1.4s cubic-bezier(.4,0,.2,1) both; }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .spin { animation: spin 1s linear infinite; }
+    @keyframes pulse-glow {
+      0%,100% { opacity: 1; }
+      50% { opacity: .45; }
+    }
+    .pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+    input, select, textarea {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      color: #f1f5f9;
+      padding: 10px 14px;
+      font-size: 14px;
+      width: 100%;
+      outline: none;
+    }
+    select option { background: #1c1917; }
+    /* PDF preview simulation */
+    .pdf-page {
+      background: #fff;
+      color: #111;
+      border-radius: 12px;
+      padding: 32px 36px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.6);
+      max-width: 520px;
+      margin: 0 auto;
+    }
+    .pdf-page h1 { font-size: 20px; font-weight: 900; color: #111; margin: 0 0 4px; }
+    .pdf-page h2 { font-size: 13px; font-weight: 700; color: #444; margin: 16px 0 6px; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; }
+    .pdf-page p, .pdf-page li { font-size: 11px; color: #374151; line-height: 1.6; margin: 0; }
+    .pdf-page .kpi-row { display: flex; gap: 12px; margin: 10px 0; }
+    .pdf-page .kpi-box { flex: 1; background: #f3f4f6; border-radius: 8px; padding: 8px; text-align: center; }
+    .pdf-page .kpi-box strong { font-size: 18px; font-weight: 900; display: block; color: #111; }
+    .pdf-page .kpi-box span { font-size: 9px; color: #6b7280; text-transform: uppercase; letter-spacing: .05em; }
+    .pdf-page .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .pdf-page .bar-label { width: 130px; font-size: 10px; color: #374151; flex-shrink: 0; text-align: right; }
+    .pdf-page .bar-track { flex: 1; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
+    .pdf-page .bar-fill { height: 100%; background: #7c3aed; border-radius: 4px; }
+    .pdf-page .bar-val { font-size: 10px; font-weight: 700; color: #111; width: 32px; }
+    .pdf-page footer { margin-top: 20px; padding-top: 10px; border-top: 1px solid #e5e7eb; font-size: 9px; color: #9ca3af; text-align: center; }
+  </style>
+</head>
+<body class="min-h-screen bg-stone-950 text-stone-100">
+
+<nav class="sticky top-0 z-50 flex items-center gap-1 px-5 h-14
+     bg-stone-950/95 backdrop-blur-sm border-b border-white/10 shadow-md flex-wrap">
+  <div class="flex items-center gap-2.5 mr-4">
+    <a href="../enterprise_landing.html"
+       class="flex items-center justify-center w-8 h-8 rounded-lg
+              bg-gradient-to-br from-violet-500 to-indigo-600
+              text-white font-black text-sm no-underline">L</a>
+    <a href="../enterprise_landing.html"
+       class="font-bold text-white text-base no-underline">Lokigi</a>
+    <span class="px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300
+                 text-xs font-bold uppercase tracking-wider">Enterprise</span>
+    <span class="text-stone-600">·</span>
+    <span class="text-stone-400 text-xs font-semibold">Reportes Ejecutivos</span>
+  </div>
+  <a href="reports_hub.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">📊 Hub</a>
+<a href="reports_step1_agg.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">1 · Agregación</a>
+<a href="reports_step2_roi.html" class="px-3 py-2 rounded-lg text-sm font-semibold text-violet-200 bg-violet-500/20 border border-violet-400/20 no-underline">2 · ROI Marca</a>
+<a href="reports_step3_compose.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">3 · Composición</a>
+<a href="reports_step4_preview.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">4 · Preview</a>
+<a href="reports_step5_send.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">5 · Envío</a>
+
+</nav>
+
+<div class="mx-auto max-w-5xl px-4 py-10 sm:px-6 pb-20 fade-up">
+
+  <div class="mb-8">
+    <p class="text-xs uppercase tracking-[.2em] text-violet-300/70 mb-1">Reportes Ejecutivos · Paso 2</p>
+    <h1 class="text-3xl font-bold text-white">ROI de Marca</h1>
+    <p class="mt-1 text-stone-400 text-sm max-w-xl">
+      Más allá de los clics: Lokigi mide la <strong class="text-white">Autoridad de Marca</strong> en toda la región.
+      Un índice compuesto que combina reputación, visibilidad, sentimiento y crecimiento de reseñas,
+      traducido a impacto económico real.
+    </p>
+  </div>
+
+  <!-- Brand Authority Index -->
+  <div class="rounded-3xl border border-violet-500/30
+              bg-gradient-to-br from-violet-950/60 to-stone-900 p-8 mb-8">
+    <div class="flex flex-col sm:flex-row items-center gap-8">
+      <div class="text-center flex-shrink-0">
+        <p class="text-xs uppercase tracking-[.2em] text-violet-300/70 mb-2">Brand Authority Index™</p>
+        <div class="relative w-36 h-36 mx-auto">
+          <!-- Circle gauge visualization -->
+          <div class="w-36 h-36 rounded-full border-8 border-violet-500/30 flex items-center justify-center">
+            <div>
+              <p class="text-5xl font-black text-violet-300 leading-none">87</p>
+              <p class="text-xs text-stone-400 text-center">/100</p>
+            </div>
+          </div>
+        </div>
+        <p class="text-xs text-violet-300/70 mt-3 font-semibold">▲ +6 pp vs. Q1 2026</p>
+      </div>
+      <div class="flex-1 w-full">
+        <h3 class="text-sm font-bold text-stone-300 uppercase tracking-wider mb-4">Composición del índice</h3>
+        <div class="space-y-3">
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-stone-300">Reputación (nota media 4.3★)</span>
+              <span class="text-stone-400 font-semibold">peso 40%</span>
+            </div>
+            <div class="h-2.5 rounded-full bg-black/30 overflow-hidden">
+              <div class="h-full rounded-full bg-emerald-500 bar-anim" style="width:86%"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-stone-300">Sentimiento NLP (media 0.78)</span>
+              <span class="text-stone-400 font-semibold">peso 40%</span>
+            </div>
+            <div class="h-2.5 rounded-full bg-black/30 overflow-hidden">
+              <div class="h-full rounded-full bg-indigo-500 bar-anim" style="width:78%"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-stone-300">Volumen de reseñas (297/mes)</span>
+              <span class="text-stone-400 font-semibold">peso 20%</span>
+            </div>
+            <div class="h-2.5 rounded-full bg-black/30 overflow-hidden">
+              <div class="h-full rounded-full bg-violet-400 bar-anim" style="width:59%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Regional growth -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-6">
+
+    <!-- Authority over time -->
+    <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
+      <h2 class="text-sm font-bold text-white mb-4">Evolución Brand Authority — 12 meses</h2>
+      <div class="flex items-end gap-2 h-28">
+        <div class="flex flex-col items-center gap-1 flex-1">
+          <span class="text-xs text-stone-500">74</span>
+          <div class="w-full rounded-t-lg bg-violet-500/20 bar-anim" style="height:55%"></div>
+          <span class="text-xs text-stone-600">May</span>
+        </div>
+        <div class="flex flex-col items-center gap-1 flex-1">
+          <span class="text-xs text-stone-500">75</span>
+          <div class="w-full rounded-t-lg bg-violet-500/20 bar-anim" style="height:57%"></div>
+          <span class="text-xs text-stone-600">Jun</span>
+        </div>
+        <div class="flex flex-col items-center gap-1 flex-1">
+          <span class="text-xs text-stone-500">77</span>
+          <div class="w-full rounded-t-lg bg-violet-500/25 bar-anim" style="height:61%"></div>
+          <span class="text-xs text-stone-600">Jul</span>
+        </div>
+        <div class="flex flex-col items-center gap-1 flex-1">
+          <span class="text-xs text-stone-500">76</span>
+          <div class="w-full rounded-t-lg bg-violet-500/25 bar-anim" style="height:59%"></div>
+          <span class="text-xs text-stone-600">Ago</span>
+        </div>
+        <div class="flex flex-col items-center gap-1 flex-1">
+          <span class="text-xs text-stone-500">79</span>
+          <div class="w-full rounded-t-lg bg-violet-500/30 bar-anim" style="height:64%"></div>
+          <span class="text-xs text-stone-600">Sep</span>
+        </div>
+        <div class="flex flex-col items-center gap-1 flex-1">
+          <span class="text-xs text-stone-500">80</span>
+          <div class="w-full rounded-t-lg bg-violet-500/35 bar-anim" style="height:66%"></div>
+          <span class="text-xs text-stone-600">Oct</span>
+        </div>
+        <div class="flex flex-col items-center gap-1 flex-1">
+          <span class="text-xs text-stone-500">81</span>
+          <div class="w-full rounded-t-lg bg-violet-500/40 bar-anim" style="height:68%"></div>
+          <span class="text-xs text-stone-600">Nov</span>
+        </div>
+        <div class="flex flex-col items-center gap-1 flex-1">
+          <span class="text-xs text-stone-500">82</span>
+          <div class="w-full rounded-t-lg bg-violet-500/45 bar-anim" style="height:70%"></div>
+          <span class="text-xs text-stone-600">Dic</span>
+        </div>
+        <div class="flex flex-col items-center gap-1 flex-1">
+          <span class="text-xs text-stone-500">83</span>
+          <div class="w-full rounded-t-lg bg-violet-500/55 bar-anim" style="height:73%"></div>
+          <span class="text-xs text-stone-600">Ene</span>
+        </div>
+        <div class="flex flex-col items-center gap-1 flex-1">
+          <span class="text-xs text-stone-500">84</span>
+          <div class="w-full rounded-t-lg bg-violet-500/65 bar-anim" style="height:77%"></div>
+          <span class="text-xs text-stone-600">Feb</span>
+        </div>
+        <div class="flex flex-col items-center gap-1 flex-1">
+          <span class="text-xs text-stone-500">85</span>
+          <div class="w-full rounded-t-lg bg-violet-500/75 bar-anim" style="height:81%"></div>
+          <span class="text-xs text-stone-600">Mar</span>
+        </div>
+        <div class="flex flex-col items-center gap-1 flex-1">
+          <span class="text-xs text-stone-300 font-black">87</span>
+          <div class="w-full rounded-t-lg bg-violet-500 bar-anim" style="height:88%"></div>
+          <span class="text-xs text-violet-400 font-bold">Abr↑</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- vs Competition -->
+    <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
+      <h2 class="text-sm font-bold text-white mb-4">Comparativa regional — Brand Authority</h2>
+      <div class="space-y-3">
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <span class="text-violet-300 font-bold">Tu red (Lokigi) ★</span>
+            <span class="text-violet-300 font-black">87</span>
+          </div>
+          <div class="h-3 rounded-full bg-black/30 overflow-hidden">
+            <div class="h-full rounded-full bg-violet-500 bar-anim" style="width:87%"></div>
+          </div>
+        </div>
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <span class="text-stone-400">Competidor A (est.)</span>
+            <span class="text-stone-400 font-bold">71</span>
+          </div>
+          <div class="h-3 rounded-full bg-black/30 overflow-hidden">
+            <div class="h-full rounded-full bg-stone-600 bar-anim" style="width:71%"></div>
+          </div>
+        </div>
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <span class="text-stone-400">Competidor B (est.)</span>
+            <span class="text-stone-400 font-bold">64</span>
+          </div>
+          <div class="h-3 rounded-full bg-black/30 overflow-hidden">
+            <div class="h-full rounded-full bg-stone-700 bar-anim" style="width:64%"></div>
+          </div>
+        </div>
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <span class="text-stone-400">Media de sector (hostelería)</span>
+            <span class="text-stone-400 font-bold">59</span>
+          </div>
+          <div class="h-3 rounded-full bg-black/30 overflow-hidden">
+            <div class="h-full rounded-full bg-stone-700 bar-anim" style="width:59%"></div>
+          </div>
+        </div>
+        <p class="text-xs text-emerald-400 mt-3 font-semibold">▲ +28 pp sobre la media del sector</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROI translation -->
+  <div class="rounded-3xl border border-emerald-500/20 bg-emerald-950/20 p-6 mb-8">
+    <h2 class="text-base font-semibold text-white mb-5">Impacto económico estimado</h2>
+    <p class="text-stone-400 text-sm mb-5">
+      Cada punto de Brand Authority se correlaciona con un aumento de ~1.2% en conversiones
+      (llamadas + clics → visitas). Estimación basada en el modelo de reputación de Lokigi (N=50 locales, 12 meses).
+    </p>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="rounded-2xl border border-emerald-500/20 bg-black/15 p-5 text-center">
+        <p class="text-3xl font-black text-emerald-300">+18.4%</p>
+        <p class="text-xs text-stone-400 mt-1 uppercase tracking-wider">Conversiones GBP</p>
+        <p class="text-xs text-stone-500 mt-1">vs. hace 12 meses</p>
+      </div>
+      <div class="rounded-2xl border border-emerald-500/20 bg-black/15 p-5 text-center">
+        <p class="text-3xl font-black text-emerald-300">+31%</p>
+        <p class="text-xs text-stone-400 mt-1 uppercase tracking-wider">Llamadas directas</p>
+        <p class="text-xs text-stone-500 mt-1">desde perfil GBP</p>
+      </div>
+      <div class="rounded-2xl border border-violet-500/20 bg-black/15 p-5 text-center">
+        <p class="text-3xl font-black text-violet-300">€124K</p>
+        <p class="text-xs text-stone-400 mt-1 uppercase tracking-wider">Valor est. reseñas</p>
+        <p class="text-xs text-stone-500 mt-1">Coste equivalente en publicidad pagada</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nav -->
+  <div class="flex justify-between items-center">
+    <a href="reports_step1_agg.html"
+       class="px-5 py-3 rounded-2xl border border-white/10 bg-white/5
+              text-stone-300 font-semibold text-sm hover:bg-white/10 no-underline">
+      ← Agregación
+    </a>
+    <a href="reports_step3_compose.html"
+       class="px-8 py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600
+              text-white font-bold text-sm hover:from-violet-500 hover:to-indigo-500 no-underline">
+      Componer informe →
+    </a>
+  </div>
+</div>
+</body>
+</html>
