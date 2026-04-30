@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Control de Logs de Agencia | Enterprise Hub · Lokigi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Arial, "Helvetica Neue", sans-serif; }
+    .no-underline { text-decoration: none; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp .35s ease both; }
+    @keyframes barIn {
+      from { width: 0; }
+    }
+    .bar-in { animation: barIn 1.2s cubic-bezier(.4,0,.2,1) both; }
+    @keyframes pulse-glow {
+      0%,100% { opacity: 1; box-shadow: 0 0 0 0 currentColor; }
+      50% { opacity: .7; }
+    }
+    .pulse { animation: pulse-glow 2s ease-in-out infinite; }
+    input, select, textarea {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      color: #f1f5f9;
+      padding: 9px 13px;
+      font-size: 13px;
+      outline: none;
+    }
+    select option { background: #1c1917; }
+    /* heat dot */
+    .dot-green  { background: #22c55e; box-shadow: 0 0 8px #22c55e88; }
+    .dot-yellow { background: #f59e0b; box-shadow: 0 0 8px #f59e0b88; }
+    .dot-red    { background: #ef4444; box-shadow: 0 0 8px #ef444488; }
+    /* table */
+    table { border-collapse: collapse; width: 100%; }
+    thead th { font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+                color: #78716c; padding: 8px 12px; text-align: left; font-weight: 600;
+                border-bottom: 1px solid rgba(255,255,255,.08); }
+    tbody tr { border-bottom: 1px solid rgba(255,255,255,.04); }
+    tbody tr:hover { background: rgba(255,255,255,.025); }
+    tbody td { padding: 11px 12px; font-size: 13px; color: #d6d3d1; }
+  </style>
+</head>
+<body class="min-h-screen bg-stone-950 text-stone-100">
+
+<nav class="sticky top-0 z-50 flex items-center gap-1 px-5 h-14
+     bg-stone-950/95 backdrop-blur-sm border-b border-white/10 shadow-md flex-wrap">
+  <div class="flex items-center gap-2.5 mr-4">
+    <a href="../enterprise_landing.html"
+       class="flex items-center justify-center w-8 h-8 rounded-lg
+              bg-gradient-to-br from-violet-500 to-indigo-600
+              text-white font-black text-sm no-underline">L</a>
+    <a href="../enterprise_landing.html"
+       class="font-bold text-white text-base no-underline">Lokigi</a>
+    <span class="px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300
+                 text-xs font-bold uppercase tracking-wider">Enterprise</span>
+    <span class="text-stone-600">·</span>
+    <span class="text-stone-400 text-xs font-semibold">Dashboard Hub</span>
+  </div>
+  <a href="../enterprise_hub.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">🏢 Hub</a>
+<a href="hub_heatmap.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">🗺️ Heat Map</a>
+<a href="hub_ranking.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">🏆 Ranking</a>
+<a href="hub_audit_log.html" class="px-3 py-2 rounded-lg text-sm font-semibold text-violet-200 bg-violet-500/20 border border-violet-400/20 no-underline">📋 Auditoría</a>
+
+</nav>
+
+<div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 pb-20 fade-up">
+
+  <div class="mb-8">
+    <p class="text-xs uppercase tracking-[.2em] text-violet-300/70 mb-1">Enterprise Hub · Auditoría</p>
+    <h1 class="text-3xl font-bold text-white">Control de Logs de Agencia</h1>
+    <p class="mt-1 text-stone-400 text-sm max-w-2xl">
+      Registro inmutable de cada acción realizada sobre las reseñas: quién respondió,
+      en qué local, con qué tono, si fue aprobada, rechazada o automática.
+      Base para compliance y control de calidad de la agencia.
+    </p>
+  </div>
+
+  <!-- Audit KPIs -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+    <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-center">
+      <p class="text-3xl font-black text-emerald-300">1.247</p>
+      <p class="text-xs uppercase tracking-wider text-stone-400 mt-1">Acciones este mes</p>
+    </div>
+    <div class="rounded-2xl border border-violet-500/20 bg-violet-500/5 p-4 text-center">
+      <p class="text-3xl font-black text-violet-300">68%</p>
+      <p class="text-xs uppercase tracking-wider text-stone-400 mt-1">Auto-enviadas (IA)</p>
+    </div>
+    <div class="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 text-center">
+      <p class="text-3xl font-black text-amber-300">29%</p>
+      <p class="text-xs uppercase tracking-wider text-stone-400 mt-1">Editadas manualmente</p>
+    </div>
+    <div class="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-4 text-center">
+      <p class="text-3xl font-black text-rose-300">3%</p>
+      <p class="text-xs uppercase tracking-wider text-stone-400 mt-1">Rechazadas</p>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="flex flex-wrap gap-3 mb-4">
+    <select class="text-xs"><option selected>Todos los agentes</option><option>Laura Martínez</option><option>Carlos Rodríguez</option><option>Ana García</option><option>Pedro Sánchez</option><option>IA Lokigi</option></select>
+    <select class="text-xs"><option selected>Todas las acciones</option><option>Solo SENT</option><option>Solo AUTO</option><option>Solo EDIT</option><option>Solo RJCT</option></select>
+    <select class="text-xs"><option selected>Todos los locales</option><option>Pizza Norte</option><option>Café Rápido</option><option>El Mar</option><option>Hotel Solimar</option></select>
+    <select class="text-xs"><option selected>Hoy</option><option>Últimas 7 días</option><option>Este mes</option></select>
+    <button class="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-stone-300 text-xs font-semibold hover:bg-white/10 ml-auto">
+      📥 Exportar CSV
+    </button>
+  </div>
+
+  <!-- Agent activity summary -->
+  <div class="rounded-3xl border border-white/10 bg-white/5 p-5 mb-6">
+    <h2 class="text-sm font-bold text-stone-300 uppercase tracking-wider mb-4">Actividad por agente — hoy</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      <div class="rounded-2xl bg-black/15 border border-white/8 p-3 text-center">
+        <div class="w-8 h-8 rounded-full bg-violet-500/30 flex items-center justify-center text-xs font-bold text-violet-300 mx-auto mb-2">IA</div>
+        <p class="text-xl font-black text-violet-300">847</p>
+        <p class="text-xs text-stone-500 mt-0.5">IA Lokigi</p>
+      </div>
+      <div class="rounded-2xl bg-black/15 border border-white/8 p-3 text-center">
+        <div class="w-8 h-8 rounded-full bg-emerald-500/30 flex items-center justify-center text-xs font-bold text-emerald-300 mx-auto mb-2">LM</div>
+        <p class="text-xl font-black text-emerald-300">184</p>
+        <p class="text-xs text-stone-500 mt-0.5">Laura M.</p>
+      </div>
+      <div class="rounded-2xl bg-black/15 border border-white/8 p-3 text-center">
+        <div class="w-8 h-8 rounded-full bg-indigo-500/30 flex items-center justify-center text-xs font-bold text-indigo-300 mx-auto mb-2">CR</div>
+        <p class="text-xl font-black text-indigo-300">112</p>
+        <p class="text-xs text-stone-500 mt-0.5">Carlos R.</p>
+      </div>
+      <div class="rounded-2xl bg-black/15 border border-white/8 p-3 text-center">
+        <div class="w-8 h-8 rounded-full bg-amber-500/30 flex items-center justify-center text-xs font-bold text-amber-300 mx-auto mb-2">PS</div>
+        <p class="text-xl font-black text-amber-300">68</p>
+        <p class="text-xs text-stone-500 mt-0.5">Pedro S.</p>
+      </div>
+      <div class="rounded-2xl bg-black/15 border border-white/8 p-3 text-center">
+        <div class="w-8 h-8 rounded-full bg-rose-500/30 flex items-center justify-center text-xs font-bold text-rose-300 mx-auto mb-2">AG</div>
+        <p class="text-xl font-black text-rose-300">36</p>
+        <p class="text-xs text-stone-500 mt-0.5">Ana G.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Log table -->
+  <div class="rounded-3xl border border-white/10 bg-white/5 overflow-hidden">
+    <div class="flex items-center justify-between p-4 border-b border-white/10">
+      <p class="text-sm font-semibold text-white">Log de auditoría — 30 Abr 2026</p>
+      <span class="text-xs text-stone-500">Mostrando 12 de 1.247 entradas</span>
+    </div>
+    <div class="overflow-x-auto">
+      <table>
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Acción</th>
+            <th>Agente</th>
+            <th>Local</th>
+            <th>Reseña</th>
+            <th>Tono</th>
+            <th>Aprobación</th>
+            <th>Nota</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+        <tr>
+          <td class="font-mono text-xs text-stone-500 whitespace-nowrap">30 Abr 09:14:22</td>
+          <td><span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold whitespace-nowrap">✓ Enviado</span></td>
+          <td class="font-semibold text-stone-200 text-xs">Laura Martínez</td>
+          <td class="text-stone-400 text-xs">Pizza Norte — Alicante #1</td>
+          <td class="text-stone-500 text-xs max-w-xs truncate" title="3★ — 'Servicio mejorable'">3★ — 'Servicio mejorable'</td>
+          <td class="text-xs">
+            <span class="px-2 py-0.5 rounded-full bg-white/8 text-stone-300 text-xs">Positivo</span>
+          </td>
+          <td class="text-xs text-stone-400">Auto-aprobado</td>
+          <td class="text-xs text-stone-600 italic">reseña atendida en 48h</td>
+        </tr>
+        <tr>
+          <td class="font-mono text-xs text-stone-500 whitespace-nowrap">30 Abr 09:12:05</td>
+          <td><span class="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 text-xs font-bold whitespace-nowrap">✏️ Editado</span></td>
+          <td class="font-semibold text-stone-200 text-xs">Carlos Rodríguez</td>
+          <td class="text-stone-400 text-xs">Café Rápido — Madrid #1</td>
+          <td class="text-stone-500 text-xs max-w-xs truncate" title="1★ — 'Nunca más'">1★ — 'Nunca más'</td>
+          <td class="text-xs">
+            <span class="px-2 py-0.5 rounded-full bg-white/8 text-stone-300 text-xs">Empático</span>
+          </td>
+          <td class="text-xs text-stone-400">Edición manual</td>
+          <td class="text-xs text-stone-600 italic">tono revisado por manager</td>
+        </tr>
+        <tr>
+          <td class="font-mono text-xs text-stone-500 whitespace-nowrap">30 Abr 09:10:41</td>
+          <td><span class="px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300 text-xs font-bold whitespace-nowrap">🤖 Auto</span></td>
+          <td class="font-semibold text-stone-200 text-xs">IA Lokigi</td>
+          <td class="text-stone-400 text-xs">Hotel Solimar — BCN</td>
+          <td class="text-stone-500 text-xs max-w-xs truncate" title="5★ — 'Excelente estancia'">5★ — 'Excelente estancia'</td>
+          <td class="text-xs">
+            <span class="px-2 py-0.5 rounded-full bg-white/8 text-stone-300 text-xs">Cálido</span>
+          </td>
+          <td class="text-xs text-stone-400">Auto-enviado</td>
+          <td class="text-xs text-stone-600 italic">respuesta positiva automática</td>
+        </tr>
+        <tr>
+          <td class="font-mono text-xs text-stone-500 whitespace-nowrap">30 Abr 09:08:47</td>
+          <td><span class="px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300 text-xs font-bold whitespace-nowrap">🤖 Auto</span></td>
+          <td class="font-semibold text-stone-200 text-xs">IA Lokigi</td>
+          <td class="text-stone-400 text-xs">El Mar — Barceloneta</td>
+          <td class="text-stone-500 text-xs max-w-xs truncate" title="4★ — 'Muy buena comida'">4★ — 'Muy buena comida'</td>
+          <td class="text-xs">
+            <span class="px-2 py-0.5 rounded-full bg-white/8 text-stone-300 text-xs">Agradecido</span>
+          </td>
+          <td class="text-xs text-stone-400">Auto-enviado</td>
+          <td class="text-xs text-stone-600 italic">respuesta estándar</td>
+        </tr>
+        <tr>
+          <td class="font-mono text-xs text-stone-500 whitespace-nowrap">30 Abr 09:03:11</td>
+          <td><span class="px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-300 text-xs font-bold whitespace-nowrap">✗ Rechazado</span></td>
+          <td class="font-semibold text-stone-200 text-xs">Ana García</td>
+          <td class="text-stone-400 text-xs">El Mar — Sarrià</td>
+          <td class="text-stone-500 text-xs max-w-xs truncate" title="1★ — 'Pésima atención'">1★ — 'Pésima atención'</td>
+          <td class="text-xs">
+            <span class="px-2 py-0.5 rounded-full bg-white/8 text-stone-300 text-xs">—</span>
+          </td>
+          <td class="text-xs text-stone-400">Rechazada</td>
+          <td class="text-xs text-stone-600 italic">escala a manager de zona</td>
+        </tr>
+        <tr>
+          <td class="font-mono text-xs text-stone-500 whitespace-nowrap">30 Abr 08:55:33</td>
+          <td><span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold whitespace-nowrap">✓ Enviado</span></td>
+          <td class="font-semibold text-stone-200 text-xs">Pedro Sánchez</td>
+          <td class="text-stone-400 text-xs">Pizza Norte — Valencia #1</td>
+          <td class="text-stone-500 text-xs max-w-xs truncate" title="2★ — 'Demasiado lento'">2★ — 'Demasiado lento'</td>
+          <td class="text-xs">
+            <span class="px-2 py-0.5 rounded-full bg-white/8 text-stone-300 text-xs">Empático</span>
+          </td>
+          <td class="text-xs text-stone-400">Aprobado manual</td>
+          <td class="text-xs text-stone-600 italic">cliente contactado offline</td>
+        </tr>
+        <tr>
+          <td class="font-mono text-xs text-stone-500 whitespace-nowrap">30 Abr 08:44:17</td>
+          <td><span class="px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300 text-xs font-bold whitespace-nowrap">🤖 Auto</span></td>
+          <td class="font-semibold text-stone-200 text-xs">IA Lokigi</td>
+          <td class="text-stone-400 text-xs">Café Rápido — Sevilla #1</td>
+          <td class="text-stone-500 text-xs max-w-xs truncate" title="5★ — 'Increíble'">5★ — 'Increíble'</td>
+          <td class="text-xs">
+            <span class="px-2 py-0.5 rounded-full bg-white/8 text-stone-300 text-xs">Cálido</span>
+          </td>
+          <td class="text-xs text-stone-400">Auto-enviado</td>
+          <td class="text-xs text-stone-600 italic">respuesta en < 1 min</td>
+        </tr>
+        <tr>
+          <td class="font-mono text-xs text-stone-500 whitespace-nowrap">30 Abr 08:39:02</td>
+          <td><span class="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 text-xs font-bold whitespace-nowrap">✏️ Editado</span></td>
+          <td class="font-semibold text-stone-200 text-xs">Laura Martínez</td>
+          <td class="text-stone-400 text-xs">Hotel Solimar — Valencia</td>
+          <td class="text-stone-500 text-xs max-w-xs truncate" title="3★ — 'Habitación pequeña'">3★ — 'Habitación pequeña'</td>
+          <td class="text-xs">
+            <span class="px-2 py-0.5 rounded-full bg-white/8 text-stone-300 text-xs">Profesional</span>
+          </td>
+          <td class="text-xs text-stone-400">Edición manual</td>
+          <td class="text-xs text-stone-600 italic">ajustado a reclamación</td>
+        </tr>
+        <tr>
+          <td class="font-mono text-xs text-stone-500 whitespace-nowrap">30 Abr 08:22:55</td>
+          <td><span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold whitespace-nowrap">✓ Enviado</span></td>
+          <td class="font-semibold text-stone-200 text-xs">Carlos Rodríguez</td>
+          <td class="text-stone-400 text-xs">El Mar — Palma</td>
+          <td class="text-stone-500 text-xs max-w-xs truncate" title="4★ — 'Buena terraza'">4★ — 'Buena terraza'</td>
+          <td class="text-xs">
+            <span class="px-2 py-0.5 rounded-full bg-white/8 text-stone-300 text-xs">Agradecido</span>
+          </td>
+          <td class="text-xs text-stone-400">Auto-aprobado</td>
+          <td class="text-xs text-stone-600 italic"></td>
+        </tr>
+        <tr>
+          <td class="font-mono text-xs text-stone-500 whitespace-nowrap">30 Abr 08:11:09</td>
+          <td><span class="px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-300 text-xs font-bold whitespace-nowrap">✗ Rechazado</span></td>
+          <td class="font-semibold text-stone-200 text-xs">Ana García</td>
+          <td class="text-stone-400 text-xs">Pizza Norte — Getafe Sur</td>
+          <td class="text-stone-500 text-xs max-w-xs truncate" title="1★ — 'Suciedad'">1★ — 'Suciedad'</td>
+          <td class="text-xs">
+            <span class="px-2 py-0.5 rounded-full bg-white/8 text-stone-300 text-xs">—</span>
+          </td>
+          <td class="text-xs text-stone-400">Rechazada</td>
+          <td class="text-xs text-stone-600 italic">abierta incidencia interna</td>
+        </tr>
+        <tr>
+          <td class="font-mono text-xs text-stone-500 whitespace-nowrap">30 Abr 07:58:44</td>
+          <td><span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold whitespace-nowrap">✓ Enviado</span></td>
+          <td class="font-semibold text-stone-200 text-xs">IA Lokigi</td>
+          <td class="text-stone-400 text-xs">Café Rápido — Granada</td>
+          <td class="text-stone-500 text-xs max-w-xs truncate" title="5★ — 'Rápido y rico'">5★ — 'Rápido y rico'</td>
+          <td class="text-xs">
+            <span class="px-2 py-0.5 rounded-full bg-white/8 text-stone-300 text-xs">Cálido</span>
+          </td>
+          <td class="text-xs text-stone-400">Auto-enviado</td>
+          <td class="text-xs text-stone-600 italic"></td>
+        </tr>
+        <tr>
+          <td class="font-mono text-xs text-stone-500 whitespace-nowrap">30 Abr 07:43:21</td>
+          <td><span class="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 text-xs font-bold whitespace-nowrap">✏️ Editado</span></td>
+          <td class="font-semibold text-stone-200 text-xs">Pedro Sánchez</td>
+          <td class="text-stone-400 text-xs">Pizza Norte — Murcia #1</td>
+          <td class="text-stone-500 text-xs max-w-xs truncate" title="2★ — 'Pedido incorrecto'">2★ — 'Pedido incorrecto'</td>
+          <td class="text-xs">
+            <span class="px-2 py-0.5 rounded-full bg-white/8 text-stone-300 text-xs">Disculpa</span>
+          </td>
+          <td class="text-xs text-stone-400">Aprobado manual</td>
+          <td class="text-xs text-stone-600 italic">reposición ofrecida</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="p-4 border-t border-white/10 text-center">
+      <button class="px-5 py-2 rounded-xl border border-white/10 bg-white/5 text-stone-400 text-xs font-semibold hover:bg-white/8">
+        Cargar más entradas ↓
+      </button>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Enterprise Dashboard Hub | Enterprise Hub · Lokigi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Arial, "Helvetica Neue", sans-serif; }
+    .no-underline { text-decoration: none; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp .35s ease both; }
+    @keyframes barIn {
+      from { width: 0; }
+    }
+    .bar-in { animation: barIn 1.2s cubic-bezier(.4,0,.2,1) both; }
+    @keyframes pulse-glow {
+      0%,100% { opacity: 1; box-shadow: 0 0 0 0 currentColor; }
+      50% { opacity: .7; }
+    }
+    .pulse { animation: pulse-glow 2s ease-in-out infinite; }
+    input, select, textarea {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      color: #f1f5f9;
+      padding: 9px 13px;
+      font-size: 13px;
+      outline: none;
+    }
+    select option { background: #1c1917; }
+    /* heat dot */
+    .dot-green  { background: #22c55e; box-shadow: 0 0 8px #22c55e88; }
+    .dot-yellow { background: #f59e0b; box-shadow: 0 0 8px #f59e0b88; }
+    .dot-red    { background: #ef4444; box-shadow: 0 0 8px #ef444488; }
+    /* table */
+    table { border-collapse: collapse; width: 100%; }
+    thead th { font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+                color: #78716c; padding: 8px 12px; text-align: left; font-weight: 600;
+                border-bottom: 1px solid rgba(255,255,255,.08); }
+    tbody tr { border-bottom: 1px solid rgba(255,255,255,.04); }
+    tbody tr:hover { background: rgba(255,255,255,.025); }
+    tbody td { padding: 11px 12px; font-size: 13px; color: #d6d3d1; }
+  </style>
+</head>
+<body class="min-h-screen bg-stone-950 text-stone-100">
+
+<nav class="sticky top-0 z-50 flex items-center gap-1 px-5 h-14
+     bg-stone-950/95 backdrop-blur-sm border-b border-white/10 shadow-md flex-wrap">
+  <div class="flex items-center gap-2.5 mr-4">
+    <a href="../enterprise_landing.html"
+       class="flex items-center justify-center w-8 h-8 rounded-lg
+              bg-gradient-to-br from-violet-500 to-indigo-600
+              text-white font-black text-sm no-underline">L</a>
+    <a href="../enterprise_landing.html"
+       class="font-bold text-white text-base no-underline">Lokigi</a>
+    <span class="px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300
+                 text-xs font-bold uppercase tracking-wider">Enterprise</span>
+    <span class="text-stone-600">·</span>
+    <span class="text-stone-400 text-xs font-semibold">Dashboard Hub</span>
+  </div>
+  <a href="../enterprise_hub.html" class="px-3 py-2 rounded-lg text-sm font-semibold text-violet-200 bg-violet-500/20 border border-violet-400/20 no-underline">🏢 Hub</a>
+<a href="hub_heatmap.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">🗺️ Heat Map</a>
+<a href="hub_ranking.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">🏆 Ranking</a>
+<a href="hub_audit_log.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">📋 Auditoría</a>
+
+</nav>
+
+<div class="mx-auto max-w-6xl px-4 py-10 sm:px-6 pb-20 fade-up">
+
+  <div class="flex items-start justify-between gap-4 mb-8 flex-wrap">
+    <div>
+      <p class="text-xs uppercase tracking-[.2em] text-violet-300/70 mb-1">Enterprise · Dashboard</p>
+      <h1 class="text-3xl font-bold text-white">Dashboard Hub Enterprise</h1>
+      <p class="mt-1 text-stone-400 text-sm max-w-2xl">
+        Vista unificada de toda la red. Monitoriza decenas de locales en tiempo real,
+        detecta outliers automáticamente y audita cada acción de la agencia.
+      </p>
+    </div>
+    <div class="flex gap-3 flex-wrap">
+      <a href="hub/hub_heatmap.html"
+         class="px-5 py-2.5 rounded-2xl border border-white/10 bg-white/5
+                text-stone-300 font-semibold text-sm hover:bg-white/10 no-underline">
+        🗺️ Mapa de Calor
+      </a>
+      <a href="hub/hub_ranking.html"
+         class="px-5 py-2.5 rounded-2xl border border-white/10 bg-white/5
+                text-stone-300 font-semibold text-sm hover:bg-white/10 no-underline">
+        🏆 Ranking
+      </a>
+      <a href="hub/hub_audit_log.html"
+         class="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600
+                text-white font-bold text-sm hover:from-violet-500 hover:to-indigo-500 no-underline">
+        📋 Auditoría →
+      </a>
+    </div>
+  </div>
+
+  <!-- Network KPIs -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+    <div class="rounded-2xl border border-violet-500/20 bg-violet-500/5 p-5 text-center">
+      <p class="text-4xl font-black text-violet-300">50</p>
+      <p class="text-xs uppercase tracking-wider text-stone-400 mt-1">Locales activos</p>
+      <p class="text-xs text-stone-500 mt-1">4 tenants · 3 ciudades</p>
+    </div>
+    <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5 text-center">
+      <p class="text-4xl font-black text-emerald-300">87</p>
+      <p class="text-xs uppercase tracking-wider text-stone-400 mt-1">Brand Authority</p>
+      <p class="text-xs text-emerald-400 mt-1">▲ +6 pp vs. Q1</p>
+    </div>
+    <div class="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-5 text-center">
+      <p class="text-4xl font-black text-rose-300">3</p>
+      <p class="text-xs uppercase tracking-wider text-stone-400 mt-1">Outliers activos</p>
+      <p class="text-xs text-rose-400 mt-1">Requieren atención</p>
+    </div>
+    <div class="rounded-2xl border border-white/10 bg-white/5 p-5 text-center">
+      <p class="text-4xl font-black text-white">4.3★</p>
+      <p class="text-xs uppercase tracking-wider text-stone-400 mt-1">Nota media red</p>
+      <p class="text-xs text-stone-500 mt-1">14.820 reseñas</p>
+    </div>
+  </div>
+
+  <!-- Three feature cards -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
+
+    <!-- Heatmap card -->
+    <a href="hub/hub_heatmap.html" class="no-underline group">
+      <div class="rounded-3xl border border-white/10 bg-white/5 p-6
+                  hover:border-violet-500/30 hover:bg-white/8 transition-all h-full">
+        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500/30 to-violet-500/30
+                    flex items-center justify-center text-2xl mb-4">🗺️</div>
+        <h2 class="text-base font-bold text-white mb-2">Mapa de Calor Global</h2>
+        <p class="text-stone-400 text-sm mb-4">
+          Visualización de toda la red con semáforo de salud (🟢 🟡 🔴).
+          Detecta problemas por ciudad, zona o franquicia en un solo vistazo.
+        </p>
+        <!-- Mini heatmap preview -->
+        <div class="grid grid-cols-10 gap-1 mb-4">
+          <!-- 50 dots: 38 green, 9 yellow, 3 red -->
+          <div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-yellow"></div><div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-green"></div>
+          <div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-red"></div><div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-yellow"></div><div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-green"></div>
+          <div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-yellow"></div><div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-red"></div><div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-yellow"></div><div class="w-4 h-4 rounded-full dot-green"></div>
+          <div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-yellow"></div><div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-red"></div><div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-green"></div>
+          <div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-yellow"></div><div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-yellow"></div><div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-green"></div><div class="w-4 h-4 rounded-full dot-yellow"></div>
+        </div>
+        <div class="flex gap-4 text-xs text-stone-400">
+          <span><span class="inline-block w-2 h-2 rounded-full bg-emerald-500 mr-1"></span>38 sanos</span>
+          <span><span class="inline-block w-2 h-2 rounded-full bg-amber-500 mr-1"></span>9 alerta</span>
+          <span><span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1"></span>3 críticos</span>
+        </div>
+        <p class="text-xs text-violet-400 mt-4 group-hover:text-violet-300">Ver mapa completo →</p>
+      </div>
+    </a>
+
+    <!-- Ranking card -->
+    <a href="hub/hub_ranking.html" class="no-underline group">
+      <div class="rounded-3xl border border-white/10 bg-white/5 p-6
+                  hover:border-violet-500/30 hover:bg-white/8 transition-all h-full">
+        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500/30 to-indigo-500/30
+                    flex items-center justify-center text-2xl mb-4">🏆</div>
+        <h2 class="text-base font-bold text-white mb-2">Ranking de Sucursales</h2>
+        <p class="text-stone-400 text-sm mb-4">
+          Comparativa interna completa ordenada por Brand Authority Index.
+          Identifica el top 5 y los 5 que necesitan plan de recuperación.
+        </p>
+        <div class="space-y-1.5 mb-4">
+          <div class="flex items-center gap-2 text-xs">
+            <span class="text-amber-400 font-black w-5 text-center">#1</span>
+            <div class="flex-1 h-2.5 rounded-full bg-black/20 overflow-hidden">
+              <div class="h-full rounded-full bg-gradient-to-r from-amber-400 to-amber-500 bar-in" style="width:92%"></div>
+            </div>
+            <span class="text-stone-300 font-semibold">92</span>
+          </div>
+          <div class="flex items-center gap-2 text-xs">
+            <span class="text-stone-400 font-bold w-5 text-center">#2</span>
+            <div class="flex-1 h-2.5 rounded-full bg-black/20 overflow-hidden">
+              <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:89%"></div>
+            </div>
+            <span class="text-stone-300 font-semibold">89</span>
+          </div>
+          <div class="flex items-center gap-2 text-xs">
+            <span class="text-stone-400 font-bold w-5 text-center">#3</span>
+            <div class="flex-1 h-2.5 rounded-full bg-black/20 overflow-hidden">
+              <div class="h-full rounded-full bg-violet-500 bar-in" style="width:87%"></div>
+            </div>
+            <span class="text-stone-300 font-semibold">87</span>
+          </div>
+          <div class="text-xs text-stone-600 text-center">··· 44 locales más</div>
+          <div class="flex items-center gap-2 text-xs">
+            <span class="text-rose-400 font-bold w-5 text-center">#48</span>
+            <div class="flex-1 h-2.5 rounded-full bg-black/20 overflow-hidden">
+              <div class="h-full rounded-full bg-rose-500/60 bar-in" style="width:38%"></div>
+            </div>
+            <span class="text-rose-400 font-semibold">38</span>
+          </div>
+        </div>
+        <p class="text-xs text-violet-400 mt-4 group-hover:text-violet-300">Ver ranking completo →</p>
+      </div>
+    </a>
+
+    <!-- Audit log card -->
+    <a href="hub/hub_audit_log.html" class="no-underline group">
+      <div class="rounded-3xl border border-white/10 bg-white/5 p-6
+                  hover:border-violet-500/30 hover:bg-white/8 transition-all h-full">
+        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500/30 to-rose-500/20
+                    flex items-center justify-center text-2xl mb-4">📋</div>
+        <h2 class="text-base font-bold text-white mb-2">Control de Logs de Agencia</h2>
+        <p class="text-stone-400 text-sm mb-4">
+          Auditoría completa: quién respondió a qué reseña, en qué local,
+          con qué tono, cuándo y si fue aprobada o rechazada.
+        </p>
+        <div class="space-y-2 font-mono text-xs mb-4">
+          <div class="flex gap-2">
+            <span class="text-stone-600 flex-shrink-0">09:14:22</span>
+            <span class="text-emerald-400 flex-shrink-0">SENT</span>
+            <span class="text-stone-400 truncate">Laura M. → Pizza Norte #3</span>
+          </div>
+          <div class="flex gap-2">
+            <span class="text-stone-600 flex-shrink-0">09:12:05</span>
+            <span class="text-amber-400 flex-shrink-0">EDIT</span>
+            <span class="text-stone-400 truncate">Carlos R. → Café Rápido #7</span>
+          </div>
+          <div class="flex gap-2">
+            <span class="text-stone-600 flex-shrink-0">09:08:47</span>
+            <span class="text-violet-400 flex-shrink-0">AUTO</span>
+            <span class="text-stone-400 truncate">IA → Hotel Solimar BCN</span>
+          </div>
+          <div class="flex gap-2">
+            <span class="text-stone-600 flex-shrink-0">09:03:11</span>
+            <span class="text-rose-400 flex-shrink-0">RJCT</span>
+            <span class="text-stone-400 truncate">Ana G. rechazó → El Mar Sarrià</span>
+          </div>
+        </div>
+        <p class="text-xs text-violet-400 mt-4 group-hover:text-violet-300">Ver log completo →</p>
+      </div>
+    </a>
+  </div>
+
+  <!-- Quick links to other Enterprise flows -->
+  <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
+    <h2 class="text-sm font-bold text-stone-400 uppercase tracking-wider mb-4">Flujos Enterprise</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <a href="enterprise/enterprise_landing.html"
+         class="rounded-2xl border border-white/8 bg-black/10 p-4 hover:bg-white/5 no-underline flex items-center gap-2">
+        <span>🏷️</span><span class="text-sm text-stone-300 font-semibold">White Label</span>
+      </a>
+      <a href="enterprise/bulk/bulk_hub.html"
+         class="rounded-2xl border border-white/8 bg-black/10 p-4 hover:bg-white/5 no-underline flex items-center gap-2">
+        <span>📦</span><span class="text-sm text-stone-300 font-semibold">Bulk Publish</span>
+      </a>
+      <a href="enterprise/network/network_hub.html"
+         class="rounded-2xl border border-white/8 bg-black/10 p-4 hover:bg-white/5 no-underline flex items-center gap-2">
+        <span>🔍</span><span class="text-sm text-stone-300 font-semibold">Network Audit</span>
+      </a>
+      <a href="enterprise/reports/reports_hub.html"
+         class="rounded-2xl border border-violet-500/20 bg-violet-500/5 p-4 hover:bg-violet-500/10 no-underline flex items-center gap-2">
+        <span>📊</span><span class="text-sm text-violet-300 font-semibold">Exec Reports</span>
+      </a>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

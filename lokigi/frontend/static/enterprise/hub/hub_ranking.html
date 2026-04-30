@@ -1,0 +1,952 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ranking de Sucursales | Enterprise Hub · Lokigi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Arial, "Helvetica Neue", sans-serif; }
+    .no-underline { text-decoration: none; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp .35s ease both; }
+    @keyframes barIn {
+      from { width: 0; }
+    }
+    .bar-in { animation: barIn 1.2s cubic-bezier(.4,0,.2,1) both; }
+    @keyframes pulse-glow {
+      0%,100% { opacity: 1; box-shadow: 0 0 0 0 currentColor; }
+      50% { opacity: .7; }
+    }
+    .pulse { animation: pulse-glow 2s ease-in-out infinite; }
+    input, select, textarea {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      color: #f1f5f9;
+      padding: 9px 13px;
+      font-size: 13px;
+      outline: none;
+    }
+    select option { background: #1c1917; }
+    /* heat dot */
+    .dot-green  { background: #22c55e; box-shadow: 0 0 8px #22c55e88; }
+    .dot-yellow { background: #f59e0b; box-shadow: 0 0 8px #f59e0b88; }
+    .dot-red    { background: #ef4444; box-shadow: 0 0 8px #ef444488; }
+    /* table */
+    table { border-collapse: collapse; width: 100%; }
+    thead th { font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+                color: #78716c; padding: 8px 12px; text-align: left; font-weight: 600;
+                border-bottom: 1px solid rgba(255,255,255,.08); }
+    tbody tr { border-bottom: 1px solid rgba(255,255,255,.04); }
+    tbody tr:hover { background: rgba(255,255,255,.025); }
+    tbody td { padding: 11px 12px; font-size: 13px; color: #d6d3d1; }
+  </style>
+</head>
+<body class="min-h-screen bg-stone-950 text-stone-100">
+
+<nav class="sticky top-0 z-50 flex items-center gap-1 px-5 h-14
+     bg-stone-950/95 backdrop-blur-sm border-b border-white/10 shadow-md flex-wrap">
+  <div class="flex items-center gap-2.5 mr-4">
+    <a href="../enterprise_landing.html"
+       class="flex items-center justify-center w-8 h-8 rounded-lg
+              bg-gradient-to-br from-violet-500 to-indigo-600
+              text-white font-black text-sm no-underline">L</a>
+    <a href="../enterprise_landing.html"
+       class="font-bold text-white text-base no-underline">Lokigi</a>
+    <span class="px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300
+                 text-xs font-bold uppercase tracking-wider">Enterprise</span>
+    <span class="text-stone-600">·</span>
+    <span class="text-stone-400 text-xs font-semibold">Dashboard Hub</span>
+  </div>
+  <a href="../enterprise_hub.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">🏢 Hub</a>
+<a href="hub_heatmap.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">🗺️ Heat Map</a>
+<a href="hub_ranking.html" class="px-3 py-2 rounded-lg text-sm font-semibold text-violet-200 bg-violet-500/20 border border-violet-400/20 no-underline">🏆 Ranking</a>
+<a href="hub_audit_log.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">📋 Auditoría</a>
+
+</nav>
+
+<div class="mx-auto max-w-6xl px-4 py-10 sm:px-6 pb-20 fade-up">
+
+  <div class="mb-8">
+    <p class="text-xs uppercase tracking-[.2em] text-violet-300/70 mb-1">Enterprise Hub · Ranking</p>
+    <h1 class="text-3xl font-bold text-white">Ranking de Sucursales</h1>
+    <p class="mt-1 text-stone-400 text-sm">
+      Comparativa interna completa ordenada por Brand Authority Index (BAI).
+      Actualizada cada 5 min vía cache Redis + Celery beat.
+    </p>
+  </div>
+
+  <!-- Controls -->
+  <div class="flex flex-wrap gap-3 mb-6">
+    <select class="text-xs"><option selected>Todas las cadenas</option><option>Pizza Norte</option><option>Café Rápido</option><option>El Mar</option><option>Hotel Solimar</option></select>
+    <select class="text-xs"><option selected>Ordenar: Brand Authority ↓</option><option>Nota media ↓</option><option>Reseñas ↓</option><option>Sentimiento ↓</option></select>
+    <select class="text-xs"><option selected>Últimos 30 días</option><option>Últimos 7 días</option><option>Este trimestre</option></select>
+    <button class="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-stone-300 text-xs font-semibold hover:bg-white/10 ml-auto">
+      📥 Exportar CSV
+    </button>
+  </div>
+
+  <!-- Podium -->
+  <div class="grid grid-cols-3 gap-4 mb-8">
+    <div class="col-start-1 rounded-3xl border border-stone-500/30 bg-stone-500/5 p-5 text-center">
+      <p class="text-xs text-stone-400 uppercase tracking-wider mb-1">#2</p>
+      <p class="text-base font-bold text-stone-300">Hotel Solimar BCN</p>
+      <p class="text-3xl font-black text-stone-300 mt-2">91</p>
+      <p class="text-xs text-stone-500 mt-1">BAI · 4.5★</p>
+    </div>
+    <div class="rounded-3xl border border-amber-500/40 bg-amber-500/10 p-5 text-center relative">
+      <div class="absolute -top-3 left-1/2 -translate-x-1/2 text-2xl">🏆</div>
+      <p class="text-xs text-amber-300 uppercase tracking-wider font-bold mb-1">#1 — Campeón</p>
+      <p class="text-base font-bold text-amber-200">Pizza Norte — Alicante #1</p>
+      <p class="text-4xl font-black text-amber-300 mt-2">92</p>
+      <p class="text-xs text-amber-400 mt-1">BAI · 4.6★ · ▲ +3 pp</p>
+    </div>
+    <div class="rounded-3xl border border-amber-900/30 bg-amber-900/5 p-5 text-center">
+      <p class="text-xs text-stone-400 uppercase tracking-wider mb-1">#3</p>
+      <p class="text-base font-bold text-stone-300">El Mar — Barceloneta</p>
+      <p class="text-3xl font-black text-stone-300 mt-2">90</p>
+      <p class="text-xs text-stone-500 mt-1">BAI · 4.8★ — Récord histórico</p>
+    </div>
+  </div>
+
+  <!-- Full table -->
+  <div class="rounded-3xl border border-white/10 bg-white/5 overflow-hidden">
+    <div class="p-4 border-b border-white/10">
+      <p class="text-sm font-semibold text-white">Tabla completa — 50 locales</p>
+    </div>
+    <div class="overflow-x-auto">
+      <table>
+        <thead>
+          <tr>
+            <th class="text-center">#</th>
+            <th>Local</th>
+            <th class="text-center">Nota</th>
+            <th class="text-center">Reseñas</th>
+            <th class="text-center">Sentim.</th>
+            <th>Brand Authority</th>
+            <th class="text-center">Tendencia</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">1</td>
+          <td class="font-semibold text-stone-200">Pizza Norte — Alicante #1</td>
+          <td class="text-center">4.8★</td>
+          <td class="text-center">464</td>
+          <td class="text-center">0.88</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:92%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">92</span>
+            </div>
+          </td>
+          <td class="text-center text-emerald-400 font-bold text-sm">▲</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">2</td>
+          <td class="font-semibold text-stone-200">Hotel Solimar — BCN</td>
+          <td class="text-center">4.7★</td>
+          <td class="text-center">459</td>
+          <td class="text-center">0.87</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:91%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">91</span>
+            </div>
+          </td>
+          <td class="text-center text-emerald-400 font-bold text-sm">▲</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">3</td>
+          <td class="font-semibold text-stone-200">El Mar — Barceloneta</td>
+          <td class="text-center">4.7★</td>
+          <td class="text-center">455</td>
+          <td class="text-center">0.86</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:90%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">90</span>
+            </div>
+          </td>
+          <td class="text-center text-emerald-400 font-bold text-sm">▲</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">4</td>
+          <td class="font-semibold text-stone-200">Café Rápido — Málaga #1</td>
+          <td class="text-center">4.7★</td>
+          <td class="text-center">450</td>
+          <td class="text-center">0.86</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:89%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">89</span>
+            </div>
+          </td>
+          <td class="text-center text-emerald-400 font-bold text-sm">▲</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">5</td>
+          <td class="font-semibold text-stone-200">Pizza Norte — Valencia #1</td>
+          <td class="text-center">4.6★</td>
+          <td class="text-center">446</td>
+          <td class="text-center">0.85</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:88%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">88</span>
+            </div>
+          </td>
+          <td class="text-center text-emerald-400 font-bold text-sm">▲</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">6</td>
+          <td class="font-semibold text-stone-200">El Mar — Palma</td>
+          <td class="text-center">4.6★</td>
+          <td class="text-center">441</td>
+          <td class="text-center">0.84</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:87%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">87</span>
+            </div>
+          </td>
+          <td class="text-center text-emerald-400 font-bold text-sm">▲</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">7</td>
+          <td class="font-semibold text-stone-200">Hotel Solimar — Valencia</td>
+          <td class="text-center">4.6★</td>
+          <td class="text-center">441</td>
+          <td class="text-center">0.84</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:87%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">87</span>
+            </div>
+          </td>
+          <td class="text-center text-emerald-400 font-bold text-sm">▲</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">8</td>
+          <td class="font-semibold text-stone-200">Café Rápido — Madrid #1</td>
+          <td class="text-center">4.6★</td>
+          <td class="text-center">437</td>
+          <td class="text-center">0.83</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:86%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">86</span>
+            </div>
+          </td>
+          <td class="text-center text-emerald-400 font-bold text-sm">▲</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">9</td>
+          <td class="font-semibold text-stone-200">Pizza Norte — Murcia #1</td>
+          <td class="text-center">4.5★</td>
+          <td class="text-center">432</td>
+          <td class="text-center">0.82</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:85%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">85</span>
+            </div>
+          </td>
+          <td class="text-center text-emerald-400 font-bold text-sm">▲</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">10</td>
+          <td class="font-semibold text-stone-200">El Mar — Sitges</td>
+          <td class="text-center">4.5★</td>
+          <td class="text-center">432</td>
+          <td class="text-center">0.82</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:85%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">85</span>
+            </div>
+          </td>
+          <td class="text-center text-emerald-400 font-bold text-sm">▲</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">11</td>
+          <td class="font-semibold text-stone-200">Café Rápido — Sevilla #1</td>
+          <td class="text-center">4.5★</td>
+          <td class="text-center">428</td>
+          <td class="text-center">0.81</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:84%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">84</span>
+            </div>
+          </td>
+          <td class="text-center text-emerald-400 font-bold text-sm">▲</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">12</td>
+          <td class="font-semibold text-stone-200">Pizza Norte — Alicante #2</td>
+          <td class="text-center">4.5★</td>
+          <td class="text-center">428</td>
+          <td class="text-center">0.81</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:84%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">84</span>
+            </div>
+          </td>
+          <td class="text-center text-emerald-400 font-bold text-sm">▲</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">13</td>
+          <td class="font-semibold text-stone-200">Hotel Solimar — Tarragona</td>
+          <td class="text-center">4.5★</td>
+          <td class="text-center">423</td>
+          <td class="text-center">0.81</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:83%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">83</span>
+            </div>
+          </td>
+          <td class="text-center text-emerald-400 font-bold text-sm">▲</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">14</td>
+          <td class="font-semibold text-stone-200">El Mar — Alicante</td>
+          <td class="text-center">4.5★</td>
+          <td class="text-center">423</td>
+          <td class="text-center">0.81</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:83%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">83</span>
+            </div>
+          </td>
+          <td class="text-center text-emerald-400 font-bold text-sm">▲</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">15</td>
+          <td class="font-semibold text-stone-200">Pizza Norte — Valencia #2</td>
+          <td class="text-center">4.5★</td>
+          <td class="text-center">419</td>
+          <td class="text-center">0.8</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:82%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">82</span>
+            </div>
+          </td>
+          <td class="text-center text-emerald-400 font-bold text-sm">▲</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">16</td>
+          <td class="font-semibold text-stone-200">Café Rápido — Madrid #2</td>
+          <td class="text-center">4.5★</td>
+          <td class="text-center">419</td>
+          <td class="text-center">0.8</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:82%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">82</span>
+            </div>
+          </td>
+          <td class="text-center text-emerald-400 font-bold text-sm">▲</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">17</td>
+          <td class="font-semibold text-stone-200">Pizza Norte — Benidorm</td>
+          <td class="text-center">4.4★</td>
+          <td class="text-center">414</td>
+          <td class="text-center">0.79</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:81%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">81</span>
+            </div>
+          </td>
+          <td class="text-center text-emerald-400 font-bold text-sm">▲</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">18</td>
+          <td class="font-semibold text-stone-200">El Mar — Marbella</td>
+          <td class="text-center">4.4★</td>
+          <td class="text-center">414</td>
+          <td class="text-center">0.79</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:81%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">81</span>
+            </div>
+          </td>
+          <td class="text-center text-emerald-400 font-bold text-sm">▲</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">19</td>
+          <td class="font-semibold text-stone-200">Café Rápido — Málaga #2</td>
+          <td class="text-center">4.4★</td>
+          <td class="text-center">410</td>
+          <td class="text-center">0.78</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:80%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">80</span>
+            </div>
+          </td>
+          <td class="text-center text-stone-500 font-bold text-sm">—</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">20</td>
+          <td class="font-semibold text-stone-200">Hotel Solimar — Ibiza</td>
+          <td class="text-center">4.4★</td>
+          <td class="text-center">410</td>
+          <td class="text-center">0.78</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:80%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">80</span>
+            </div>
+          </td>
+          <td class="text-center text-stone-500 font-bold text-sm">—</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">21</td>
+          <td class="font-semibold text-stone-200">Pizza Norte — Murcia #2</td>
+          <td class="text-center">4.4★</td>
+          <td class="text-center">405</td>
+          <td class="text-center">0.77</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:79%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">79</span>
+            </div>
+          </td>
+          <td class="text-center text-stone-500 font-bold text-sm">—</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">22</td>
+          <td class="font-semibold text-stone-200">Café Rápido — Granada</td>
+          <td class="text-center">4.3★</td>
+          <td class="text-center">401</td>
+          <td class="text-center">0.76</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:78%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">78</span>
+            </div>
+          </td>
+          <td class="text-center text-stone-500 font-bold text-sm">—</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">23</td>
+          <td class="font-semibold text-stone-200">Pizza Norte — Elche</td>
+          <td class="text-center">4.3★</td>
+          <td class="text-center">401</td>
+          <td class="text-center">0.76</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:78%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">78</span>
+            </div>
+          </td>
+          <td class="text-center text-stone-500 font-bold text-sm">—</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">24</td>
+          <td class="font-semibold text-stone-200">El Mar — Torrevieja</td>
+          <td class="text-center">4.3★</td>
+          <td class="text-center">396</td>
+          <td class="text-center">0.75</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:77%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">77</span>
+            </div>
+          </td>
+          <td class="text-center text-stone-500 font-bold text-sm">—</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">25</td>
+          <td class="font-semibold text-stone-200">Café Rápido — Sevilla #2</td>
+          <td class="text-center">4.3★</td>
+          <td class="text-center">396</td>
+          <td class="text-center">0.75</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:77%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">77</span>
+            </div>
+          </td>
+          <td class="text-center text-stone-500 font-bold text-sm">—</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">26</td>
+          <td class="font-semibold text-stone-200">Pizza Norte — Almería</td>
+          <td class="text-center">4.3★</td>
+          <td class="text-center">392</td>
+          <td class="text-center">0.75</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:76%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">76</span>
+            </div>
+          </td>
+          <td class="text-center text-stone-500 font-bold text-sm">—</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">27</td>
+          <td class="font-semibold text-stone-200">Hotel Solimar — Costa Brava</td>
+          <td class="text-center">4.3★</td>
+          <td class="text-center">392</td>
+          <td class="text-center">0.75</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:76%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">76</span>
+            </div>
+          </td>
+          <td class="text-center text-stone-500 font-bold text-sm">—</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">28</td>
+          <td class="font-semibold text-stone-200">Pizza Norte — Cartagena</td>
+          <td class="text-center">4.2★</td>
+          <td class="text-center">387</td>
+          <td class="text-center">0.74</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:75%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">75</span>
+            </div>
+          </td>
+          <td class="text-center text-stone-500 font-bold text-sm">—</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">29</td>
+          <td class="font-semibold text-stone-200">Café Rápido — Zaragoza</td>
+          <td class="text-center">4.2★</td>
+          <td class="text-center">387</td>
+          <td class="text-center">0.74</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:75%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">75</span>
+            </div>
+          </td>
+          <td class="text-center text-stone-500 font-bold text-sm">—</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">30</td>
+          <td class="font-semibold text-stone-200">El Mar — Dénia</td>
+          <td class="text-center">4.2★</td>
+          <td class="text-center">383</td>
+          <td class="text-center">0.73</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:74%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">74</span>
+            </div>
+          </td>
+          <td class="text-center text-stone-500 font-bold text-sm">—</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">31</td>
+          <td class="font-semibold text-stone-200">Pizza Norte — Gandía</td>
+          <td class="text-center">4.2★</td>
+          <td class="text-center">378</td>
+          <td class="text-center">0.72</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:73%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">73</span>
+            </div>
+          </td>
+          <td class="text-center text-stone-500 font-bold text-sm">—</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">32</td>
+          <td class="font-semibold text-stone-200">Café Rápido — Bilbao</td>
+          <td class="text-center">4.2★</td>
+          <td class="text-center">374</td>
+          <td class="text-center">0.71</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:72%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">72</span>
+            </div>
+          </td>
+          <td class="text-center text-stone-500 font-bold text-sm">—</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">33</td>
+          <td class="font-semibold text-stone-200">Pizza Norte — Torrevieja</td>
+          <td class="text-center">4.1★</td>
+          <td class="text-center">369</td>
+          <td class="text-center">0.7</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:71%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">71</span>
+            </div>
+          </td>
+          <td class="text-center text-stone-500 font-bold text-sm">—</td>
+        </tr>
+        <tr>
+          <td class="font-black text-emerald-300 text-center w-10">34</td>
+          <td class="font-semibold text-stone-200">El Mar — Fuengirola</td>
+          <td class="text-center">4.1★</td>
+          <td class="text-center">365</td>
+          <td class="text-center">0.69</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-emerald-500 bar-in" style="width:70%"></div>
+              </div>
+              <span class="text-emerald-300 font-black text-xs w-8">70</span>
+            </div>
+          </td>
+          <td class="text-center text-stone-500 font-bold text-sm">—</td>
+        </tr>
+        <tr>
+          <td class="font-black text-amber-300 text-center w-10">35</td>
+          <td class="font-semibold text-stone-200">Pizza Norte — La Manga</td>
+          <td class="text-center">4.1★</td>
+          <td class="text-center">360</td>
+          <td class="text-center">0.69</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-amber-500 bar-in" style="width:69%"></div>
+              </div>
+              <span class="text-amber-300 font-black text-xs w-8">69</span>
+            </div>
+          </td>
+          <td class="text-center text-amber-400 font-bold text-sm">▼</td>
+        </tr>
+        <tr>
+          <td class="font-black text-amber-300 text-center w-10">36</td>
+          <td class="font-semibold text-stone-200">Café Rápido — Córdoba</td>
+          <td class="text-center">4.0★</td>
+          <td class="text-center">351</td>
+          <td class="text-center">0.67</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-amber-500 bar-in" style="width:67%"></div>
+              </div>
+              <span class="text-amber-300 font-black text-xs w-8">67</span>
+            </div>
+          </td>
+          <td class="text-center text-amber-400 font-bold text-sm">▼</td>
+        </tr>
+        <tr>
+          <td class="font-black text-amber-300 text-center w-10">37</td>
+          <td class="font-semibold text-stone-200">Pizza Norte — Elda</td>
+          <td class="text-center">4.0★</td>
+          <td class="text-center">342</td>
+          <td class="text-center">0.65</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-amber-500 bar-in" style="width:65%"></div>
+              </div>
+              <span class="text-amber-300 font-black text-xs w-8">65</span>
+            </div>
+          </td>
+          <td class="text-center text-amber-400 font-bold text-sm">▼</td>
+        </tr>
+        <tr>
+          <td class="font-black text-amber-300 text-center w-10">38</td>
+          <td class="font-semibold text-stone-200">El Mar — Cádiz</td>
+          <td class="text-center">3.9★</td>
+          <td class="text-center">338</td>
+          <td class="text-center">0.64</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-amber-500 bar-in" style="width:64%"></div>
+              </div>
+              <span class="text-amber-300 font-black text-xs w-8">64</span>
+            </div>
+          </td>
+          <td class="text-center text-amber-400 font-bold text-sm">▼</td>
+        </tr>
+        <tr>
+          <td class="font-black text-amber-300 text-center w-10">39</td>
+          <td class="font-semibold text-stone-200">Pizza Norte — Orihuela</td>
+          <td class="text-center">3.9★</td>
+          <td class="text-center">329</td>
+          <td class="text-center">0.63</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-amber-500 bar-in" style="width:62%"></div>
+              </div>
+              <span class="text-amber-300 font-black text-xs w-8">62</span>
+            </div>
+          </td>
+          <td class="text-center text-amber-400 font-bold text-sm">▼</td>
+        </tr>
+        <tr>
+          <td class="font-black text-amber-300 text-center w-10">40</td>
+          <td class="font-semibold text-stone-200">Café Rápido — Huelva</td>
+          <td class="text-center">3.8★</td>
+          <td class="text-center">324</td>
+          <td class="text-center">0.62</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-amber-500 bar-in" style="width:61%"></div>
+              </div>
+              <span class="text-amber-300 font-black text-xs w-8">61</span>
+            </div>
+          </td>
+          <td class="text-center text-amber-400 font-bold text-sm">▼</td>
+        </tr>
+        <tr>
+          <td class="font-black text-amber-300 text-center w-10">41</td>
+          <td class="font-semibold text-stone-200">Pizza Norte — Villena</td>
+          <td class="text-center">3.8★</td>
+          <td class="text-center">320</td>
+          <td class="text-center">0.61</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-amber-500 bar-in" style="width:60%"></div>
+              </div>
+              <span class="text-amber-300 font-black text-xs w-8">60</span>
+            </div>
+          </td>
+          <td class="text-center text-amber-400 font-bold text-sm">▼</td>
+        </tr>
+        <tr>
+          <td class="font-black text-amber-300 text-center w-10">42</td>
+          <td class="font-semibold text-stone-200">El Mar — Almería</td>
+          <td class="text-center">3.7★</td>
+          <td class="text-center">311</td>
+          <td class="text-center">0.59</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-amber-500 bar-in" style="width:58%"></div>
+              </div>
+              <span class="text-amber-300 font-black text-xs w-8">58</span>
+            </div>
+          </td>
+          <td class="text-center text-amber-400 font-bold text-sm">▼</td>
+        </tr>
+        <tr>
+          <td class="font-black text-amber-300 text-center w-10">43</td>
+          <td class="font-semibold text-stone-200">Café Rápido — Jaén</td>
+          <td class="text-center">3.7★</td>
+          <td class="text-center">306</td>
+          <td class="text-center">0.58</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-amber-500 bar-in" style="width:57%"></div>
+              </div>
+              <span class="text-amber-300 font-black text-xs w-8">57</span>
+            </div>
+          </td>
+          <td class="text-center text-amber-400 font-bold text-sm">▼</td>
+        </tr>
+        <tr>
+          <td class="font-black text-amber-300 text-center w-10">44</td>
+          <td class="font-semibold text-stone-200">Pizza Norte — Yecla</td>
+          <td class="text-center">3.6★</td>
+          <td class="text-center">293</td>
+          <td class="text-center">0.56</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-amber-500 bar-in" style="width:54%"></div>
+              </div>
+              <span class="text-amber-300 font-black text-xs w-8">54</span>
+            </div>
+          </td>
+          <td class="text-center text-amber-400 font-bold text-sm">▼</td>
+        </tr>
+        <tr>
+          <td class="font-black text-amber-300 text-center w-10">45</td>
+          <td class="font-semibold text-stone-200">El Mar — Motril</td>
+          <td class="text-center">3.6★</td>
+          <td class="text-center">284</td>
+          <td class="text-center">0.54</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-amber-500 bar-in" style="width:52%"></div>
+              </div>
+              <span class="text-amber-300 font-black text-xs w-8">52</span>
+            </div>
+          </td>
+          <td class="text-center text-amber-400 font-bold text-sm">▼</td>
+        </tr>
+        <tr>
+          <td class="font-black text-amber-300 text-center w-10">46</td>
+          <td class="font-semibold text-stone-200">Pizza Norte — Hellín</td>
+          <td class="text-center">3.5★</td>
+          <td class="text-center">270</td>
+          <td class="text-center">0.52</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-amber-500 bar-in" style="width:49%"></div>
+              </div>
+              <span class="text-amber-300 font-black text-xs w-8">49</span>
+            </div>
+          </td>
+          <td class="text-center text-amber-400 font-bold text-sm">▼</td>
+        </tr>
+        <tr>
+          <td class="font-black text-amber-300 text-center w-10">47</td>
+          <td class="font-semibold text-stone-200">Café Rápido — Linares</td>
+          <td class="text-center">3.4★</td>
+          <td class="text-center">252</td>
+          <td class="text-center">0.48</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-amber-500 bar-in" style="width:45%"></div>
+              </div>
+              <span class="text-amber-300 font-black text-xs w-8">45</span>
+            </div>
+          </td>
+          <td class="text-center text-amber-400 font-bold text-sm">▼</td>
+        </tr>
+        <tr>
+          <td class="font-black text-rose-300 text-center w-10">48</td>
+          <td class="font-semibold text-stone-200">El Mar — Sarrià</td>
+          <td class="text-center">3.2★</td>
+          <td class="text-center">230</td>
+          <td class="text-center">0.44</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-rose-500 bar-in" style="width:40%"></div>
+              </div>
+              <span class="text-rose-300 font-black text-xs w-8">40</span>
+            </div>
+          </td>
+          <td class="text-center text-rose-400 font-bold text-sm">▼▼</td>
+        </tr>
+        <tr>
+          <td class="font-black text-rose-300 text-center w-10">49</td>
+          <td class="font-semibold text-stone-200">Pizza Norte — Getafe Sur</td>
+          <td class="text-center">3.0★</td>
+          <td class="text-center">207</td>
+          <td class="text-center">0.4</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-rose-500 bar-in" style="width:35%"></div>
+              </div>
+              <span class="text-rose-300 font-black text-xs w-8">35</span>
+            </div>
+          </td>
+          <td class="text-center text-rose-400 font-bold text-sm">▼▼</td>
+        </tr>
+        <tr>
+          <td class="font-black text-rose-300 text-center w-10">50</td>
+          <td class="font-semibold text-stone-200">Café Rápido — Badajoz</td>
+          <td class="text-center">2.9★</td>
+          <td class="text-center">185</td>
+          <td class="text-center">0.35</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-2 rounded-full bg-black/30 overflow-hidden min-w-16">
+                <div class="h-full rounded-full bg-rose-500 bar-in" style="width:30%"></div>
+              </div>
+              <span class="text-rose-300 font-black text-xs w-8">30</span>
+            </div>
+          </td>
+          <td class="text-center text-rose-400 font-bold text-sm">▼▼</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Bottom action -->
+  <div class="mt-6 flex justify-end">
+    <a href="../reports/reports_hub.html"
+       class="px-6 py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600
+              text-white font-bold text-sm hover:from-violet-500 hover:to-indigo-500 no-underline">
+      📊 Generar informe ejecutivo →
+    </a>
+  </div>
+
+</div>
+</body>
+</html>
