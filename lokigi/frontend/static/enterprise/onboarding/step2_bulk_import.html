@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Onboarding Enterprise · Paso 2 de 3 — Locales</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background: #0c0a09; color: #f1f5f9; font-family: "Inter", system-ui, sans-serif; }
+    .card { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.10); border-radius: 16px; }
+
+    /* ── Drop Zone ── */
+    #drop-zone {
+      border: 2px dashed rgba(124,58,237,.35); border-radius: 16px;
+      padding: 60px 40px; text-align: center; cursor: pointer;
+      background: rgba(124,58,237,.04); transition: .25s;
+    }
+    #drop-zone:hover, #drop-zone.drag-over {
+      border-color: #7c3aed; background: rgba(124,58,237,.10);
+      transform: scale(1.005);
+    }
+    #drop-zone.has-file {
+      border-color: rgba(16,185,129,.4); background: rgba(16,185,129,.05);
+    }
+
+    /* ── Buttons ── */
+    .btn-primary {
+      background: linear-gradient(135deg,#7c3aed,#4f46e5); color:#fff;
+      font-weight:700; font-size:14px; border-radius:10px; padding:10px 24px;
+      cursor:pointer; border:none; transition:.15s;
+    }
+    .btn-primary:hover { opacity:.88; }
+    .btn-primary:disabled { opacity:.4; cursor:not-allowed; }
+    .btn-ghost {
+      background:transparent; color:#a78bfa;
+      border:1.5px solid rgba(124,58,237,.45);
+      font-weight:600; font-size:13px; border-radius:10px;
+      padding:9px 20px; cursor:pointer; transition:.15s;
+    }
+    .btn-ghost:hover { background:rgba(124,58,237,.12); }
+
+    /* ── Step pills ── */
+    .step-pill { display:flex; align-items:center; gap:8px; padding:6px 14px;
+                 border-radius:999px; font-size:12px; font-weight:700; }
+    .step-pill.done    { background:rgba(16,185,129,.12); color:#34d399; border:1px solid rgba(16,185,129,.25); }
+    .step-pill.active  { background:rgba(124,58,237,.18); color:#a78bfa; border:1px solid rgba(124,58,237,.35); }
+    .step-pill.pending { background:rgba(255,255,255,.04); color:#57534e; border:1px solid rgba(255,255,255,.08); }
+
+    /* ── Stat cards ── */
+    .stat-card { border-radius:12px; padding:16px; text-align:center; }
+    .stat-valid    { background:rgba(16,185,129,.08); border:1px solid rgba(16,185,129,.2); }
+    .stat-invalid  { background:rgba(239,68,68,.08);  border:1px solid rgba(239,68,68,.2); }
+    .stat-dup      { background:rgba(245,158,11,.08); border:1px solid rgba(245,158,11,.2); }
+    .stat-total    { background:rgba(124,58,237,.08); border:1px solid rgba(124,58,237,.2); }
+
+    /* ── Table ── */
+    .tbl-header { font-size:11px; font-weight:700; text-transform:uppercase;
+                  letter-spacing:.05em; color:#57534e; }
+    .tbl-row    { border-top:1px solid rgba(255,255,255,.06); }
+    .tbl-row:hover { background:rgba(255,255,255,.04); }
+    .badge-valid   { background:rgba(16,185,129,.12); color:#34d399;  border:1px solid rgba(16,185,129,.2); }
+    .badge-invalid { background:rgba(239,68,68,.12);  color:#f87171;  border:1px solid rgba(239,68,68,.2); }
+
+    /* ── Progress ring ── */
+    @keyframes spin { to{transform:rotate(360deg)} }
+    .spin { animation: spin 1s linear infinite; }
+
+    @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .fade-up { animation: fadeUp .3s ease both; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- ── TOP NAV ── -->
+  <nav class="border-b border-white/10 px-8 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg flex items-center justify-center font-black text-white text-sm"
+           style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">L</div>
+      <span class="font-bold text-[15px]">Lokigi Enterprise</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <div class="step-pill done">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+        Marca
+      </div>
+      <div class="w-8 h-px bg-white/10"></div>
+      <div class="step-pill active">
+        <span class="w-5 h-5 rounded-full bg-violet-500 flex items-center justify-center text-[10px] text-white font-black">2</span>
+        Locales
+      </div>
+      <div class="w-8 h-px bg-white/10"></div>
+      <div class="step-pill pending">
+        <span class="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] text-stone-500 font-black">3</span>
+        Gobernanza
+      </div>
+    </div>
+    <div class="flex items-center gap-2 text-sm text-stone-400">
+      <div class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></div>
+      Importando locales
+    </div>
+  </nav>
+
+  <main class="flex-1 flex flex-col items-center justify-start px-6 py-10 gap-8 max-w-[900px] mx-auto w-full">
+
+    <!-- Header -->
+    <div class="w-full fade-up">
+      <h1 class="text-2xl font-black text-white mb-1">Importación Masiva de Locales</h1>
+      <p class="text-stone-400 text-sm">
+        Sube un archivo CSV o Excel con tus sucursales. El sistema validará cada fila antes de la inserción.
+        Una vez confirmada, el Worker de Celery iniciará el primer escaneo de reputación.
+      </p>
+    </div>
+
+    <!-- Drop zone -->
+    <div class="w-full fade-up" style="animation-delay:.05s" id="upload-section">
+      <div id="drop-zone"
+           onclick="document.getElementById('file-input').click()"
+           ondragover="handleDragOver(event)"
+           ondragleave="handleDragLeave()"
+           ondrop="handleDrop(event)">
+
+        <!-- Default state -->
+        <div id="dz-default">
+          <div class="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center"
+               style="background:rgba(124,58,237,.15)">
+            <svg class="w-8 h-8 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                    d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+          </div>
+          <p class="text-lg font-bold text-white mb-1">Arrastra tu archivo aquí</p>
+          <p class="text-stone-400 text-sm mb-4">o haz clic para seleccionarlo</p>
+          <p class="text-xs text-stone-600">Formatos aceptados: <strong class="text-stone-400">.csv · .xlsx · .xls</strong> — Máx. 20 MB · 5,000 filas</p>
+        </div>
+
+        <!-- File selected state -->
+        <div id="dz-file" class="hidden flex items-center justify-center gap-4">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-emerald-500/15">
+            <svg class="w-6 h-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <div class="text-left">
+            <p class="text-white font-semibold" id="file-name">archivo.csv</p>
+            <p class="text-stone-500 text-sm" id="file-size">—</p>
+          </div>
+          <button class="btn-ghost text-xs px-3 py-1.5" onclick="clearFile(event)">Cambiar</button>
+        </div>
+      </div>
+      <input type="file" id="file-input" accept=".csv,.xlsx,.xls" class="hidden" onchange="onFileSelected()" />
+    </div>
+
+    <!-- Template download + instructions -->
+    <div class="w-full grid grid-cols-2 gap-4 fade-up" style="animation-delay:.1s" id="info-cards">
+      <div class="card p-4">
+        <div class="flex items-start gap-3">
+          <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+               style="background:rgba(59,130,246,.15)">
+            <svg class="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-white mb-1">Descargar plantilla CSV</p>
+            <p class="text-xs text-stone-500 mb-2">Con columnas de ejemplo correctamente formateadas</p>
+            <button class="btn-ghost text-xs py-1.5 px-3" onclick="downloadTemplate()">Descargar</button>
+          </div>
+        </div>
+      </div>
+      <div class="card p-4">
+        <div class="flex items-start gap-3">
+          <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+               style="background:rgba(16,185,129,.15)">
+            <svg class="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-white mb-1">Columnas requeridas</p>
+            <p class="text-xs text-stone-500 leading-relaxed">
+              <code class="text-violet-400">place_id</code> · <code class="text-violet-400">address</code> (alternativo) · <code class="text-blue-400">name</code> · <code class="text-stone-400">phone</code> · <code class="text-stone-400">city</code> · <code class="text-stone-400">country</code>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preview + Analyze button -->
+    <div id="analyze-section" class="w-full hidden fade-up">
+      <div class="flex items-center gap-3 mb-5">
+        <button class="btn-primary flex items-center gap-2" id="btn-analyze" onclick="analyzeFile()">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2"/></svg>
+          Analizar archivo
+        </button>
+        <p class="text-xs text-stone-500">Se validará el contenido sin guardar nada aún.</p>
+      </div>
+    </div>
+
+    <!-- ── Results section (shown after analysis) ── -->
+    <div id="results-section" class="w-full hidden">
+
+      <!-- Stats bar -->
+      <div class="grid grid-cols-4 gap-3 mb-6 fade-up">
+        <div class="stat-card stat-total">
+          <p class="text-[10px] text-stone-500 font-semibold uppercase mb-1">Total Filas</p>
+          <p class="text-3xl font-black text-white" id="stat-total">—</p>
+        </div>
+        <div class="stat-card stat-valid">
+          <p class="text-[10px] text-emerald-600 font-semibold uppercase mb-1">✓ Válidas</p>
+          <p class="text-3xl font-black text-emerald-400" id="stat-valid">—</p>
+        </div>
+        <div class="stat-card stat-invalid">
+          <p class="text-[10px] text-red-600 font-semibold uppercase mb-1">✗ Con Errores</p>
+          <p class="text-3xl font-black text-red-400" id="stat-invalid">—</p>
+        </div>
+        <div class="stat-card stat-dup">
+          <p class="text-[10px] text-amber-600 font-semibold uppercase mb-1">Duplicadas</p>
+          <p class="text-3xl font-black text-amber-400" id="stat-dup">—</p>
+        </div>
+      </div>
+
+      <!-- Detected columns -->
+      <div class="mb-4">
+        <p class="text-xs text-stone-500 mb-2 font-semibold uppercase tracking-wider">Columnas detectadas</p>
+        <div id="detected-cols" class="flex flex-wrap gap-2"></div>
+      </div>
+
+      <!-- Preview table -->
+      <div class="card overflow-hidden mb-6">
+        <div class="flex items-center justify-between px-5 py-3 border-b border-white/10">
+          <h2 class="text-sm font-bold text-white">Previsualización — Primeros 20 locales válidos</h2>
+          <div class="flex gap-2">
+            <button onclick="toggleErrors()" id="btn-toggle-errors"
+                    class="text-xs px-3 py-1 rounded-lg bg-white/6 border border-white/10 text-stone-300 hover:border-rose-500 transition">
+              Ver errores
+            </button>
+          </div>
+        </div>
+
+        <!-- Valid rows table -->
+        <div id="table-valid" class="overflow-x-auto">
+          <table class="w-full">
+            <thead>
+              <tr class="px-5 py-2.5">
+                <th class="tbl-header px-4 py-2.5 text-left">#</th>
+                <th class="tbl-header px-4 py-2.5 text-left">Place ID</th>
+                <th class="tbl-header px-4 py-2.5 text-left">Nombre</th>
+                <th class="tbl-header px-4 py-2.5 text-left">Dirección</th>
+                <th class="tbl-header px-4 py-2.5 text-left">Ciudad</th>
+                <th class="tbl-header px-4 py-2.5 text-left">País</th>
+                <th class="tbl-header px-4 py-2.5 text-left">Estado</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-valid"></tbody>
+          </table>
+        </div>
+
+        <!-- Error rows table (hidden by default) -->
+        <div id="table-errors" class="overflow-x-auto hidden">
+          <table class="w-full">
+            <thead>
+              <tr>
+                <th class="tbl-header px-4 py-2.5 text-left">#</th>
+                <th class="tbl-header px-4 py-2.5 text-left">Fila</th>
+                <th class="tbl-header px-4 py-2.5 text-left">Datos</th>
+                <th class="tbl-header px-4 py-2.5 text-left">Error</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-errors"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Background job notice + Commit CTA -->
+      <div class="card p-5 flex items-start gap-4 mb-4">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+             style="background:rgba(124,58,237,.15)">
+          <svg class="w-5 h-5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        </div>
+        <div>
+          <p class="text-sm font-semibold text-white mb-0.5">El Worker de Celery inicia automáticamente</p>
+          <p class="text-xs text-stone-500 leading-relaxed">
+            Al confirmar la importación, el sistema disparará un job en segundo plano que conectará cada
+            <code class="text-violet-400">place_id</code> con la API de Google Business Profile, obtendrá
+            la metadata inicial y calculará el primer <strong class="text-stone-300">Score de Reputación</strong> para toda la red.
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button class="btn-primary flex items-center gap-2" id="btn-commit" onclick="commitImport()">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+          Confirmar e importar
+        </button>
+        <button class="btn-ghost" onclick="clearFile(null); document.getElementById('results-section').classList.add('hidden');">
+          Cambiar archivo
+        </button>
+        <p class="text-xs text-stone-500 ml-1" id="commit-count"></p>
+      </div>
+
+      <!-- Progress bar (shown during commit) -->
+      <div id="progress-section" class="hidden mt-4">
+        <div class="flex items-center gap-3 mb-2">
+          <svg class="w-4 h-4 text-violet-400 spin" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          <p class="text-sm text-stone-300" id="progress-label">Guardando locales…</p>
+        </div>
+        <div class="w-full bg-white/8 rounded-full h-2">
+          <div id="progress-bar" class="h-2 rounded-full transition-all duration-500"
+               style="background:linear-gradient(90deg,#7c3aed,#4f46e5);width:0%"></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    let currentFile = null;
+    let previewData = null;
+    const ORG_ID = sessionStorage.getItem("onboarding_org_id") || "demo-org-id";
+
+    // ── Drag & drop ─────────────────────────────────────────────────────────
+    function handleDragOver(e) {
+      e.preventDefault();
+      document.getElementById("drop-zone").classList.add("drag-over");
+    }
+    function handleDragLeave() {
+      document.getElementById("drop-zone").classList.remove("drag-over");
+    }
+    function handleDrop(e) {
+      e.preventDefault();
+      document.getElementById("drop-zone").classList.remove("drag-over");
+      const file = e.dataTransfer.files[0];
+      if (!file) return;
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      document.getElementById("file-input").files = dt.files;
+      onFileSelected();
+    }
+
+    function onFileSelected() {
+      const input = document.getElementById("file-input");
+      if (!input.files.length) return;
+      currentFile = input.files[0];
+      const ext = currentFile.name.split(".").pop().toLowerCase();
+      if (!["csv","xlsx","xls"].includes(ext)) {
+        alert("Formato no soportado. Usa CSV, XLSX o XLS.");
+        return;
+      }
+
+      document.getElementById("dz-default").classList.add("hidden");
+      document.getElementById("dz-file").classList.remove("hidden");
+      document.getElementById("file-name").textContent = currentFile.name;
+      document.getElementById("file-size").textContent = formatBytes(currentFile.size);
+      document.getElementById("drop-zone").classList.add("has-file");
+      document.getElementById("analyze-section").classList.remove("hidden");
+      document.getElementById("results-section").classList.add("hidden");
+    }
+
+    function clearFile(e) {
+      if (e) { e.stopPropagation(); }
+      currentFile = null;
+      previewData = null;
+      document.getElementById("file-input").value = "";
+      document.getElementById("dz-default").classList.remove("hidden");
+      document.getElementById("dz-file").classList.add("hidden");
+      document.getElementById("drop-zone").classList.remove("has-file","drag-over");
+      document.getElementById("analyze-section").classList.add("hidden");
+    }
+
+    // ── Analyze (dry-run preview) ────────────────────────────────────────────
+    async function analyzeFile() {
+      if (!currentFile) return;
+      const btn = document.getElementById("btn-analyze");
+      btn.disabled = true;
+      btn.innerHTML = `<svg class="w-4 h-4 spin" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Analizando…`;
+
+      try {
+        // ── DEMO MODE: simulate API response ──────────────────────────────
+        // In production, replace with real fetch:
+        // const form = new FormData();
+        // form.append("org_id", ORG_ID);
+        // form.append("file", currentFile);
+        // const res = await fetch("/enterprise/onboarding/locations/preview", { method:"POST", body: form });
+        // previewData = await res.json();
+
+        await new Promise(r => setTimeout(r, 900)); // simulate latency
+        previewData = _demoPreviewData(currentFile.name);
+        // ─────────────────────────────────────────────────────────────────
+
+        renderResults(previewData);
+        document.getElementById("results-section").classList.remove("hidden");
+      } catch (err) {
+        alert("Error al analizar: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2"/></svg> Re-analizar`;
+      }
+    }
+
+    function renderResults(data) {
+      document.getElementById("stat-total").textContent   = data.total_rows;
+      document.getElementById("stat-valid").textContent   = data.valid_rows;
+      document.getElementById("stat-invalid").textContent = data.invalid_rows;
+      document.getElementById("stat-dup").textContent     = data.duplicate_rows;
+      document.getElementById("commit-count").textContent = `Se insertarán ${data.valid_rows} locales`;
+
+      // Detected columns
+      const colsEl = document.getElementById("detected-cols");
+      colsEl.innerHTML = data.columns_detected.map(c =>
+        `<span class="text-[11px] px-2 py-0.5 rounded-full bg-violet-500/12 border border-violet-500/25 text-violet-300 font-mono">${c}</span>`
+      ).join("");
+
+      // Valid rows table
+      const tbody = document.getElementById("tbody-valid");
+      tbody.innerHTML = data.preview_sample.map(r => `
+        <tr class="tbl-row">
+          <td class="px-4 py-2.5 text-stone-500 text-xs">${r.row_number}</td>
+          <td class="px-4 py-2.5 font-mono text-[11px] text-violet-300">${r.place_id || "—"}</td>
+          <td class="px-4 py-2.5 text-[13px] text-white">${r.name || "—"}</td>
+          <td class="px-4 py-2.5 text-[12px] text-stone-300 max-w-[200px] truncate">${r.address || "—"}</td>
+          <td class="px-4 py-2.5 text-[12px] text-stone-400">${r.city || "—"}</td>
+          <td class="px-4 py-2.5 text-[12px] text-stone-400">${r.country || "—"}</td>
+          <td class="px-4 py-2.5">
+            <span class="badge-valid text-[10px] px-2 py-0.5 rounded-full font-semibold">✓ Válida</span>
+          </td>
+        </tr>
+      `).join("");
+
+      // Error rows table
+      const tbodyErr = document.getElementById("tbody-errors");
+      tbodyErr.innerHTML = data.errors_sample.map(r => `
+        <tr class="tbl-row">
+          <td class="px-4 py-2.5 text-stone-500 text-xs">${r.row_number}</td>
+          <td class="px-4 py-2.5 text-stone-400 text-xs">${r.row_number}</td>
+          <td class="px-4 py-2.5 text-[12px] text-stone-300">${r.place_id || r.address || "(vacío)"}</td>
+          <td class="px-4 py-2.5">
+            <span class="badge-invalid text-[10px] px-2 py-0.5 rounded-full font-semibold">${r.error || "Error desconocido"}</span>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    function toggleErrors() {
+      const validTable  = document.getElementById("table-valid");
+      const errorTable  = document.getElementById("table-errors");
+      const btn         = document.getElementById("btn-toggle-errors");
+      const isShowingValid = !validTable.classList.contains("hidden");
+      validTable.classList.toggle("hidden", isShowingValid);
+      errorTable.classList.toggle("hidden", !isShowingValid);
+      btn.textContent = isShowingValid ? "Ver válidas" : "Ver errores";
+    }
+
+    // ── Commit import ────────────────────────────────────────────────────────
+    async function commitImport() {
+      if (!currentFile || !previewData) return;
+      const btn = document.getElementById("btn-commit");
+      btn.disabled = true;
+      document.getElementById("progress-section").classList.remove("hidden");
+
+      const progressBar = document.getElementById("progress-bar");
+      const progressLabel = document.getElementById("progress-label");
+
+      // Simulate progress
+      let pct = 0;
+      const tick = setInterval(() => {
+        pct = Math.min(pct + Math.random() * 12, 90);
+        progressBar.style.width = pct + "%";
+      }, 300);
+
+      try {
+        // In production:
+        // const form = new FormData();
+        // form.append("org_id", ORG_ID);
+        // form.append("file", currentFile);
+        // const res = await fetch("/enterprise/onboarding/locations/import", { method:"POST", body: form });
+        // const data = await res.json();
+
+        await new Promise(r => setTimeout(r, 2000)); // simulate
+        clearInterval(tick);
+        progressBar.style.width = "100%";
+        progressLabel.textContent = `✓ ${previewData.valid_rows} locales importados. Celery iniciando escaneo…`;
+
+        setTimeout(() => {
+          window.location.href = "step3_governance.html";
+        }, 1500);
+      } catch (err) {
+        clearInterval(tick);
+        alert("Error durante la importación: " + err.message);
+        btn.disabled = false;
+        document.getElementById("progress-section").classList.add("hidden");
+      }
+    }
+
+    // ── CSV template download ─────────────────────────────────────────────────
+    function downloadTemplate() {
+      const csv = "place_id,name,address,phone,city,country\nChIJN1t_tDeuEmsR,Local Centro,Av. Principal 123,+51912345678,Lima,PE\nChIJexampleid456,Local Norte,Jr. Las Flores 456,+51987654321,Arequipa,PE\n";
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href     = url;
+      a.download = "plantilla_locales_lokigi.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // ── Demo data ─────────────────────────────────────────────────────────────
+    function _demoPreviewData(filename) {
+      const rows = [
+        {row_number:2,  place_id:"ChIJN1t_tDeuEmsR", name:"Local Centro",     address:"Av. Principal 123", city:"Lima",     country:"PE", valid:true,  error:null},
+        {row_number:3,  place_id:"ChIJabc123def456", name:"Local Norte",      address:"Jr. Las Flores 456",city:"Arequipa", country:"PE", valid:true,  error:null},
+        {row_number:4,  place_id:"ChIJxyz789uvw012", name:"Local Sur",        address:"Calle Los Pinos 7", city:"Cusco",    country:"PE", valid:true,  error:null},
+        {row_number:5,  place_id:"ChIJqrs345tuv678", name:"Local Este",       address:"Av. El Sol 901",    city:"Trujillo", country:"PE", valid:true,  error:null},
+        {row_number:6,  place_id:"ChIJlmn901opq234", name:"Local Oeste",      address:"Jr. Bolívar 112",   city:"Piura",    country:"PE", valid:true,  error:null},
+        {row_number:7,  place_id:"ChIJrst567uvw890", name:"Sucursal 06",      address:"Av. Grau 330",      city:"Lima",     country:"PE", valid:true,  error:null},
+        {row_number:8,  place_id:"ChIJabc234def567", name:"Sucursal 07",      address:"Calle San Martín 5",city:"Lima",     country:"PE", valid:true,  error:null},
+      ];
+      const errors = [
+        {row_number:9,  place_id:"INVALID123",        name:"Local X",    address:"Crt", city:"", country:"", valid:false, error:"place_id inválido y dirección demasiado corta"},
+        {row_number:10, place_id:null,                name:"Sin datos",  address:null,  city:"", country:"", valid:false, error:"Se requiere place_id o address (mínimo 10 chars)"},
+      ];
+      return {
+        total_rows: 52, valid_rows: 48, invalid_rows: 2, duplicate_rows: 2,
+        preview_sample: rows, errors_sample: errors,
+        columns_detected: ["place_id","name","address","phone","city","country"],
+      };
+    }
+
+    // ── Utils ────────────────────────────────────────────────────────────────
+    function formatBytes(b) {
+      if (b < 1024) return b + " B";
+      if (b < 1024*1024) return (b/1024).toFixed(1) + " KB";
+      return (b/1024/1024).toFixed(2) + " MB";
+    }
+  </script>
+</body>
+</html>

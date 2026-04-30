@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Onboarding Enterprise · Paso 1 de 3 — Marca</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --c-primary:   #7c3aed;
+      --c-secondary: #4f46e5;
+    }
+    body { background: #0c0a09; color: #f1f5f9; font-family: "Inter", system-ui, sans-serif; }
+
+    .card   { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.10); border-radius: 16px; }
+    .input-field {
+      width: 100%; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12);
+      color: #f1f5f9; font-size: 14px; border-radius: 10px; padding: 10px 14px;
+      outline: none; transition: .15s;
+    }
+    .input-field:focus { border-color: var(--c-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-primary) 20%, transparent); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--c-primary), var(--c-secondary));
+      color: #fff; font-weight: 700; font-size: 14px; border-radius: 10px;
+      padding: 10px 24px; cursor: pointer; border: none; transition: .15s;
+    }
+    .btn-primary:hover { opacity: .88; }
+    .btn-ghost {
+      background: transparent; color: #a78bfa;
+      border: 1.5px solid rgba(124,58,237,.45);
+      font-weight: 600; font-size: 13px; border-radius: 10px;
+      padding: 9px 20px; cursor: pointer; transition: .15s;
+    }
+    .btn-ghost:hover { background: rgba(124,58,237,.12); }
+
+    /* ── Progress bar ── */
+    .step-pill {
+      display: flex; align-items: center; gap: 8px; padding: 6px 14px;
+      border-radius: 999px; font-size: 12px; font-weight: 700;
+    }
+    .step-pill.active  { background: rgba(124,58,237,.18); color: #a78bfa; border: 1px solid rgba(124,58,237,.35); }
+    .step-pill.done    { background: rgba(16,185,129,.12);  color: #34d399;  border: 1px solid rgba(16,185,129,.25); }
+    .step-pill.pending { background: rgba(255,255,255,.04); color: #57534e;  border: 1px solid rgba(255,255,255,.08); }
+
+    /* ── Drop zone ── */
+    .drop-zone {
+      border: 2px dashed rgba(124,58,237,.35); border-radius: 12px;
+      padding: 28px; text-align: center; cursor: pointer; transition: .2s;
+      background: rgba(124,58,237,.04);
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--c-primary); background: rgba(124,58,237,.10);
+    }
+
+    /* ── Live preview styles (injected dynamically) ── */
+    #preview-frame {
+      border-radius: 14px; overflow: hidden;
+      border: 1px solid rgba(255,255,255,.10);
+      transition: background .3s;
+    }
+
+    @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .fade-up { animation: fadeUp .3s ease both; }
+
+    /* ── Color swatch ── */
+    .color-swatch {
+      width: 38px; height: 38px; border-radius: 8px; border: 2px solid rgba(255,255,255,.15);
+      cursor: pointer; transition: .15s; flex-shrink: 0;
+    }
+    .color-swatch:hover { transform: scale(1.1); }
+    input[type="color"] { opacity: 0; position: absolute; width: 38px; height: 38px; cursor: pointer; }
+
+    /* ── SMTP toggle ── */
+    .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0; background: rgba(255,255,255,.15);
+      border-radius: 999px; cursor: pointer; transition: .25s;
+    }
+    .toggle-slider::before {
+      content: ""; position: absolute; left: 3px; top: 3px;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: #fff; transition: .25s;
+    }
+    .toggle-switch input:checked + .toggle-slider { background: var(--c-primary); }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- ── TOP NAV ── -->
+  <nav class="border-b border-white/10 px-8 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div id="nav-logo-container">
+        <div class="w-8 h-8 rounded-lg flex items-center justify-center font-black text-white text-sm"
+             id="nav-logo-pill" style="background: linear-gradient(135deg, #7c3aed, #4f46e5)">L</div>
+      </div>
+      <span id="nav-brand-name" class="font-bold text-[15px]">Lokigi Enterprise</span>
+    </div>
+    <!-- Step pills -->
+    <div class="flex items-center gap-2">
+      <div class="step-pill active">
+        <span class="w-5 h-5 rounded-full bg-violet-500 flex items-center justify-center text-[10px] text-white font-black">1</span>
+        Marca
+      </div>
+      <div class="w-8 h-px bg-white/10"></div>
+      <div class="step-pill pending">
+        <span class="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] text-stone-500 font-black">2</span>
+        Locales
+      </div>
+      <div class="w-8 h-px bg-white/10"></div>
+      <div class="step-pill pending">
+        <span class="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] text-stone-500 font-black">3</span>
+        Gobernanza
+      </div>
+    </div>
+    <div class="flex items-center gap-2 text-sm text-stone-400">
+      <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+      Configurando organización
+    </div>
+  </nav>
+
+  <div class="flex h-[calc(100vh-65px)]">
+
+    <!-- ─────────────────────────────────────────────────────
+         LEFT PANEL — Controls
+    ───────────────────────────────────────────────────── -->
+    <div class="w-[440px] shrink-0 overflow-y-auto border-r border-white/10 px-7 py-7 flex flex-col gap-6">
+
+      <div class="fade-up">
+        <h1 class="text-xl font-black text-white mb-1">Configura tu Marca</h1>
+        <p class="text-stone-400 text-sm">Define la identidad visual de tu instancia. Los cambios se reflejan en tiempo real.</p>
+      </div>
+
+      <!-- ── Section: Org Identity ── -->
+      <div class="card p-5 flex flex-col gap-4 fade-up" style="animation-delay:.05s">
+        <h2 class="text-[13px] font-bold text-stone-300 uppercase tracking-wider">Identidad de Organización</h2>
+
+        <div>
+          <label class="block text-xs text-stone-400 font-semibold mb-1.5">Nombre de la Organización</label>
+          <input type="text" id="org-name" value="Mi Agencia S.A." placeholder="FranquiciaMax S.A."
+                 class="input-field" oninput="syncPreview()" />
+        </div>
+        <div>
+          <label class="block text-xs text-stone-400 font-semibold mb-1.5">Slug único <span class="text-stone-600">(solo letras, números, guiones)</span></label>
+          <div class="relative">
+            <span class="absolute left-3 top-2.5 text-stone-500 text-sm">portal.</span>
+            <input type="text" id="org-slug" value="mi-agencia" placeholder="tu-agencia"
+                   class="input-field pl-16" oninput="validateSlug(this)" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs text-stone-400 font-semibold mb-1.5">Dominio personalizado <span class="text-stone-600">(opcional)</span></label>
+          <input type="text" id="org-domain" placeholder="portal.tuagencia.com"
+                 class="input-field" />
+        </div>
+        <div>
+          <label class="block text-xs text-stone-400 font-semibold mb-1.5">Email de la agencia</label>
+          <input type="email" id="agency-email" placeholder="hola@tuagencia.com"
+                 class="input-field" />
+        </div>
+      </div>
+
+      <!-- ── Section: Visual Assets ── -->
+      <div class="card p-5 flex flex-col gap-4 fade-up" style="animation-delay:.1s">
+        <h2 class="text-[13px] font-bold text-stone-300 uppercase tracking-wider">Assets Visuales</h2>
+
+        <!-- Logo drop zone -->
+        <div>
+          <label class="block text-xs text-stone-400 font-semibold mb-1.5">Logotipo principal</label>
+          <div class="drop-zone" id="logo-zone"
+               onclick="document.getElementById('logo-input').click()"
+               ondragover="handleDragOver(event,'logo-zone')"
+               ondragleave="handleDragLeave('logo-zone')"
+               ondrop="handleDrop(event,'logo-input','logo-preview')">
+            <div id="logo-preview-container">
+              <svg class="w-8 h-8 text-violet-500 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              <p class="text-sm text-stone-400">Arrastra o haz clic para subir</p>
+              <p class="text-xs text-stone-600 mt-1">PNG, JPG, SVG o WEBP · máx 10 MB</p>
+            </div>
+            <img id="logo-preview" class="hidden max-h-16 mx-auto" alt="Logo preview" />
+          </div>
+          <input type="file" id="logo-input" accept="image/*" class="hidden"
+                 onchange="previewImage('logo-input','logo-preview','logo-preview-container')" />
+        </div>
+
+        <!-- Isotipo drop zone -->
+        <div>
+          <label class="block text-xs text-stone-400 font-semibold mb-1.5">Isotipo / Ícono <span class="text-stone-600">(cuadrado, para favicon y sidebar)</span></label>
+          <div class="drop-zone" id="isotipo-zone"
+               onclick="document.getElementById('isotipo-input').click()"
+               ondragover="handleDragOver(event,'isotipo-zone')"
+               ondragleave="handleDragLeave('isotipo-zone')"
+               ondrop="handleDrop(event,'isotipo-input','isotipo-preview')">
+            <div id="isotipo-preview-container">
+              <svg class="w-6 h-6 text-violet-500 mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 3l14 0M5 3v18l7-4 7 4V3"/></svg>
+              <p class="text-xs text-stone-400">Isotipo cuadrado recomendado</p>
+            </div>
+            <img id="isotipo-preview" class="hidden max-h-10 mx-auto" alt="Isotipo preview" />
+          </div>
+          <input type="file" id="isotipo-input" accept="image/*" class="hidden"
+                 onchange="previewImage('isotipo-input','isotipo-preview','isotipo-preview-container')" />
+        </div>
+      </div>
+
+      <!-- ── Section: Color & Typography ── -->
+      <div class="card p-5 flex flex-col gap-4 fade-up" style="animation-delay:.15s">
+        <h2 class="text-[13px] font-bold text-stone-300 uppercase tracking-wider">Color & Tipografía</h2>
+
+        <!-- Primary color -->
+        <div class="flex items-center gap-3">
+          <div class="flex-1">
+            <label class="block text-xs text-stone-400 font-semibold mb-1.5">Color Primario</label>
+            <div class="flex items-center gap-2">
+              <div class="relative">
+                <div class="color-swatch" id="swatch-primary" style="background:#7c3aed"
+                     onclick="document.getElementById('pick-primary').click()"></div>
+                <input type="color" id="pick-primary" value="#7c3aed"
+                       oninput="applyColor('primary',this.value)" />
+              </div>
+              <input type="text" id="hex-primary" value="#7c3aed" maxlength="7"
+                     class="input-field font-mono text-sm" oninput="applyColor('primary',this.value)" />
+            </div>
+          </div>
+          <div class="flex-1">
+            <label class="block text-xs text-stone-400 font-semibold mb-1.5">Color Secundario</label>
+            <div class="flex items-center gap-2">
+              <div class="relative">
+                <div class="color-swatch" id="swatch-secondary" style="background:#4f46e5"
+                     onclick="document.getElementById('pick-secondary').click()"></div>
+                <input type="color" id="pick-secondary" value="#4f46e5"
+                       oninput="applyColor('secondary',this.value)" />
+              </div>
+              <input type="text" id="hex-secondary" value="#4f46e5" maxlength="7"
+                     class="input-field font-mono text-sm" oninput="applyColor('secondary',this.value)" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Font family -->
+        <div>
+          <label class="block text-xs text-stone-400 font-semibold mb-1.5">Fuente Principal</label>
+          <select id="font-family" class="input-field" onchange="applyFont(this.value)">
+            <option value="Inter, system-ui, sans-serif"       selected>Inter (Recomendada)</option>
+            <option value="'Plus Jakarta Sans', sans-serif"           >Plus Jakarta Sans</option>
+            <option value="'DM Sans', sans-serif"                     >DM Sans</option>
+            <option value="'Poppins', sans-serif"                     >Poppins</option>
+            <option value="'Roboto', sans-serif"                      >Roboto</option>
+            <option value="Georgia, serif"                            >Georgia (Serif)</option>
+          </select>
+        </div>
+
+        <!-- Hide Lokigi brand -->
+        <div class="flex items-center justify-between py-1">
+          <div>
+            <p class="text-sm text-stone-200 font-medium">Ocultar marca Lokigi</p>
+            <p class="text-xs text-stone-500">El dashboard solo mostrará tu marca</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="hide-lokigi" onchange="syncPreview()" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- ── Section: SMTP ── -->
+      <div class="card p-5 flex flex-col gap-3 fade-up" style="animation-delay:.2s">
+        <div class="flex items-center justify-between mb-1">
+          <h2 class="text-[13px] font-bold text-stone-300 uppercase tracking-wider">SMTP Propio</h2>
+          <span class="text-[11px] px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/20">Opcional</span>
+        </div>
+        <p class="text-xs text-stone-500">Las invitaciones y reportes saldrán con tu dominio.</p>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs text-stone-400 font-semibold mb-1">Host SMTP</label>
+            <input type="text" id="smtp-host" placeholder="smtp.tuempresa.com" class="input-field" />
+          </div>
+          <div>
+            <label class="block text-xs text-stone-400 font-semibold mb-1">Puerto</label>
+            <input type="number" id="smtp-port" value="587" class="input-field" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs text-stone-400 font-semibold mb-1">Usuario SMTP</label>
+          <input type="text" id="smtp-user" placeholder="envios@tuempresa.com" class="input-field" />
+        </div>
+        <div>
+          <label class="block text-xs text-stone-400 font-semibold mb-1">Contraseña</label>
+          <input type="password" id="smtp-pass" placeholder="••••••••" class="input-field" />
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="toggle-switch">
+            <input type="checkbox" id="smtp-tls" checked />
+            <span class="toggle-slider"></span>
+          </label>
+          <span class="text-xs text-stone-400">Usar STARTTLS / TLS</span>
+        </div>
+        <button class="btn-ghost text-sm flex items-center gap-2 w-fit" onclick="testSmtp()">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Probar conexión
+        </button>
+      </div>
+
+      <!-- ── CTA ── -->
+      <div class="fade-up flex gap-3" style="animation-delay:.25s">
+        <button class="btn-primary flex-1 flex items-center justify-center gap-2" onclick="submitStep1()">
+          Guardar y continuar
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────────────────────────────
+         RIGHT PANEL — Live Preview
+    ───────────────────────────────────────────────────── -->
+    <div class="flex-1 overflow-hidden bg-[#080706] flex flex-col items-center justify-start p-6 gap-4">
+
+      <div class="flex items-center justify-between w-full max-w-[820px]">
+        <p class="text-xs text-stone-500 font-semibold uppercase tracking-wider">Previsualización en Tiempo Real</p>
+        <div class="flex gap-2">
+          <button onclick="setPreviewMode('desktop')"
+                  class="text-xs px-3 py-1 rounded-lg bg-white/6 border border-white/10 text-stone-300 hover:border-violet-500 transition"
+                  id="mode-desktop">Escritorio</button>
+          <button onclick="setPreviewMode('mobile')"
+                  class="text-xs px-3 py-1 rounded-lg bg-white/6 border border-white/10 text-stone-300 hover:border-violet-500 transition"
+                  id="mode-mobile">Móvil</button>
+        </div>
+      </div>
+
+      <!-- Preview shell -->
+      <div id="preview-wrapper" class="w-full max-w-[820px] transition-all duration-300">
+        <div id="preview-frame" class="w-full" style="min-height: 500px; background: #1c1917;">
+
+          <!-- Mock nav bar -->
+          <div id="pv-navbar" class="flex items-center justify-between px-5 py-3 border-b border-white/10"
+               style="background: #1c1917;">
+            <div class="flex items-center gap-2.5">
+              <div id="pv-logo" class="w-8 h-8 rounded-lg flex items-center justify-center font-black text-white text-sm"
+                   style="background: linear-gradient(135deg,#7c3aed,#4f46e5)">L</div>
+              <span id="pv-brand" class="font-bold text-white text-[14px]">Lokigi Enterprise</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs text-stone-400">CR</div>
+            </div>
+          </div>
+
+          <!-- Mock dashboard content -->
+          <div class="p-5 flex flex-col gap-4">
+
+            <!-- KPI strip -->
+            <div class="grid grid-cols-4 gap-3">
+              <div class="rounded-xl p-3 border border-white/8" style="background:rgba(255,255,255,.04)">
+                <p class="text-[10px] text-stone-500 font-semibold uppercase mb-1">Red de Locales</p>
+                <p class="text-2xl font-black text-white">50</p>
+                <p id="pv-kpi-accent" class="text-[10px] mt-0.5" style="color:#34d399">+3 este mes</p>
+              </div>
+              <div class="rounded-xl p-3 border border-white/8" style="background:rgba(255,255,255,.04)">
+                <p class="text-[10px] text-stone-500 font-semibold uppercase mb-1">Reseñas Activas</p>
+                <p class="text-2xl font-black text-white">1,284</p>
+                <p class="text-[10px] text-stone-500 mt-0.5">Esta semana</p>
+              </div>
+              <div class="rounded-xl p-3 border border-white/8" style="background:rgba(255,255,255,.04)">
+                <p class="text-[10px] text-stone-500 font-semibold uppercase mb-1">Score de Red</p>
+                <p id="pv-score" class="text-2xl font-black" style="color:#a78bfa">87.4</p>
+                <p class="text-[10px] text-stone-500 mt-0.5">Promedio</p>
+              </div>
+              <div class="rounded-xl p-3 border border-white/8" style="background:rgba(255,255,255,.04)">
+                <p class="text-[10px] text-stone-500 font-semibold uppercase mb-1">Crisis</p>
+                <p class="text-2xl font-black text-rose-400">2</p>
+                <p class="text-[10px] text-stone-500 mt-0.5">Activas</p>
+              </div>
+            </div>
+
+            <!-- Mock chart bar -->
+            <div class="rounded-xl p-4 border border-white/8" style="background:rgba(255,255,255,.04)">
+              <div class="flex items-center justify-between mb-3">
+                <p class="text-[12px] font-semibold text-stone-300">Tendencia de Reputación — Últimas 4 semanas</p>
+                <span id="pv-badge" class="text-[10px] px-2 py-0.5 rounded-full font-semibold"
+                      style="background:rgba(124,58,237,.18);color:#a78bfa;border:1px solid rgba(124,58,237,.3)">
+                  Red Completa
+                </span>
+              </div>
+              <div class="flex items-end gap-2 h-16">
+                <div id="pv-bar1" class="flex-1 rounded-t-sm" style="height:65%;background:#7c3aed;opacity:.7"></div>
+                <div id="pv-bar2" class="flex-1 rounded-t-sm" style="height:78%;background:#7c3aed;opacity:.8"></div>
+                <div id="pv-bar3" class="flex-1 rounded-t-sm" style="height:72%;background:#7c3aed;opacity:.85"></div>
+                <div id="pv-bar4" class="flex-1 rounded-t-sm" style="height:87%;background:#7c3aed"></div>
+              </div>
+              <div class="flex justify-between mt-1">
+                <span class="text-[9px] text-stone-600">Sem 1</span>
+                <span class="text-[9px] text-stone-600">Sem 2</span>
+                <span class="text-[9px] text-stone-600">Sem 3</span>
+                <span class="text-[9px] text-stone-600">Sem 4</span>
+              </div>
+            </div>
+
+            <!-- Mock footer -->
+            <div class="flex items-center justify-between">
+              <p id="pv-footer-brand" class="text-[10px] text-stone-600">Powered by Lokigi</p>
+              <p class="text-[10px] text-stone-600">© 2026 Lokigi Enterprise</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tip -->
+      <p class="text-xs text-stone-600 max-w-[820px] text-center">
+        💡 Esta es la vista que verá tu equipo una vez finalizado el onboarding. Cada cambio de color o logotipo se aplica en tiempo real.
+      </p>
+    </div>
+  </div>
+
+
+  <script>
+    // ── State ──────────────────────────────────────────────────────────────
+    let state = {
+      primaryColor:   "#7c3aed",
+      secondaryColor: "#4f46e5",
+      fontFamily:     "Inter, system-ui, sans-serif",
+      orgName:        "Mi Agencia S.A.",
+      hideLokigi:     false,
+      logoDataUrl:    null,
+    };
+
+    // ── Color sync ──────────────────────────────────────────────────────────
+    function applyColor(which, hex) {
+      const clean = hex.startsWith("#") ? hex : "#" + hex;
+      if (!/^#[0-9a-fA-F]{6}$/.test(clean)) return;
+
+      if (which === "primary") {
+        state.primaryColor = clean;
+        document.getElementById("swatch-primary").style.background = clean;
+        document.getElementById("pick-primary").value = clean;
+        document.getElementById("hex-primary").value = clean;
+        // Update CSS variable + preview bars
+        document.documentElement.style.setProperty("--c-primary", clean);
+        ["pv-bar1","pv-bar2","pv-bar3","pv-bar4"].forEach(id => {
+          document.getElementById(id).style.background = clean;
+        });
+        document.getElementById("pv-score").style.color = clean;
+        const badge = document.getElementById("pv-badge");
+        badge.style.background = `${clean}30`;
+        badge.style.color = clean;
+        badge.style.borderColor = `${clean}50`;
+      } else {
+        state.secondaryColor = clean;
+        document.getElementById("swatch-secondary").style.background = clean;
+        document.getElementById("pick-secondary").value = clean;
+        document.getElementById("hex-secondary").value = clean;
+        document.documentElement.style.setProperty("--c-secondary", clean);
+      }
+      // Update sidebar logo gradient
+      updateLogoGradient();
+    }
+
+    function updateLogoGradient() {
+      const grad = `linear-gradient(135deg, ${state.primaryColor}, ${state.secondaryColor})`;
+      const pills = [document.getElementById("nav-logo-pill"), document.getElementById("pv-logo")];
+      pills.forEach(el => { if (el) el.style.background = grad; });
+    }
+
+    // ── Font sync ──────────────────────────────────────────────────────────
+    function applyFont(fontFamily) {
+      state.fontFamily = fontFamily;
+      document.getElementById("preview-frame").style.fontFamily = fontFamily;
+    }
+
+    // ── Brand name sync ────────────────────────────────────────────────────
+    function syncPreview() {
+      const name      = document.getElementById("org-name").value || "Mi Agencia";
+      const hideLoki  = document.getElementById("hide-lokigi").checked;
+      state.orgName   = name;
+      state.hideLokigi = hideLoki;
+
+      document.getElementById("nav-brand-name").textContent = name;
+      document.getElementById("pv-brand").textContent = name;
+      document.getElementById("pv-footer-brand").textContent = hideLoki ? "" : `Powered by Lokigi`;
+    }
+
+    // ── Slug validation ────────────────────────────────────────────────────
+    function validateSlug(input) {
+      input.value = input.value.toLowerCase().replace(/[^a-z0-9\-]/g, "");
+    }
+
+    // ── Image uploads ──────────────────────────────────────────────────────
+    function previewImage(inputId, previewId, containerId) {
+      const file = document.getElementById(inputId).files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = document.getElementById(previewId);
+        img.src = e.target.result;
+        img.classList.remove("hidden");
+        document.getElementById(containerId).classList.add("hidden");
+
+        if (inputId === "logo-input") {
+          state.logoDataUrl = e.target.result;
+          // Update preview logo
+          const pvLogo = document.getElementById("pv-logo");
+          pvLogo.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-contain rounded-lg" />`;
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function handleDragOver(e, zoneId) {
+      e.preventDefault();
+      document.getElementById(zoneId).classList.add("drag-over");
+    }
+    function handleDragLeave(zoneId) {
+      document.getElementById(zoneId).classList.remove("drag-over");
+    }
+    function handleDrop(e, inputId, previewId) {
+      e.preventDefault();
+      const zone = e.currentTarget;
+      zone.classList.remove("drag-over");
+      const file = e.dataTransfer.files[0];
+      if (!file) return;
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      document.getElementById(inputId).files = dt.files;
+      document.getElementById(inputId).dispatchEvent(new Event("change"));
+    }
+
+    // ── Preview mode ───────────────────────────────────────────────────────
+    function setPreviewMode(mode) {
+      const wrapper = document.getElementById("preview-wrapper");
+      if (mode === "mobile") {
+        wrapper.style.maxWidth = "380px";
+        document.getElementById("mode-mobile").classList.add("border-violet-500","text-violet-400");
+        document.getElementById("mode-desktop").classList.remove("border-violet-500","text-violet-400");
+      } else {
+        wrapper.style.maxWidth = "820px";
+        document.getElementById("mode-desktop").classList.add("border-violet-500","text-violet-400");
+        document.getElementById("mode-mobile").classList.remove("border-violet-500","text-violet-400");
+      }
+    }
+
+    // ── SMTP test ──────────────────────────────────────────────────────────
+    function testSmtp() {
+      alert("(Demo) Conexión SMTP simulada exitosa ✓");
+    }
+
+    // ── Submit ─────────────────────────────────────────────────────────────
+    async function submitStep1() {
+      const btn = event.currentTarget;
+      btn.textContent = "Guardando…";
+      btn.disabled = true;
+
+      const payload = {
+        name:            document.getElementById("org-name").value,
+        slug:            document.getElementById("org-slug").value,
+        domain:          document.getElementById("org-domain").value || null,
+        primary_color:   state.primaryColor,
+        secondary_color: state.secondaryColor,
+        font_family:     state.fontFamily,
+        agency_email:    document.getElementById("agency-email").value || null,
+      };
+
+      try {
+        const res = await fetch("/enterprise/onboarding/setup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || res.statusText);
+        }
+        const data = await res.json();
+        // Store org_id for subsequent steps
+        sessionStorage.setItem("onboarding_org_id", data.org_id);
+        window.location.href = "step2_bulk_import.html";
+      } catch (err) {
+        alert("Error: " + err.message);
+        btn.textContent = "Guardar y continuar";
+        btn.disabled = false;
+      }
+    }
+
+    // ── Init ───────────────────────────────────────────────────────────────
+    setPreviewMode("desktop");
+  </script>
+</body>
+</html>

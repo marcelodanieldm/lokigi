@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Onboarding Enterprise · Paso 3 de 3 — Gobernanza</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background: #0c0a09; color: #f1f5f9; font-family: "Inter", system-ui, sans-serif; }
+    .card { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.10); border-radius: 16px; }
+
+    /* Pills */
+    .step-pill { display:flex; align-items:center; gap:8px; padding:6px 14px;
+                 border-radius:999px; font-size:12px; font-weight:700; }
+    .step-pill.done    { background:rgba(16,185,129,.12); color:#34d399; border:1px solid rgba(16,185,129,.25); }
+    .step-pill.active  { background:rgba(124,58,237,.18); color:#a78bfa; border:1px solid rgba(124,58,237,.35); }
+
+    /* Buttons */
+    .btn-primary {
+      background:linear-gradient(135deg,#7c3aed,#4f46e5); color:#fff;
+      font-weight:700; font-size:14px; border-radius:10px; padding:12px 28px;
+      cursor:pointer; border:none; transition:.15s;
+    }
+    .btn-primary:hover  { opacity:.88; }
+    .btn-primary:disabled { opacity:.4; cursor:not-allowed; }
+    .btn-ghost {
+      background:transparent; color:#a78bfa;
+      border:1.5px solid rgba(124,58,237,.45);
+      font-weight:600; font-size:13px; border-radius:10px;
+      padding:9px 20px; cursor:pointer; transition:.15s;
+    }
+    .btn-ghost:hover { background:rgba(124,58,237,.12); }
+
+    /* Roles table */
+    .role-row { border-bottom: 1px solid rgba(255,255,255,.06); transition: .12s; }
+    .role-row:hover { background: rgba(255,255,255,.03); }
+    .role-badge {
+      font-size: 11px; font-weight: 700; padding: 3px 10px;
+      border-radius: 999px; letter-spacing: .03em;
+    }
+
+    /* Checklist */
+    .check-item { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid rgba(255,255,255,.06); }
+    .check-item:last-child { border-bottom: none; }
+    .check-icon-done    { color: #34d399; }
+    .check-icon-pending { color: #57534e; }
+
+    /* Invite input rows */
+    .invite-row { display:flex; gap:2; align-items:center; animation: fadeUp .2s ease; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
+    .fade-up { animation: fadeUp .3s ease both; }
+
+    /* Toggle */
+    .toggle-switch { position:relative; display:inline-block; width:44px; height:24px; }
+    .toggle-switch input { opacity:0; width:0; height:0; }
+    .toggle-slider { position:absolute; inset:0; background:rgba(255,255,255,.15); border-radius:999px; cursor:pointer; transition:.25s; }
+    .toggle-slider::before { content:""; position:absolute; left:3px; top:3px; width:18px; height:18px; border-radius:50%; background:#fff; transition:.25s; }
+    .toggle-switch input:checked + .toggle-slider { background:#7c3aed; }
+    .toggle-switch input:checked + .toggle-slider::before { transform:translateX(20px); }
+
+    /* Aha map mock */
+    .map-pin { animation: pinDrop .4s ease both; }
+    @keyframes pinDrop { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
+
+    /* Spin */
+    @keyframes spin { to{transform:rotate(360deg)} }
+    .spin { animation: spin 1s linear infinite; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- ── TOP NAV ── -->
+  <nav class="border-b border-white/10 px-8 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg flex items-center justify-center font-black text-white text-sm"
+           style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">L</div>
+      <span class="font-bold text-[15px]">Lokigi Enterprise</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <div class="step-pill done">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+        Marca
+      </div>
+      <div class="w-8 h-px bg-white/10"></div>
+      <div class="step-pill done">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+        Locales
+      </div>
+      <div class="w-8 h-px bg-white/10"></div>
+      <div class="step-pill active">
+        <span class="w-5 h-5 rounded-full bg-violet-500 flex items-center justify-center text-[10px] text-white font-black">3</span>
+        Gobernanza
+      </div>
+    </div>
+    <div class="flex items-center gap-2 text-sm text-stone-400">
+      <div class="w-2 h-2 rounded-full bg-violet-400 animate-pulse"></div>
+      Último paso
+    </div>
+  </nav>
+
+  <div class="flex flex-1 overflow-hidden">
+
+    <!-- ─────────────────────────────────────────────────────
+         LEFT PANEL
+    ───────────────────────────────────────────────────── -->
+    <div class="w-[520px] shrink-0 overflow-y-auto border-r border-white/10 px-7 py-7 flex flex-col gap-7">
+
+      <div class="fade-up">
+        <h1 class="text-xl font-black text-white mb-1">Gobernanza de la Red</h1>
+        <p class="text-stone-400 text-sm">Define roles y envía invitaciones a tu equipo. El sistema aplica permisos granulares automáticamente.</p>
+      </div>
+
+      <!-- ── Roles definition table ── -->
+      <div class="card overflow-hidden fade-up" style="animation-delay:.05s">
+        <div class="px-5 py-3.5 border-b border-white/10 flex items-center justify-between">
+          <h2 class="text-sm font-bold text-white">Roles disponibles en tu instancia</h2>
+          <span class="text-[11px] px-2 py-0.5 rounded-full bg-violet-500/12 border border-violet-500/25 text-violet-300">4 roles</span>
+        </div>
+
+        <table class="w-full">
+          <thead>
+            <tr>
+              <th class="text-left px-5 py-2.5 text-[10px] uppercase tracking-wider font-bold text-stone-500">Rol</th>
+              <th class="text-left px-5 py-2.5 text-[10px] uppercase tracking-wider font-bold text-stone-500">Nivel</th>
+              <th class="text-left px-5 py-2.5 text-[10px] uppercase tracking-wider font-bold text-stone-500">Permisos</th>
+              <th class="text-left px-5 py-2.5 text-[10px] uppercase tracking-wider font-bold text-stone-500">Descripción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="role-row">
+              <td class="px-5 py-3">
+                <span class="role-badge" style="background:rgba(239,68,68,.12);color:#f87171;border:1px solid rgba(239,68,68,.2)">
+                  SuperAdmin
+                </span>
+              </td>
+              <td class="px-5 py-3 text-[13px] text-stone-300 font-mono">40</td>
+              <td class="px-5 py-3 text-[13px] text-white font-semibold">Todos</td>
+              <td class="px-5 py-3 text-[12px] text-stone-500">Gestión completa de la instancia</td>
+            </tr>
+            <tr class="role-row">
+              <td class="px-5 py-3">
+                <span class="role-badge" style="background:rgba(124,58,237,.12);color:#a78bfa;border:1px solid rgba(124,58,237,.2)">
+                  Network Mgr
+                </span>
+              </td>
+              <td class="px-5 py-3 text-[13px] text-stone-300 font-mono">30</td>
+              <td class="px-5 py-3 text-[13px] text-white font-semibold">Red completa</td>
+              <td class="px-5 py-3 text-[12px] text-stone-500">Dashboard multi-local, reportes, alertas</td>
+            </tr>
+            <tr class="role-row">
+              <td class="px-5 py-3">
+                <span class="role-badge" style="background:rgba(59,130,246,.12);color:#60a5fa;border:1px solid rgba(59,130,246,.2)">
+                  Store Manager
+                </span>
+              </td>
+              <td class="px-5 py-3 text-[13px] text-stone-300 font-mono">20</td>
+              <td class="px-5 py-3 text-[13px] text-white font-semibold">Local asignado</td>
+              <td class="px-5 py-3 text-[12px] text-stone-500">Réplicas, respuestas, dashboard de local</td>
+            </tr>
+            <tr class="role-row" style="border-bottom:none">
+              <td class="px-5 py-3">
+                <span class="role-badge" style="background:rgba(16,185,129,.12);color:#34d399;border:1px solid rgba(16,185,129,.2)">
+                  Store Staff
+                </span>
+              </td>
+              <td class="px-5 py-3 text-[13px] text-stone-300 font-mono">10</td>
+              <td class="px-5 py-3 text-[13px] text-white font-semibold">Solo lectura</td>
+              <td class="px-5 py-3 text-[12px] text-stone-500">Monitoreo básico sin edición</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ── Bulk invite section ── -->
+      <div class="card p-5 flex flex-col gap-4 fade-up" style="animation-delay:.10s">
+        <h2 class="text-sm font-bold text-white mb-0">Invitar Equipo</h2>
+        <p class="text-xs text-stone-500 -mt-2">Pega los emails de tu equipo (uno por línea) o agrégalos manualmente.</p>
+
+        <!-- Bulk textarea -->
+        <div>
+          <label class="block text-xs text-stone-400 font-semibold mb-1.5">
+            Emails en bloque
+            <span class="text-stone-600 font-normal">(uno por línea, máx 200)</span>
+          </label>
+          <textarea id="bulk-emails" rows="4"
+                    class="w-full bg-white/6 border border-white/12 text-slate-200 text-sm font-mono rounded-xl p-3 resize-none focus:outline-none focus:border-violet-500 placeholder:text-stone-600"
+                    placeholder="manager@empresa.com&#10;staff@empresa.com&#10;supervisor@empresa.com"
+                    oninput="parseBulkEmails()"></textarea>
+        </div>
+
+        <!-- Default role selector for bulk -->
+        <div>
+          <label class="block text-xs text-stone-400 font-semibold mb-1.5">Rol por defecto para el bloque</label>
+          <select id="bulk-role" class="w-full bg-white/6 border border-white/12 text-slate-200 text-sm rounded-xl p-2.5 focus:outline-none focus:border-violet-500">
+            <option value="store_manager">Store Manager</option>
+            <option value="network_manager">Network Manager</option>
+            <option value="store_staff">Store Staff</option>
+            <option value="superadmin">Super Admin</option>
+          </select>
+        </div>
+
+        <!-- Parsed invite list -->
+        <div id="invite-list" class="flex flex-col gap-2 max-h-48 overflow-y-auto pr-1"></div>
+        <p id="invite-count" class="text-xs text-stone-500"></p>
+
+        <!-- Add single invite row -->
+        <div class="flex gap-2">
+          <input type="email" id="single-email" placeholder="nuevo@ejemplo.com"
+                 class="flex-1 bg-white/6 border border-white/12 text-slate-200 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-violet-500"
+                 onkeydown="if(event.key==='Enter') addSingleInvite()" />
+          <select id="single-role"
+                  class="bg-white/6 border border-white/12 text-stone-300 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-violet-500">
+            <option value="store_manager">Store Mgr</option>
+            <option value="network_manager">Network Mgr</option>
+            <option value="store_staff">Store Staff</option>
+            <option value="superadmin">SuperAdmin</option>
+          </select>
+          <button onclick="addSingleInvite()" class="btn-ghost px-3 py-2.5 text-sm">+ Agregar</button>
+        </div>
+      </div>
+
+      <!-- ── Send invitations button ── -->
+      <div class="flex gap-3 fade-up" style="animation-delay:.15s">
+        <button class="btn-primary flex-1 flex items-center justify-center gap-2" id="btn-invite" onclick="sendInvitations()">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          <span id="btn-invite-label">Enviar invitaciones y finalizar</span>
+        </button>
+      </div>
+
+      <p class="text-xs text-stone-600 fade-up text-center" style="animation-delay:.2s">
+        Puedes omitir este paso y agregar miembros después desde el Panel de Control.
+        <button class="text-violet-500 hover:text-violet-300 underline transition" onclick="skipAndFinish()">Saltar</button>
+      </p>
+    </div>
+
+    <!-- ─────────────────────────────────────────────────────
+         RIGHT PANEL — "Aha! Moment"
+    ───────────────────────────────────────────────────── -->
+    <div class="flex-1 overflow-y-auto bg-[#080706] px-8 py-8 flex flex-col gap-6">
+
+      <h2 class="text-lg font-black text-white fade-up">Tu Red ya está tomando forma</h2>
+
+      <!-- Checklist -->
+      <div class="card p-5 fade-up" style="animation-delay:.05s">
+        <h3 class="text-[13px] font-bold text-stone-300 uppercase tracking-wider mb-3">Progreso del Onboarding</h3>
+        <div>
+          <div class="check-item">
+            <svg class="w-5 h-5 check-icon-done shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <div>
+              <p class="text-sm font-semibold text-white">Branding configurado</p>
+              <p class="text-xs text-stone-500">Logo, colores y tipografía aplicados</p>
+            </div>
+            <span class="ml-auto text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/12 text-emerald-400 border border-emerald-500/20">Completo</span>
+          </div>
+          <div class="check-item">
+            <svg class="w-5 h-5 check-icon-done shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <div>
+              <p class="text-sm font-semibold text-white">Locales importados</p>
+              <p class="text-xs text-stone-500" id="locations-count">48 locales · Worker iniciando…</p>
+            </div>
+            <span class="ml-auto text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/12 text-emerald-400 border border-emerald-500/20">Completo</span>
+          </div>
+          <div class="check-item">
+            <svg class="w-5 h-5 check-icon-pending shrink-0" id="team-check-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <div>
+              <p class="text-sm font-semibold text-stone-300" id="team-check-label">Equipo por configurar</p>
+              <p class="text-xs text-stone-500" id="team-check-sub">Agrega miembros para completar</p>
+            </div>
+            <span class="ml-auto text-[11px] px-2 py-0.5 rounded-full bg-stone-800 text-stone-500 border border-stone-700" id="team-check-badge">Pendiente</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Map mock — "Aha! Moment" -->
+      <div class="card overflow-hidden fade-up" style="animation-delay:.10s">
+        <div class="px-5 py-3.5 border-b border-white/10 flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-bold text-white">Tu Red en el Mapa</h3>
+            <p class="text-xs text-stone-500">Primer Reporte de Salud de Red — generándose…</p>
+          </div>
+          <div class="flex items-center gap-2 text-xs text-violet-400">
+            <svg class="w-3.5 h-3.5 spin" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            Escaneando
+          </div>
+        </div>
+
+        <!-- Stylised map mock -->
+        <div class="relative h-[260px] overflow-hidden" style="background: #111827;">
+          <!-- Grid lines -->
+          <svg class="absolute inset-0 w-full h-full opacity-10" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#6b7280" stroke-width=".5"/>
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#grid)" />
+          </svg>
+
+          <!-- Simulated roads -->
+          <svg class="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <path d="M 0 130 Q 200 100 450 140 T 900 130" fill="none" stroke="#1f2937" stroke-width="12"/>
+            <path d="M 0 130 Q 200 100 450 140 T 900 130" fill="none" stroke="#374151" stroke-width="4"/>
+            <path d="M 230 0 Q 240 100 235 260" fill="none" stroke="#1f2937" stroke-width="10"/>
+            <path d="M 230 0 Q 240 100 235 260" fill="none" stroke="#374151" stroke-width="3"/>
+            <path d="M 520 0 Q 510 130 530 260" fill="none" stroke="#1f2937" stroke-width="10"/>
+            <path d="M 520 0 Q 510 130 530 260" fill="none" stroke="#374151" stroke-width="3"/>
+          </svg>
+
+          <!-- Map pins (animated staggered appearance) -->
+          <div class="map-pin absolute" style="left:18%;top:35%;animation-delay:.1s">
+            <div class="w-6 h-6 rounded-full border-2 border-white/50 flex items-center justify-center"
+                 style="background:#7c3aed">
+              <div class="w-1.5 h-1.5 rounded-full bg-white"></div>
+            </div>
+            <div class="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-0"
+                 style="border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid #7c3aed"></div>
+          </div>
+          <div class="map-pin absolute" style="left:35%;top:52%;animation-delay:.25s">
+            <div class="w-6 h-6 rounded-full border-2 border-white/50 flex items-center justify-center"
+                 style="background:#7c3aed">
+              <div class="w-1.5 h-1.5 rounded-full bg-white"></div>
+            </div>
+            <div class="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-0"
+                 style="border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid #7c3aed"></div>
+          </div>
+          <div class="map-pin absolute" style="left:55%;top:28%;animation-delay:.4s">
+            <div class="w-6 h-6 rounded-full border-2 border-white/50 flex items-center justify-center"
+                 style="background:#4f46e5">
+              <div class="w-1.5 h-1.5 rounded-full bg-white"></div>
+            </div>
+            <div class="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-0"
+                 style="border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid #4f46e5"></div>
+          </div>
+          <div class="map-pin absolute" style="left:70%;top:62%;animation-delay:.55s">
+            <div class="w-6 h-6 rounded-full border-2 border-white/50 flex items-center justify-center"
+                 style="background:#7c3aed">
+              <div class="w-1.5 h-1.5 rounded-full bg-white"></div>
+            </div>
+          </div>
+          <div class="map-pin absolute" style="left:45%;top:72%;animation-delay:.7s">
+            <div class="w-5 h-5 rounded-full border-2 border-white/40 flex items-center justify-center"
+                 style="background:#6d28d9">
+              <div class="w-1.5 h-1.5 rounded-full bg-white"></div>
+            </div>
+          </div>
+          <div class="map-pin absolute" style="left:80%;top:40%;animation-delay:.85s">
+            <div class="w-5 h-5 rounded-full border-2 border-white/40 flex items-center justify-center"
+                 style="background:#4f46e5">
+              <div class="w-1.5 h-1.5 rounded-full bg-white"></div>
+            </div>
+          </div>
+          <div class="map-pin absolute" style="left:25%;top:68%;animation-delay:1s">
+            <div class="w-5 h-5 rounded-full border-2 border-white/40 flex items-center justify-center"
+                 style="background:#7c3aed">
+              <div class="w-1.5 h-1.5 rounded-full bg-white"></div>
+            </div>
+          </div>
+          <div class="map-pin absolute" style="left:62%;top:48%;animation-delay:1.15s">
+            <div class="w-4 h-4 rounded-full border-2 border-white/30"
+                 style="background:rgba(124,58,237,.6)"></div>
+          </div>
+
+          <!-- Score bubble overlay -->
+          <div class="absolute bottom-3 left-3 px-3 py-2 rounded-xl text-xs font-semibold"
+               style="background:rgba(124,58,237,.25);border:1px solid rgba(124,58,237,.4);backdrop-filter:blur(8px)">
+            <p class="text-stone-300 text-[10px] mb-0.5">Score de Red</p>
+            <p class="text-white text-lg font-black">—.—</p>
+            <p class="text-violet-400 text-[10px]">Calculando…</p>
+          </div>
+
+          <!-- Count bubble -->
+          <div class="absolute bottom-3 right-3 px-3 py-2 rounded-xl text-xs"
+               style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3)">
+            <p class="text-emerald-400 font-bold" id="map-count">48 locales activos</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Report teaser -->
+      <div class="card p-5 flex items-start gap-4 fade-up" style="animation-delay:.15s">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+             style="background:rgba(245,158,11,.12)">
+          <svg class="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        </div>
+        <div>
+          <p class="text-sm font-semibold text-white mb-0.5">Primer Reporte de Salud de Red</p>
+          <p class="text-xs text-stone-400 leading-relaxed">
+            El Worker de Celery está escaneando todos tus locales ahora mismo. En aproximadamente
+            <strong class="text-white">15–30 minutos</strong> estará listo tu primer informe con:
+            score de reputación, distribución de reseñas, locales en crisis y oportunidades de
+            mejora detectadas por IA.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const ORG_ID = sessionStorage.getItem("onboarding_org_id") || "demo-org-id";
+    let invites = [];   // { email, role }[]
+
+    // ── Parse bulk email textarea ────────────────────────────────────────────
+    function parseBulkEmails() {
+      const lines = document.getElementById("bulk-emails").value
+        .split("\n").map(l => l.trim()).filter(l => l.length > 0);
+      const role  = document.getElementById("bulk-role").value;
+
+      invites = lines
+        .filter(l => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(l))
+        .map(email => ({ email, role }));
+
+      renderInviteList();
+    }
+
+    function addSingleInvite() {
+      const email = document.getElementById("single-email").value.trim();
+      const role  = document.getElementById("single-role").value;
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+      if (invites.find(i => i.email === email)) { alert("Email ya en la lista"); return; }
+      invites.push({ email, role });
+      document.getElementById("single-email").value = "";
+      renderInviteList();
+    }
+
+    function removeInvite(email) {
+      invites = invites.filter(i => i.email !== email);
+      renderInviteList();
+    }
+
+    const ROLE_BADGE = {
+      superadmin:      { label:"SuperAdmin",    bg:"rgba(239,68,68,.12)",    color:"#f87171",  border:"rgba(239,68,68,.25)" },
+      network_manager: { label:"Network Mgr",   bg:"rgba(124,58,237,.12)",   color:"#a78bfa",  border:"rgba(124,58,237,.25)" },
+      store_manager:   { label:"Store Mgr",     bg:"rgba(59,130,246,.12)",   color:"#60a5fa",  border:"rgba(59,130,246,.25)" },
+      store_staff:     { label:"Store Staff",   bg:"rgba(16,185,129,.12)",   color:"#34d399",  border:"rgba(16,185,129,.25)" },
+    };
+
+    function renderInviteList() {
+      const container = document.getElementById("invite-list");
+      const countEl   = document.getElementById("invite-count");
+      const teamSub   = document.getElementById("team-check-sub");
+
+      if (invites.length === 0) {
+        container.innerHTML = "";
+        countEl.textContent = "";
+        updateTeamChecklist(false);
+        return;
+      }
+
+      container.innerHTML = invites.map((inv, idx) => {
+        const b = ROLE_BADGE[inv.role] || ROLE_BADGE["store_staff"];
+        return `
+          <div class="invite-row flex items-center gap-2 py-1.5 border-b border-white/6 last:border-0">
+            <div class="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black text-white shrink-0"
+                 style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">
+              ${inv.email[0].toUpperCase()}
+            </div>
+            <span class="flex-1 text-sm text-stone-200 truncate">${inv.email}</span>
+            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                  style="background:${b.bg};color:${b.color};border:1px solid ${b.border}">
+              ${b.label}
+            </span>
+            <button onclick="removeInvite('${inv.email}')"
+                    class="text-stone-600 hover:text-rose-400 transition text-lg leading-none px-1">&times;</button>
+          </div>`;
+      }).join("");
+
+      countEl.textContent = `${invites.length} invitación${invites.length !== 1 ? "es" : ""} lista${invites.length !== 1 ? "s" : ""}`;
+      teamSub.textContent = `${invites.length} miembro${invites.length !== 1 ? "s" : ""} en cola`;
+      updateTeamChecklist(invites.length > 0);
+    }
+
+    function updateTeamChecklist(done) {
+      const icon  = document.getElementById("team-check-icon");
+      const label = document.getElementById("team-check-label");
+      const badge = document.getElementById("team-check-badge");
+      if (done) {
+        icon.innerHTML  = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>`;
+        icon.classList.remove("check-icon-pending");
+        icon.classList.add("check-icon-done");
+        label.textContent = "Equipo listo para invitar";
+        label.classList.remove("text-stone-300");
+        label.classList.add("text-white");
+        badge.textContent = "Listo";
+        badge.style.cssText = "background:rgba(16,185,129,.12);color:#34d399;border:1px solid rgba(16,185,129,.2)";
+        badge.className = "ml-auto text-[11px] px-2 py-0.5 rounded-full font-semibold";
+      } else {
+        icon.innerHTML  = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>`;
+        icon.classList.add("check-icon-pending");
+        icon.classList.remove("check-icon-done");
+        label.textContent = "Equipo por configurar";
+        label.classList.add("text-stone-300");
+        label.classList.remove("text-white");
+        badge.textContent = "Pendiente";
+        badge.style.cssText = "";
+        badge.className = "ml-auto text-[11px] px-2 py-0.5 rounded-full bg-stone-800 text-stone-500 border border-stone-700";
+      }
+    }
+
+    // ── Send invitations ─────────────────────────────────────────────────────
+    async function sendInvitations() {
+      const btn = document.getElementById("btn-invite");
+      const label = document.getElementById("btn-invite-label");
+      btn.disabled = true;
+      label.textContent = "Enviando…";
+
+      try {
+        // In production:
+        // const res = await fetch(`/enterprise/onboarding/invite/bulk`, {
+        //   method: "POST",
+        //   headers: { "Content-Type": "application/json" },
+        //   body: JSON.stringify({ org_id: ORG_ID, invites }),
+        // });
+        // if (!res.ok) throw new Error((await res.json()).detail);
+
+        await new Promise(r => setTimeout(r, 1200));   // simulate
+        window.location.href = `/enterprise/dashboard/${ORG_ID}`;
+      } catch (err) {
+        alert("Error: " + err.message);
+        btn.disabled = false;
+        label.textContent = "Enviar invitaciones y finalizar";
+      }
+    }
+
+    function skipAndFinish() {
+      window.location.href = `/enterprise/dashboard/${ORG_ID}`;
+    }
+  </script>
+</body>
+</html>

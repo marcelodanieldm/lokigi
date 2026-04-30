@@ -65,6 +65,21 @@ class Organization(Base):
     agency_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     agency_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
+    # Extended branding — added by enterprise onboarding wizard
+    font_family: Mapped[str | None] = mapped_column(Text, nullable=True, default="Inter, sans-serif")
+    isotipo_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    hide_lokigi_brand: Mapped[bool] = mapped_column(nullable=False, default=False)
+
+    # SMTP configuration — Fernet-encrypted password
+    smtp_host: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    smtp_port: Mapped[int | None] = mapped_column(nullable=True, default=587)
+    smtp_user: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    smtp_password_enc: Mapped[str | None] = mapped_column(Text, nullable=True)
+    smtp_use_tls: Mapped[bool] = mapped_column(nullable=False, default=True)
+
+    # Onboarding wizard progress (1=identity, 2=locations, 3=governance, 4=complete)
+    onboarding_step: Mapped[int] = mapped_column(nullable=False, default=1)
+
     created_at: Mapped[str] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -75,6 +90,37 @@ class Organization(Base):
     users: Mapped[list["OrgMembership"]] = relationship(
         back_populates="organization", cascade="all, delete-orphan"
     )
+    locations: Mapped[list["OrgLocation"]] = relationship(
+        back_populates="organization", cascade="all, delete-orphan"
+    )
+
+
+class OrgLocation(Base):
+    """A physical or Google Business Profile location that belongs to an org."""
+    __tablename__ = "org_locations"
+    __table_args__ = (
+        Index("ix_org_locations_org_id", "org_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    org_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    place_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    address: Mapped[str | None] = mapped_column(Text, nullable=True)
+    name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    phone: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    city: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    country: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[str] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default="now()"
+    )
+
+    organization: Mapped[Organization] = relationship(back_populates="locations")
 
 
 class OrgMembership(Base):

@@ -65,6 +65,14 @@ class Settings(BaseSettings):
         "Chrome/124.0.0.0 Safari/537.36"
     )
 
+    # JWT
+    jwt_secret_key: str = "change-me-in-production"
+    jwt_algorithm: str = "HS256"
+    jwt_audience: str = ""
+
+    # Enterprise onboarding — local asset uploads
+    assets_upload_dir: str = "assets/uploads"
+
     def parsed_allowed_hosts(self) -> list[str]:
         value = self.allowed_hosts.strip()
         if not value:
