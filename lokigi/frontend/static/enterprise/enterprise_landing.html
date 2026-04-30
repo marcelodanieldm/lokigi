@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan Enterprise — White Label & Multi-Tenant | Lokigi Enterprise</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Arial, "Helvetica Neue", sans-serif; }
+    .no-underline { text-decoration: none; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp .35s ease both; }
+    input, select, textarea {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      color: #f1f5f9;
+      padding: 10px 14px;
+      font-size: 14px;
+      width: 100%;
+      outline: none;
+      transition: border-color .15s;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: rgba(167,139,250,.6);
+      box-shadow: 0 0 0 3px rgba(139,92,246,.15);
+    }
+    input[type="color"] {
+      padding: 4px 6px;
+      height: 42px;
+      cursor: pointer;
+    }
+    select option { background: #1c1917; }
+    .badge-role-sa   { background: rgba(167,139,250,.18); color: #c4b5fd; }
+    .badge-role-mgr  { background: rgba(251,191,36,.15);  color: #fcd34d; }
+    .badge-role-view { background: rgba(148,163,184,.12); color: #94a3b8; }
+  </style>
+</head>
+<body class="min-h-screen bg-stone-950 text-stone-100">
+
+<nav class="sticky top-0 z-50 flex items-center gap-1 px-5 h-14
+     bg-stone-950/95 backdrop-blur-sm border-b border-white/10 shadow-md flex-wrap">
+  <div class="flex items-center gap-2.5 mr-auto">
+    <a href="enterprise_landing.html"
+       class="flex items-center justify-center w-8 h-8 rounded-lg
+              bg-gradient-to-br from-violet-500 to-indigo-600
+              text-white font-black text-sm no-underline">L</a>
+    <a href="enterprise_landing.html"
+       class="font-bold text-white text-base no-underline">Lokigi</a>
+    <span class="px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300
+                 text-xs font-bold uppercase tracking-wider">Enterprise</span>
+  </div>
+  <a href="enterprise_landing.html" class="px-3 py-2 rounded-lg text-sm font-semibold text-violet-200 bg-violet-500/20 border border-violet-400/20 no-underline">🏢 Plan Enterprise</a>
+<a href="step1_brand.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">1 · Marca</a>
+<a href="step2_tenants.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">2 · Tenants</a>
+<a href="step3_locations.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">3 · Ubicaciones</a>
+<a href="step4_roles.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">4 · Roles</a>
+<a href="step5_dashboard_agency.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">5 · Dashboard Agency</a>
+
+</nav>
+
+<div class="mx-auto max-w-4xl px-4 py-12 sm:px-6 pb-20 fade-up">
+
+  <!-- Hero -->
+  <div class="text-center mb-14">
+    <span class="inline-flex px-3 py-1 rounded-full bg-violet-500/15 text-violet-300
+                 text-xs font-bold uppercase tracking-widest mb-4">Plan Enterprise / Agency</span>
+    <h1 class="text-5xl font-black text-white leading-tight mb-4">
+      White Label &amp;<br>Multi-Tenant
+    </h1>
+    <p class="text-stone-400 text-lg max-w-2xl mx-auto leading-relaxed">
+      Vende Lokigi como tu propio producto. Tu logo, tus colores, tu dominio.
+      Gestiona todos tus clientes desde un panel unificado con aislamiento total de datos.
+    </p>
+    <div class="flex items-center justify-center gap-4 mt-8 flex-wrap">
+      <a href="step1_brand.html"
+         class="px-8 py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600
+                text-white font-bold text-lg hover:from-violet-500 hover:to-indigo-500
+                no-underline transition">
+        Configurar mi agencia →
+      </a>
+      <span class="text-stone-400 text-sm">desde <strong class="text-white">$199 / mes</strong> · 14 días gratis</span>
+    </div>
+  </div>
+
+  <!-- Pricing cards -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-14">
+
+    <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
+      <p class="text-xs uppercase tracking-widest text-stone-400 mb-2">Starter</p>
+      <p class="text-3xl font-black text-white mb-1">€29<span class="text-base font-normal text-stone-400">/mes</span></p>
+      <p class="text-stone-400 text-sm mb-5">1 negocio · respuestas IA · reportes</p>
+      <ul class="space-y-2 text-sm text-stone-300">
+        <li class="flex gap-2"><span class="text-emerald-400">✓</span> Auto-reply con IA</li>
+        <li class="flex gap-2"><span class="text-emerald-400">✓</span> Reporte mensual PDF</li>
+        <li class="flex gap-2"><span class="text-emerald-400">✓</span> Sentiment snapshot</li>
+        <li class="flex gap-2 opacity-40"><span>✗</span> Radar competitivo</li>
+        <li class="flex gap-2 opacity-40"><span>✗</span> White label</li>
+      </ul>
+    </div>
+
+    <div class="rounded-3xl border border-emerald-500/25 bg-emerald-500/5 p-6">
+      <p class="text-xs uppercase tracking-widest text-emerald-400 mb-2">Growth</p>
+      <p class="text-3xl font-black text-white mb-1">€79<span class="text-base font-normal text-stone-400">/mes</span></p>
+      <p class="text-stone-400 text-sm mb-5">1 negocio · scraping + IA · radar</p>
+      <ul class="space-y-2 text-sm text-stone-300">
+        <li class="flex gap-2"><span class="text-emerald-400">✓</span> Todo lo de Starter</li>
+        <li class="flex gap-2"><span class="text-emerald-400">✓</span> Radar de Guerra competitivo</li>
+        <li class="flex gap-2"><span class="text-emerald-400">✓</span> Keyword Tracker SERP</li>
+        <li class="flex gap-2"><span class="text-emerald-400">✓</span> Live Feed inteligencia</li>
+        <li class="flex gap-2 opacity-40"><span>✗</span> White label / multi-tenant</li>
+      </ul>
+    </div>
+
+    <div class="rounded-3xl border border-violet-500/35 bg-violet-500/8 p-6 relative overflow-hidden">
+      <div class="absolute top-4 right-4 px-2.5 py-1 rounded-full bg-violet-500/30
+                  text-violet-200 text-xs font-bold uppercase tracking-wider">Nuevo</div>
+      <p class="text-xs uppercase tracking-widest text-violet-400 mb-2">Enterprise / Agency</p>
+      <p class="text-3xl font-black text-white mb-1">$199+<span class="text-base font-normal text-stone-400">/mes</span></p>
+      <p class="text-stone-400 text-sm mb-5">∞ negocios · white label · multi-tenant</p>
+      <ul class="space-y-2 text-sm text-stone-300">
+        <li class="flex gap-2"><span class="text-violet-400">✓</span> Todo lo de Growth</li>
+        <li class="flex gap-2"><span class="text-violet-400">✓</span> Tu logo, colores y dominio</li>
+        <li class="flex gap-2"><span class="text-violet-400">✓</span> Gestión multi-tenant</li>
+        <li class="flex gap-2"><span class="text-violet-400">✓</span> Roles: SuperAdmin / Manager / Viewer</li>
+        <li class="flex gap-2"><span class="text-violet-400">✓</span> Vista consolidada de agencia</li>
+        <li class="flex gap-2"><span class="text-violet-400">✓</span> API white-label dedicada</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <!-- Feature pillars -->
+  <h2 class="text-2xl font-bold text-white mb-6 text-center">El flujo de despliegue en 4 pasos</h2>
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-14">
+
+    <a href="step1_brand.html" class="block rounded-3xl border border-white/10 bg-white/5 p-6 hover:bg-white/8 no-underline group">
+      <div class="w-11 h-11 rounded-2xl bg-violet-500/15 flex items-center justify-center text-2xl mb-4">🎨</div>
+      <h3 class="text-white font-bold text-lg mb-2 group-hover:text-violet-300 transition">1 · Configuración de Marca</h3>
+      <p class="text-stone-400 text-sm leading-relaxed">
+        Sube tu logo, define tu paleta de colores primaria y configura tu propio dominio
+        (<code class="text-violet-300">qa.tuagencia.com</code>). Lokigi desaparece del frontend.
+      </p>
+    </a>
+
+    <a href="step2_tenants.html" class="block rounded-3xl border border-white/10 bg-white/5 p-6 hover:bg-white/8 no-underline group">
+      <div class="w-11 h-11 rounded-2xl bg-indigo-500/15 flex items-center justify-center text-2xl mb-4">🏗️</div>
+      <h3 class="text-white font-bold text-lg mb-2 group-hover:text-indigo-300 transition">2 · Aislamiento de Datos</h3>
+      <p class="text-stone-400 text-sm leading-relaxed">
+        FastAPI gestiona múltiples Tenants con Row-Level Security en PostgreSQL.
+        Cada cliente solo ve sus ubicaciones. La agencia ve el consolidado total.
+      </p>
+    </a>
+
+    <a href="step3_locations.html" class="block rounded-3xl border border-white/10 bg-white/5 p-6 hover:bg-white/8 no-underline group">
+      <div class="w-11 h-11 rounded-2xl bg-sky-500/15 flex items-center justify-center text-2xl mb-4">📍</div>
+      <h3 class="text-white font-bold text-lg mb-2 group-hover:text-sky-300 transition">3 · Vista Consolidada</h3>
+      <p class="text-stone-400 text-sm leading-relaxed">
+        El SuperAdmin ve todas las ubicaciones de todos los clientes en un solo mapa.
+        Filtros por tenant, ciudad, rating y estado de alerta.
+      </p>
+    </a>
+
+    <a href="step4_roles.html" class="block rounded-3xl border border-white/10 bg-white/5 p-6 hover:bg-white/8 no-underline group">
+      <div class="w-11 h-11 rounded-2xl bg-amber-500/15 flex items-center justify-center text-2xl mb-4">🔐</div>
+      <h3 class="text-white font-bold text-lg mb-2 group-hover:text-amber-300 transition">4 · Gestión de Accesos</h3>
+      <p class="text-stone-400 text-sm leading-relaxed">
+        Tres roles jerárquicos: <strong class="text-violet-300">SuperAdmin</strong> (agencia),
+        <strong class="text-amber-300">Manager</strong> (dueño de franquicia) y
+        <strong class="text-stone-300">Viewer</strong> (encargado de local).
+      </p>
+    </a>
+
+  </div>
+
+  <!-- CTA bottom -->
+  <div class="rounded-3xl border border-violet-500/25
+              bg-gradient-to-br from-violet-950/60 to-indigo-950/60 p-8 text-center">
+    <h2 class="text-2xl font-bold text-white mb-3">¿Lista tu agencia?</h2>
+    <p class="text-stone-400 mb-6 max-w-lg mx-auto">
+      Configura el white label en menos de 10 minutos. Sin código, sin servers propios.
+    </p>
+    <a href="step1_brand.html"
+       class="inline-flex px-8 py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600
+              text-white font-bold text-base hover:from-violet-500 hover:to-indigo-500
+              no-underline transition">
+      Empezar configuración →
+    </a>
+  </div>
+
+</div>
+</body>
+</html>

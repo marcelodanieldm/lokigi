@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard Agency — SuperAdmin | Lokigi Enterprise</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Arial, "Helvetica Neue", sans-serif; }
+    .no-underline { text-decoration: none; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp .35s ease both; }
+    input, select, textarea {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      color: #f1f5f9;
+      padding: 10px 14px;
+      font-size: 14px;
+      width: 100%;
+      outline: none;
+      transition: border-color .15s;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: rgba(167,139,250,.6);
+      box-shadow: 0 0 0 3px rgba(139,92,246,.15);
+    }
+    input[type="color"] {
+      padding: 4px 6px;
+      height: 42px;
+      cursor: pointer;
+    }
+    select option { background: #1c1917; }
+    .badge-role-sa   { background: rgba(167,139,250,.18); color: #c4b5fd; }
+    .badge-role-mgr  { background: rgba(251,191,36,.15);  color: #fcd34d; }
+    .badge-role-view { background: rgba(148,163,184,.12); color: #94a3b8; }
+  </style>
+</head>
+<body class="min-h-screen bg-stone-950 text-stone-100">
+
+<nav class="sticky top-0 z-50 flex items-center gap-1 px-5 h-14
+     bg-stone-950/95 backdrop-blur-sm border-b border-white/10 shadow-md flex-wrap">
+  <div class="flex items-center gap-2.5 mr-auto">
+    <a href="enterprise_landing.html"
+       class="flex items-center justify-center w-8 h-8 rounded-lg
+              bg-gradient-to-br from-violet-500 to-indigo-600
+              text-white font-black text-sm no-underline">L</a>
+    <a href="enterprise_landing.html"
+       class="font-bold text-white text-base no-underline">Lokigi</a>
+    <span class="px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300
+                 text-xs font-bold uppercase tracking-wider">Enterprise</span>
+  </div>
+  <a href="enterprise_landing.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">🏢 Plan Enterprise</a>
+<a href="step1_brand.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">1 · Marca</a>
+<a href="step2_tenants.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">2 · Tenants</a>
+<a href="step3_locations.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">3 · Ubicaciones</a>
+<a href="step4_roles.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">4 · Roles</a>
+<a href="step5_dashboard_agency.html" class="px-3 py-2 rounded-lg text-sm font-semibold text-violet-200 bg-violet-500/20 border border-violet-400/20 no-underline">5 · Dashboard Agency</a>
+
+</nav>
+
+<div class="mx-auto max-w-6xl px-4 py-8 sm:px-6 pb-20 fade-up">
+
+  <!-- Header -->
+  <div class="rounded-3xl border border-violet-500/20
+              bg-gradient-to-br from-stone-900 via-violet-950/40 to-indigo-950/40
+              p-6 mb-6 shadow-2xl">
+    <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+      <div>
+        <p class="text-xs uppercase tracking-[.28em] text-violet-300/70 mb-1">SuperAdmin · Agencia</p>
+        <h1 class="text-4xl font-black text-white leading-none mb-2">Mi Agencia Digital</h1>
+        <p class="text-stone-400 text-sm">Vista consolidada · 4 tenants · 8 ubicaciones monitorizadas</p>
+      </div>
+      <div class="flex flex-wrap gap-3">
+        <div class="min-w-[88px] rounded-2xl border border-violet-500/20 bg-violet-500/10 px-5 py-3 text-center">
+          <p class="text-3xl font-bold text-violet-200">4</p>
+          <p class="text-xs uppercase tracking-wider text-stone-400 mt-0.5">Tenants</p>
+        </div>
+        <div class="min-w-[88px] rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-center">
+          <p class="text-3xl font-bold text-white">31</p>
+          <p class="text-xs uppercase tracking-wider text-stone-400 mt-0.5">Ubicaciones</p>
+        </div>
+        <div class="min-w-[88px] rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-5 py-3 text-center">
+          <p class="text-3xl font-bold text-emerald-200">4.2★</p>
+          <p class="text-xs uppercase tracking-wider text-stone-400 mt-0.5">Rating avg</p>
+        </div>
+        <div class="min-w-[88px] rounded-2xl border border-rose-500/20 bg-rose-500/10 px-5 py-3 text-center">
+          <p class="text-3xl font-bold text-rose-200">6</p>
+          <p class="text-xs uppercase tracking-wider text-stone-400 mt-0.5">Alertas</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main grid -->
+  <div class="grid grid-cols-1 xl:grid-cols-[3fr_2fr] gap-5 mb-5">
+
+    <!-- LEFT: Tenant performance -->
+    <div class="space-y-5">
+
+      <div class="rounded-3xl border border-white/10 bg-white/5 p-5">
+        <p class="text-xs uppercase tracking-[.2em] text-stone-400">Rendimiento por Tenant</p>
+        <h2 class="text-xl font-bold text-white mt-1 mb-5">Todos los clientes — resumen</h2>
+
+        <div class="space-y-4">
+
+          <!-- Tenant card 1 -->
+          <div class="rounded-2xl border border-white/10 bg-black/20 p-4">
+            <div class="flex items-start justify-between gap-2 mb-3">
+              <div>
+                <h3 class="text-sm font-bold text-white">Cadena Pizzas Norte</h3>
+                <p class="text-xs text-stone-400">8 ubicaciones · Madrid</p>
+              </div>
+              <span class="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Activo</span>
+            </div>
+            <div class="grid grid-cols-3 gap-3">
+              <div class="text-center"><p class="text-xl font-bold text-white">4.3★</p><p class="text-xs text-stone-400">Rating</p></div>
+              <div class="text-center"><p class="text-xl font-bold text-emerald-300">91%</p><p class="text-xs text-stone-400">Reply %</p></div>
+              <div class="text-center"><p class="text-xl font-bold text-rose-300">2</p><p class="text-xs text-stone-400">Alertas</p></div>
+            </div>
+            <div class="mt-3 bg-black/20 rounded-xl h-2 overflow-hidden">
+              <div class="h-full rounded-xl" style="width:86%;background:linear-gradient(90deg,#7c3aed,#4f46e5)"></div>
+            </div>
+            <p class="text-xs text-stone-500 mt-1">Score de salud: 86/100</p>
+          </div>
+
+          <!-- Tenant card 2 -->
+          <div class="rounded-2xl border border-white/10 bg-black/20 p-4">
+            <div class="flex items-start justify-between gap-2 mb-3">
+              <div>
+                <h3 class="text-sm font-bold text-white">Franquicia Café Rápido</h3>
+                <p class="text-xs text-stone-400">14 ubicaciones · Madrid + provincias</p>
+              </div>
+              <span class="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Activo</span>
+            </div>
+            <div class="grid grid-cols-3 gap-3">
+              <div class="text-center"><p class="text-xl font-bold text-white">4.0★</p><p class="text-xs text-stone-400">Rating</p></div>
+              <div class="text-center"><p class="text-xl font-bold text-emerald-300">82%</p><p class="text-xs text-stone-400">Reply %</p></div>
+              <div class="text-center"><p class="text-xl font-bold text-stone-400">0</p><p class="text-xs text-stone-400">Alertas</p></div>
+            </div>
+            <div class="mt-3 bg-black/20 rounded-xl h-2 overflow-hidden">
+              <div class="h-full rounded-xl" style="width:79%;background:linear-gradient(90deg,#7c3aed,#4f46e5)"></div>
+            </div>
+            <p class="text-xs text-stone-500 mt-1">Score de salud: 79/100</p>
+          </div>
+
+          <!-- Tenant card 3 -->
+          <div class="rounded-2xl border border-white/10 bg-black/20 p-4">
+            <div class="flex items-start justify-between gap-2 mb-3">
+              <div>
+                <h3 class="text-sm font-bold text-white">Restaurantes El Mar</h3>
+                <p class="text-xs text-stone-400">5 ubicaciones · Barcelona + costa</p>
+              </div>
+              <span class="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Activo</span>
+            </div>
+            <div class="grid grid-cols-3 gap-3">
+              <div class="text-center"><p class="text-xl font-bold text-white">4.6★</p><p class="text-xs text-stone-400">Rating</p></div>
+              <div class="text-center"><p class="text-xl font-bold text-emerald-300">97%</p><p class="text-xs text-stone-400">Reply %</p></div>
+              <div class="text-center"><p class="text-xl font-bold text-rose-300">1</p><p class="text-xs text-stone-400">Alertas</p></div>
+            </div>
+            <div class="mt-3 bg-black/20 rounded-xl h-2 overflow-hidden">
+              <div class="h-full rounded-xl" style="width:93%;background:linear-gradient(90deg,#10b981,#059669)"></div>
+            </div>
+            <p class="text-xs text-stone-500 mt-1">Score de salud: 93/100</p>
+          </div>
+
+          <!-- Tenant card 4 -->
+          <div class="rounded-2xl border border-rose-500/15 bg-rose-500/5 p-4">
+            <div class="flex items-start justify-between gap-2 mb-3">
+              <div>
+                <h3 class="text-sm font-bold text-white">Hoteles Solimar</h3>
+                <p class="text-xs text-stone-400">3 ubicaciones · Marbella</p>
+              </div>
+              <span class="px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 text-xs font-bold">Trial</span>
+            </div>
+            <div class="grid grid-cols-3 gap-3">
+              <div class="text-center"><p class="text-xl font-bold text-amber-300">4.0★</p><p class="text-xs text-stone-400">Rating</p></div>
+              <div class="text-center"><p class="text-xl font-bold text-rose-300">44%</p><p class="text-xs text-stone-400">Reply %</p></div>
+              <div class="text-center"><p class="text-xl font-bold text-rose-300">4</p><p class="text-xs text-stone-400">Alertas</p></div>
+            </div>
+            <div class="mt-3 bg-black/20 rounded-xl h-2 overflow-hidden">
+              <div class="h-full rounded-xl" style="width:42%;background:linear-gradient(90deg,#f43f5e,#e11d48)"></div>
+            </div>
+            <p class="text-xs text-rose-400 mt-1">Score de salud: 42/100 · Requiere atención</p>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+    <!-- END LEFT -->
+
+    <!-- RIGHT: Alerts + Quick actions -->
+    <div class="space-y-5">
+
+      <!-- Alert panel -->
+      <div class="rounded-3xl border border-white/10 bg-white/5 p-5">
+        <p class="text-xs uppercase tracking-[.2em] text-stone-400">Centro de Alertas</p>
+        <h2 class="text-xl font-bold text-white mt-1 mb-4">6 alertas abiertas</h2>
+        <div class="space-y-3 max-h-72 overflow-y-auto pr-1">
+          <div class="rounded-2xl border border-rose-500/20 bg-rose-500/8 p-3">
+            <div class="flex justify-between items-start gap-2 mb-1">
+              <p class="text-sm font-semibold text-white">Reply % crítico — Hotel Solimar</p>
+              <span class="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-xs font-bold flex-shrink-0">Alta</span>
+            </div>
+            <p class="text-xs text-stone-400">Solo el 44 % de reseñas con respuesta. Objetivo: 80 %.</p>
+            <p class="text-xs text-stone-600 mt-1">hace 2 horas</p>
+          </div>
+          <div class="rounded-2xl border border-rose-500/20 bg-rose-500/8 p-3">
+            <div class="flex justify-between items-start gap-2 mb-1">
+              <p class="text-sm font-semibold text-white">3 reseñas negativas sin contestar — Hoteles Solimar</p>
+              <span class="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-xs font-bold flex-shrink-0">Alta</span>
+            </div>
+            <p class="text-xs text-stone-400">Reseñas de 1 y 2 estrellas sin respuesta IA aprobada.</p>
+            <p class="text-xs text-stone-600 mt-1">hace 5 horas</p>
+          </div>
+          <div class="rounded-2xl border border-amber-500/15 bg-amber-500/5 p-3">
+            <div class="flex justify-between items-start gap-2 mb-1">
+              <p class="text-sm font-semibold text-white">Caída de rating — Pizza Norte Chamberí</p>
+              <span class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold flex-shrink-0">Media</span>
+            </div>
+            <p class="text-xs text-stone-400">Rating pasó de 4.4 a 4.2 en los últimos 14 días.</p>
+            <p class="text-xs text-stone-600 mt-1">hace 12 horas</p>
+          </div>
+          <div class="rounded-2xl border border-amber-500/15 bg-amber-500/5 p-3">
+            <div class="flex justify-between items-start gap-2 mb-1">
+              <p class="text-sm font-semibold text-white">Reply % bajo — Café Rápido Atocha</p>
+              <span class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold flex-shrink-0">Media</span>
+            </div>
+            <p class="text-xs text-stone-400">62 % de respuesta. Esperada una mejora antes del cierre mensual.</p>
+            <p class="text-xs text-stone-600 mt-1">hace 1 día</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick actions -->
+      <div class="rounded-3xl border border-white/10 bg-white/5 p-5">
+        <p class="text-xs uppercase tracking-[.2em] text-stone-400 mb-4">Acciones rápidas</p>
+        <div class="space-y-2">
+          <a href="step2_tenants.html"
+             class="flex items-center gap-3 p-3 rounded-2xl border border-white/10
+                    bg-white/3 hover:bg-white/8 no-underline group">
+            <span class="text-xl">🏗️</span>
+            <div>
+              <p class="text-sm font-semibold text-white group-hover:text-violet-300 transition">Gestionar tenants</p>
+              <p class="text-xs text-stone-500">Ver, crear o pausar clientes</p>
+            </div>
+          </a>
+          <a href="step4_roles.html"
+             class="flex items-center gap-3 p-3 rounded-2xl border border-white/10
+                    bg-white/3 hover:bg-white/8 no-underline group">
+            <span class="text-xl">🔐</span>
+            <div>
+              <p class="text-sm font-semibold text-white group-hover:text-violet-300 transition">Roles y permisos</p>
+              <p class="text-xs text-stone-500">Invitar usuarios o cambiar roles</p>
+            </div>
+          </a>
+          <a href="step1_brand.html"
+             class="flex items-center gap-3 p-3 rounded-2xl border border-white/10
+                    bg-white/3 hover:bg-white/8 no-underline group">
+            <span class="text-xl">🎨</span>
+            <div>
+              <p class="text-sm font-semibold text-white group-hover:text-violet-300 transition">Ajustar white label</p>
+              <p class="text-xs text-stone-500">Logo, colores, dominio</p>
+            </div>
+          </a>
+          <a href="step3_locations.html"
+             class="flex items-center gap-3 p-3 rounded-2xl border border-white/10
+                    bg-white/3 hover:bg-white/8 no-underline group">
+            <span class="text-xl">📍</span>
+            <div>
+              <p class="text-sm font-semibold text-white group-hover:text-violet-300 transition">Vista de ubicaciones</p>
+              <p class="text-xs text-stone-500">Mapa consolidado multi-tenant</p>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Billing summary -->
+      <div class="rounded-3xl border border-violet-500/20 bg-violet-500/5 p-5">
+        <p class="text-xs uppercase tracking-[.2em] text-violet-300/70 mb-4">Facturación agencia</p>
+        <div class="divide-y divide-white/5 text-sm">
+          <div class="flex justify-between py-2.5">
+            <span class="text-stone-400">Plan Enterprise base</span>
+            <span class="text-white font-bold">$199/mes</span>
+          </div>
+          <div class="flex justify-between py-2.5">
+            <span class="text-stone-400">Tenants adicionales (3 × $29)</span>
+            <span class="text-white font-bold">$87/mes</span>
+          </div>
+          <div class="flex justify-between py-2.5 text-base">
+            <span class="text-stone-200 font-bold">Total mensual</span>
+            <span class="text-violet-300 font-black">$286/mes</span>
+          </div>
+        </div>
+        <p class="text-xs text-stone-500 mt-3">Próxima factura: 1 Mayo 2026</p>
+      </div>
+
+    </div>
+    <!-- END RIGHT -->
+
+  </div>
+
+  <!-- Back link -->
+  <div class="flex justify-start mt-2">
+    <a href="step4_roles.html"
+       class="px-5 py-3 rounded-2xl border border-white/10 bg-white/5
+              text-stone-300 font-semibold text-sm hover:bg-white/10 no-underline">
+      ← Volver a Roles
+    </a>
+  </div>
+
+</div>
+</body>
+</html>

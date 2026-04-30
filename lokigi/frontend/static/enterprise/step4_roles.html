@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Paso 4 — Gestión de Roles | Lokigi Enterprise</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Arial, "Helvetica Neue", sans-serif; }
+    .no-underline { text-decoration: none; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp .35s ease both; }
+    input, select, textarea {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      color: #f1f5f9;
+      padding: 10px 14px;
+      font-size: 14px;
+      width: 100%;
+      outline: none;
+      transition: border-color .15s;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: rgba(167,139,250,.6);
+      box-shadow: 0 0 0 3px rgba(139,92,246,.15);
+    }
+    input[type="color"] {
+      padding: 4px 6px;
+      height: 42px;
+      cursor: pointer;
+    }
+    select option { background: #1c1917; }
+    .badge-role-sa   { background: rgba(167,139,250,.18); color: #c4b5fd; }
+    .badge-role-mgr  { background: rgba(251,191,36,.15);  color: #fcd34d; }
+    .badge-role-view { background: rgba(148,163,184,.12); color: #94a3b8; }
+  </style>
+</head>
+<body class="min-h-screen bg-stone-950 text-stone-100">
+
+<nav class="sticky top-0 z-50 flex items-center gap-1 px-5 h-14
+     bg-stone-950/95 backdrop-blur-sm border-b border-white/10 shadow-md flex-wrap">
+  <div class="flex items-center gap-2.5 mr-auto">
+    <a href="enterprise_landing.html"
+       class="flex items-center justify-center w-8 h-8 rounded-lg
+              bg-gradient-to-br from-violet-500 to-indigo-600
+              text-white font-black text-sm no-underline">L</a>
+    <a href="enterprise_landing.html"
+       class="font-bold text-white text-base no-underline">Lokigi</a>
+    <span class="px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300
+                 text-xs font-bold uppercase tracking-wider">Enterprise</span>
+  </div>
+  <a href="enterprise_landing.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">🏢 Plan Enterprise</a>
+<a href="step1_brand.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">1 · Marca</a>
+<a href="step2_tenants.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">2 · Tenants</a>
+<a href="step3_locations.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">3 · Ubicaciones</a>
+<a href="step4_roles.html" class="px-3 py-2 rounded-lg text-sm font-semibold text-violet-200 bg-violet-500/20 border border-violet-400/20 no-underline">4 · Roles</a>
+<a href="step5_dashboard_agency.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">5 · Dashboard Agency</a>
+
+</nav>
+
+<div class="mx-auto max-w-5xl px-4 py-10 sm:px-6 pb-20 fade-up">
+
+  <div class="mb-8">
+    <p class="text-xs uppercase tracking-[.2em] text-violet-300/70 mb-1">Paso 4 de 4</p>
+    <h1 class="text-3xl font-bold text-white">Gestión de Accesos y Roles</h1>
+    <p class="mt-1 text-stone-400 text-sm">
+      Define quién puede ver qué. Tres niveles jerárquicos con permisos aislados por tenant.
+    </p>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="flex gap-2 mb-10">
+    <div class="h-1.5 flex-1 rounded-full bg-violet-500"></div>
+    <div class="h-1.5 flex-1 rounded-full bg-violet-500"></div>
+    <div class="h-1.5 flex-1 rounded-full bg-violet-500"></div>
+    <div class="h-1.5 flex-1 rounded-full bg-violet-500"></div>
+  </div>
+
+  <!-- Role cards -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-10">
+
+    <div class="rounded-3xl border border-violet-500/25 bg-violet-500/8 p-6">
+      <div class="w-10 h-10 rounded-2xl bg-violet-500/20 flex items-center justify-center text-xl mb-4">👑</div>
+      <h3 class="text-white font-bold text-lg mb-1">SuperAdmin</h3>
+      <p class="text-violet-300 text-xs font-bold uppercase tracking-wider mb-3">Agencia</p>
+      <ul class="space-y-2 text-sm text-stone-300">
+        <li class="flex gap-2"><span class="text-violet-400">✓</span> Vista de todos los tenants</li>
+        <li class="flex gap-2"><span class="text-violet-400">✓</span> Crear / eliminar tenants</li>
+        <li class="flex gap-2"><span class="text-violet-400">✓</span> Configurar white label</li>
+        <li class="flex gap-2"><span class="text-violet-400">✓</span> Asignar roles a usuarios</li>
+        <li class="flex gap-2"><span class="text-violet-400">✓</span> Ver datos consolidados</li>
+        <li class="flex gap-2"><span class="text-violet-400">✓</span> Facturación de agencia</li>
+      </ul>
+    </div>
+
+    <div class="rounded-3xl border border-amber-500/20 bg-amber-500/5 p-6">
+      <div class="w-10 h-10 rounded-2xl bg-amber-500/15 flex items-center justify-center text-xl mb-4">🏢</div>
+      <h3 class="text-white font-bold text-lg mb-1">Manager</h3>
+      <p class="text-amber-300 text-xs font-bold uppercase tracking-wider mb-3">Dueño de franquicia</p>
+      <ul class="space-y-2 text-sm text-stone-300">
+        <li class="flex gap-2"><span class="text-amber-400">✓</span> Vista de su tenant</li>
+        <li class="flex gap-2"><span class="text-amber-400">✓</span> Todas sus ubicaciones</li>
+        <li class="flex gap-2"><span class="text-amber-400">✓</span> Aprobar respuestas IA</li>
+        <li class="flex gap-2"><span class="text-amber-400">✓</span> Configurar voz de marca</li>
+        <li class="flex gap-2"><span class="text-amber-400">✓</span> Descargar reportes PDF</li>
+        <li class="flex gap-2 opacity-40"><span>✗</span> Otros tenants</li>
+      </ul>
+    </div>
+
+    <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
+      <div class="w-10 h-10 rounded-2xl bg-stone-500/20 flex items-center justify-center text-xl mb-4">👁️</div>
+      <h3 class="text-white font-bold text-lg mb-1">Viewer</h3>
+      <p class="text-stone-400 text-xs font-bold uppercase tracking-wider mb-3">Encargado de local</p>
+      <ul class="space-y-2 text-sm text-stone-300">
+        <li class="flex gap-2"><span class="text-stone-400">✓</span> Solo su ubicación asignada</li>
+        <li class="flex gap-2"><span class="text-stone-400">✓</span> Ver reseñas y respuestas</li>
+        <li class="flex gap-2"><span class="text-stone-400">✓</span> Ver alertas de su local</li>
+        <li class="flex gap-2 opacity-40"><span>✗</span> Aprobar ni editar respuestas</li>
+        <li class="flex gap-2 opacity-40"><span>✗</span> Configurar nada</li>
+        <li class="flex gap-2 opacity-40"><span>✗</span> Ver otros locales</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <!-- Users table -->
+  <div class="rounded-3xl border border-white/10 bg-white/5 overflow-hidden mb-8">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-white/10">
+      <h2 class="text-base font-semibold text-white m-0">Usuarios activos</h2>
+      <button class="px-4 py-2 rounded-xl bg-violet-600 text-white text-sm font-bold hover:bg-violet-500">
+        + Invitar usuario
+      </button>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead>
+          <tr class="border-b border-white/10 text-stone-400 text-xs uppercase tracking-wider">
+            <th class="py-3 pr-4 pl-6 text-left font-semibold">Usuario</th>
+            <th class="py-3 pr-4 text-left font-semibold">Rol</th>
+            <th class="py-3 pr-4 text-left font-semibold">Tenant</th>
+            <th class="py-3 pr-4 text-left font-semibold">Desde</th>
+            <th class="py-3 pr-4 text-left font-semibold">Estado</th>
+            <th class="py-3 pr-6 text-left font-semibold">Acción</th>
+          </tr>
+        </thead>
+        <tbody class="text-stone-200">
+          
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pr-4 pl-6">
+            <div class="font-semibold text-stone-100 text-sm">Elena García</div>
+            <div class="text-xs text-stone-500">elena@miagencia.com</div>
+          </td>
+          <td class="py-3 pr-4"><span class="px-2.5 py-1 rounded-full badge-role-sa  text-xs font-bold">SuperAdmin</span></td>
+          <td class="py-3 pr-4 text-sm text-stone-400">— (todos)</td>
+          <td class="py-3 pr-4 text-xs text-stone-500">Ene 2026</td>
+          <td class="py-3 pr-4"><span class="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Activo</span></td>
+          <td class="py-3 pr-6">
+            <button class="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5
+                           text-xs text-stone-400 hover:text-stone-200 hover:bg-white/10">
+              Editar
+            </button>
+          </td>
+        </tr>
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pr-4 pl-6">
+            <div class="font-semibold text-stone-100 text-sm">Pedro Álvarez</div>
+            <div class="text-xs text-stone-500">pedro@pizzasnorte.com</div>
+          </td>
+          <td class="py-3 pr-4"><span class="px-2.5 py-1 rounded-full badge-role-mgr text-xs font-bold">Manager</span></td>
+          <td class="py-3 pr-4 text-sm text-stone-400">Cadena Pizzas Norte</td>
+          <td class="py-3 pr-4 text-xs text-stone-500">Feb 2026</td>
+          <td class="py-3 pr-4"><span class="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Activo</span></td>
+          <td class="py-3 pr-6">
+            <button class="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5
+                           text-xs text-stone-400 hover:text-stone-200 hover:bg-white/10">
+              Editar
+            </button>
+          </td>
+        </tr>
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pr-4 pl-6">
+            <div class="font-semibold text-stone-100 text-sm">Laura Méndez</div>
+            <div class="text-xs text-stone-500">laura@caférapido.com</div>
+          </td>
+          <td class="py-3 pr-4"><span class="px-2.5 py-1 rounded-full badge-role-mgr text-xs font-bold">Manager</span></td>
+          <td class="py-3 pr-4 text-sm text-stone-400">Franquicia Café Rápido</td>
+          <td class="py-3 pr-4 text-xs text-stone-500">Mar 2026</td>
+          <td class="py-3 pr-4"><span class="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Activo</span></td>
+          <td class="py-3 pr-6">
+            <button class="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5
+                           text-xs text-stone-400 hover:text-stone-200 hover:bg-white/10">
+              Editar
+            </button>
+          </td>
+        </tr>
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pr-4 pl-6">
+            <div class="font-semibold text-stone-100 text-sm">Javier Ruiz</div>
+            <div class="text-xs text-stone-500">j.ruiz@restauranteselmar.es</div>
+          </td>
+          <td class="py-3 pr-4"><span class="px-2.5 py-1 rounded-full badge-role-mgr text-xs font-bold">Manager</span></td>
+          <td class="py-3 pr-4 text-sm text-stone-400">Restaurantes El Mar</td>
+          <td class="py-3 pr-4 text-xs text-stone-500">Mar 2026</td>
+          <td class="py-3 pr-4"><span class="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Activo</span></td>
+          <td class="py-3 pr-6">
+            <button class="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5
+                           text-xs text-stone-400 hover:text-stone-200 hover:bg-white/10">
+              Editar
+            </button>
+          </td>
+        </tr>
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pr-4 pl-6">
+            <div class="font-semibold text-stone-100 text-sm">Sara Vidal</div>
+            <div class="text-xs text-stone-500">sara@pizzasnorte.com</div>
+          </td>
+          <td class="py-3 pr-4"><span class="px-2.5 py-1 rounded-full badge-role-view text-xs font-bold">Viewer</span></td>
+          <td class="py-3 pr-4 text-sm text-stone-400">Cadena Pizzas Norte</td>
+          <td class="py-3 pr-4 text-xs text-stone-500">Abr 2026</td>
+          <td class="py-3 pr-4"><span class="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Activo</span></td>
+          <td class="py-3 pr-6">
+            <button class="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5
+                           text-xs text-stone-400 hover:text-stone-200 hover:bg-white/10">
+              Editar
+            </button>
+          </td>
+        </tr>
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pr-4 pl-6">
+            <div class="font-semibold text-stone-100 text-sm">Marc Torres</div>
+            <div class="text-xs text-stone-500">marc@pizzasnorte.com</div>
+          </td>
+          <td class="py-3 pr-4"><span class="px-2.5 py-1 rounded-full badge-role-view text-xs font-bold">Viewer</span></td>
+          <td class="py-3 pr-4 text-sm text-stone-400">Cadena Pizzas Norte</td>
+          <td class="py-3 pr-4 text-xs text-stone-500">Abr 2026</td>
+          <td class="py-3 pr-4"><span class="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Activo</span></td>
+          <td class="py-3 pr-6">
+            <button class="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5
+                           text-xs text-stone-400 hover:text-stone-200 hover:bg-white/10">
+              Editar
+            </button>
+          </td>
+        </tr>
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pr-4 pl-6">
+            <div class="font-semibold text-stone-100 text-sm">Invitado Demo</div>
+            <div class="text-xs text-stone-500">demo@hoteles.com</div>
+          </td>
+          <td class="py-3 pr-4"><span class="px-2.5 py-1 rounded-full badge-role-view text-xs font-bold">Viewer</span></td>
+          <td class="py-3 pr-4 text-sm text-stone-400">Hoteles Solimar</td>
+          <td class="py-3 pr-4 text-xs text-stone-500">Abr 2026</td>
+          <td class="py-3 pr-4"><span class="px-2.5 py-1 rounded-full bg-amber-500/15  text-amber-300  text-xs font-bold">Pendiente</span></td>
+          <td class="py-3 pr-6">
+            <button class="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5
+                           text-xs text-stone-400 hover:text-stone-200 hover:bg-white/10">
+              Editar
+            </button>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Invite form -->
+  <div class="rounded-3xl border border-white/10 bg-white/5 p-6 mb-8">
+    <h2 class="text-base font-semibold text-white mb-5">Invitar nuevo usuario</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+      <div>
+        <label class="block text-xs text-stone-400 font-semibold uppercase tracking-wider mb-2">Email</label>
+        <input type="email" placeholder="usuario@ejemplo.com" />
+      </div>
+      <div>
+        <label class="block text-xs text-stone-400 font-semibold uppercase tracking-wider mb-2">Rol</label>
+        <select>
+          <option>SuperAdmin</option>
+          <option selected>Manager</option>
+          <option>Viewer</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs text-stone-400 font-semibold uppercase tracking-wider mb-2">Tenant asignado</label>
+        <select>
+          <option>— Todos (solo SuperAdmin)</option>
+          <option>Cadena Pizzas Norte</option>
+          <option>Franquicia Café Rápido</option>
+          <option>Restaurantes El Mar</option>
+          <option>Hoteles Solimar</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs text-stone-400 font-semibold uppercase tracking-wider mb-2">Mensaje de bienvenida (opcional)</label>
+        <input type="text" placeholder="Bienvenido a nuestra plataforma..." />
+      </div>
+    </div>
+    <button class="px-6 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600
+                   text-white font-bold text-sm hover:from-violet-500 hover:to-indigo-500">
+      Enviar invitación
+    </button>
+  </div>
+
+  <!-- Navigation -->
+  <div class="flex justify-between items-center mt-8">
+    <a href="step3_locations.html"
+       class="px-5 py-3 rounded-2xl border border-white/10 bg-white/5
+              text-stone-300 font-semibold text-sm hover:bg-white/10 no-underline">
+      ← Atrás
+    </a>
+    <a href="step5_dashboard_agency.html"
+       class="px-8 py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600
+              text-white font-bold text-sm hover:from-violet-500 hover:to-indigo-500 no-underline">
+      Ver Dashboard Agency →
+    </a>
+  </div>
+</div>
+</body>
+</html>

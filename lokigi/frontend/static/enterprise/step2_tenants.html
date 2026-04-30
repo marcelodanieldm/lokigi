@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Paso 2 — Gestión de Tenants | Lokigi Enterprise</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Arial, "Helvetica Neue", sans-serif; }
+    .no-underline { text-decoration: none; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp .35s ease both; }
+    input, select, textarea {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      color: #f1f5f9;
+      padding: 10px 14px;
+      font-size: 14px;
+      width: 100%;
+      outline: none;
+      transition: border-color .15s;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: rgba(167,139,250,.6);
+      box-shadow: 0 0 0 3px rgba(139,92,246,.15);
+    }
+    input[type="color"] {
+      padding: 4px 6px;
+      height: 42px;
+      cursor: pointer;
+    }
+    select option { background: #1c1917; }
+    .badge-role-sa   { background: rgba(167,139,250,.18); color: #c4b5fd; }
+    .badge-role-mgr  { background: rgba(251,191,36,.15);  color: #fcd34d; }
+    .badge-role-view { background: rgba(148,163,184,.12); color: #94a3b8; }
+  </style>
+</head>
+<body class="min-h-screen bg-stone-950 text-stone-100">
+
+<nav class="sticky top-0 z-50 flex items-center gap-1 px-5 h-14
+     bg-stone-950/95 backdrop-blur-sm border-b border-white/10 shadow-md flex-wrap">
+  <div class="flex items-center gap-2.5 mr-auto">
+    <a href="enterprise_landing.html"
+       class="flex items-center justify-center w-8 h-8 rounded-lg
+              bg-gradient-to-br from-violet-500 to-indigo-600
+              text-white font-black text-sm no-underline">L</a>
+    <a href="enterprise_landing.html"
+       class="font-bold text-white text-base no-underline">Lokigi</a>
+    <span class="px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300
+                 text-xs font-bold uppercase tracking-wider">Enterprise</span>
+  </div>
+  <a href="enterprise_landing.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">🏢 Plan Enterprise</a>
+<a href="step1_brand.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">1 · Marca</a>
+<a href="step2_tenants.html" class="px-3 py-2 rounded-lg text-sm font-semibold text-violet-200 bg-violet-500/20 border border-violet-400/20 no-underline">2 · Tenants</a>
+<a href="step3_locations.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">3 · Ubicaciones</a>
+<a href="step4_roles.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">4 · Roles</a>
+<a href="step5_dashboard_agency.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">5 · Dashboard Agency</a>
+
+</nav>
+
+<div class="mx-auto max-w-5xl px-4 py-10 sm:px-6 pb-20 fade-up">
+
+  <div class="mb-8">
+    <p class="text-xs uppercase tracking-[.2em] text-violet-300/70 mb-1">Paso 2 de 4</p>
+    <h1 class="text-3xl font-bold text-white">Gestión de Tenants</h1>
+    <p class="mt-1 text-stone-400 text-sm">
+      Cada tenant es un cliente de tu agencia. Datos 100 % aislados entre sí.
+    </p>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="flex gap-2 mb-10">
+    <div class="h-1.5 flex-1 rounded-full bg-violet-500"></div>
+    <div class="h-1.5 flex-1 rounded-full bg-violet-500"></div>
+    <div class="h-1.5 flex-1 rounded-full bg-white/10"></div>
+    <div class="h-1.5 flex-1 rounded-full bg-white/10"></div>
+  </div>
+
+  <!-- KPI strip -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+    <div class="rounded-2xl border border-white/10 bg-white/5 p-4 text-center">
+      <p class="text-3xl font-black text-white">5</p>
+      <p class="text-xs uppercase tracking-wider text-stone-400 mt-1">Tenants totales</p>
+    </div>
+    <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-center">
+      <p class="text-3xl font-black text-emerald-300">3</p>
+      <p class="text-xs uppercase tracking-wider text-stone-400 mt-1">Activos</p>
+    </div>
+    <div class="rounded-2xl border border-white/10 bg-white/5 p-4 text-center">
+      <p class="text-3xl font-black text-white">31</p>
+      <p class="text-xs uppercase tracking-wider text-stone-400 mt-1">Ubicaciones</p>
+    </div>
+    <div class="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-4 text-center">
+      <p class="text-3xl font-black text-rose-300">7</p>
+      <p class="text-xs uppercase tracking-wider text-stone-400 mt-1">Alertas abiertas</p>
+    </div>
+  </div>
+
+  <!-- Tenants table -->
+  <div class="rounded-3xl border border-white/10 bg-white/5 p-0 overflow-hidden mb-6">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-white/10">
+      <h2 class="text-base font-semibold text-white m-0">Lista de clientes</h2>
+      <a href="step4_roles.html"
+         class="px-4 py-2 rounded-xl bg-violet-600 text-white text-sm font-bold
+                hover:bg-violet-500 no-underline">
+        + Nuevo tenant
+      </a>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead>
+          <tr class="border-b border-white/10 text-stone-400 text-xs uppercase tracking-wider">
+            <th class="py-3 pr-4 pl-6 text-left font-semibold">ID</th>
+            <th class="py-3 pr-4 text-left font-semibold">Cliente</th>
+            <th class="py-3 pr-4 text-center font-semibold">Locs.</th>
+            <th class="py-3 pr-4 text-left font-semibold">Plan</th>
+            <th class="py-3 pr-4 text-left font-semibold">Rating</th>
+            <th class="py-3 pr-4 text-center font-semibold">Alertas</th>
+            <th class="py-3 pr-4 text-left font-semibold">Manager</th>
+            <th class="py-3 pr-6 text-left font-semibold">Estado</th>
+          </tr>
+        </thead>
+        <tbody class="text-stone-200">
+          
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pr-4 font-mono text-xs text-stone-500">T-001</td>
+          <td class="py-3 pr-4 font-semibold text-stone-100">Cadena Pizzas Norte</td>
+          <td class="py-3 pr-4 text-center text-stone-200">8</td>
+          <td class="py-3 pr-4"><span class="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Growth</span></td>
+          <td class="py-3 pr-4 font-semibold text-stone-200">4.3★</td>
+          <td class="py-3 pr-4 text-center"><span class="font-bold text-rose-300">2</span></td>
+          <td class="py-3 pr-4 text-sm text-stone-400">Pedro Álvarez</td>
+          <td class="py-3"><span class="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Activo</span></td>
+        </tr>
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pr-4 font-mono text-xs text-stone-500">T-002</td>
+          <td class="py-3 pr-4 font-semibold text-stone-100">Franquicia Café Rápido</td>
+          <td class="py-3 pr-4 text-center text-stone-200">14</td>
+          <td class="py-3 pr-4"><span class="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Growth</span></td>
+          <td class="py-3 pr-4 font-semibold text-stone-200">4.0★</td>
+          <td class="py-3 pr-4 text-center"><span class="text-stone-500">0</span></td>
+          <td class="py-3 pr-4 text-sm text-stone-400">Laura Méndez</td>
+          <td class="py-3"><span class="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Activo</span></td>
+        </tr>
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pr-4 font-mono text-xs text-stone-500">T-003</td>
+          <td class="py-3 pr-4 font-semibold text-stone-100">Restaurantes El Mar</td>
+          <td class="py-3 pr-4 text-center text-stone-200">5</td>
+          <td class="py-3 pr-4"><span class="px-2.5 py-1 rounded-full bg-sky-500/15     text-sky-300    text-xs font-bold">Starter</span></td>
+          <td class="py-3 pr-4 font-semibold text-stone-200">4.6★</td>
+          <td class="py-3 pr-4 text-center"><span class="font-bold text-rose-300">1</span></td>
+          <td class="py-3 pr-4 text-sm text-stone-400">Javier Ruiz</td>
+          <td class="py-3"><span class="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Activo</span></td>
+        </tr>
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pr-4 font-mono text-xs text-stone-500">T-004</td>
+          <td class="py-3 pr-4 font-semibold text-stone-100">Hoteles Solimar</td>
+          <td class="py-3 pr-4 text-center text-stone-200">3</td>
+          <td class="py-3 pr-4"><span class="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Growth</span></td>
+          <td class="py-3 pr-4 font-semibold text-stone-200">3.9★</td>
+          <td class="py-3 pr-4 text-center"><span class="font-bold text-rose-300">4</span></td>
+          <td class="py-3 pr-4 text-sm text-stone-400">Ana Costa</td>
+          <td class="py-3"><span class="px-2.5 py-1 rounded-full bg-amber-500/15  text-amber-300  text-xs font-bold">Trial</span></td>
+        </tr>
+        <tr class="border-b border-white/5 hover:bg-white/3">
+          <td class="py-3 pr-4 font-mono text-xs text-stone-500">T-005</td>
+          <td class="py-3 pr-4 font-semibold text-stone-100">Demo Inactivo</td>
+          <td class="py-3 pr-4 text-center text-stone-200">1</td>
+          <td class="py-3 pr-4"><span class="px-2.5 py-1 rounded-full bg-sky-500/15     text-sky-300    text-xs font-bold">Starter</span></td>
+          <td class="py-3 pr-4 font-semibold text-stone-200">—</td>
+          <td class="py-3 pr-4 text-center"><span class="text-stone-500">0</span></td>
+          <td class="py-3 pr-4 text-sm text-stone-400">—</td>
+          <td class="py-3"><span class="px-2.5 py-1 rounded-full bg-stone-500/20  text-stone-400  text-xs font-bold">Pausado</span></td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Data isolation callout -->
+  <div class="rounded-3xl border border-indigo-500/20 bg-indigo-500/5 p-6 mb-8">
+    <div class="flex items-start gap-4">
+      <div class="w-10 h-10 rounded-2xl bg-indigo-500/20 flex items-center justify-center text-xl flex-shrink-0">🔒</div>
+      <div>
+        <h3 class="text-white font-bold text-base mb-2">Aislamiento de datos — Row-Level Security (RLS)</h3>
+        <p class="text-stone-400 text-sm leading-relaxed mb-3">
+          FastAPI inyecta el <code class="text-indigo-300">tenant_id</code> en cada query a PostgreSQL.
+          Las políticas RLS garantizan que un tenant nunca pueda acceder a datos de otro,
+          incluso si se produce un error de lógica de aplicación.
+        </p>
+        <div class="rounded-xl bg-stone-950 border border-white/10 p-4 font-mono text-xs text-stone-300 space-y-1">
+          <div class="text-stone-500">-- Política RLS en tabla reviews</div>
+          <div><span class="text-violet-300">CREATE POLICY</span> tenant_isolation <span class="text-violet-300">ON</span> reviews</div>
+          <div class="pl-4"><span class="text-violet-300">USING</span> (tenant_id = current_setting(<span class="text-amber-300">'app.tenant_id'</span>)::<span class="text-sky-300">uuid</span>);</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <div class="flex justify-between items-center mt-8">
+    <a href="step1_brand.html"
+       class="px-5 py-3 rounded-2xl border border-white/10 bg-white/5
+              text-stone-300 font-semibold text-sm hover:bg-white/10 no-underline">
+      ← Atrás
+    </a>
+    <a href="step3_locations.html"
+       class="px-8 py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600
+              text-white font-bold text-sm hover:from-violet-500 hover:to-indigo-500 no-underline">
+      Siguiente: Vista consolidada →
+    </a>
+  </div>
+</div>
+</body>
+</html>

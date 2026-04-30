@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Paso 1 — Configuración de Marca | Lokigi Enterprise</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Arial, "Helvetica Neue", sans-serif; }
+    .no-underline { text-decoration: none; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp .35s ease both; }
+    input, select, textarea {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      color: #f1f5f9;
+      padding: 10px 14px;
+      font-size: 14px;
+      width: 100%;
+      outline: none;
+      transition: border-color .15s;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: rgba(167,139,250,.6);
+      box-shadow: 0 0 0 3px rgba(139,92,246,.15);
+    }
+    input[type="color"] {
+      padding: 4px 6px;
+      height: 42px;
+      cursor: pointer;
+    }
+    select option { background: #1c1917; }
+    .badge-role-sa   { background: rgba(167,139,250,.18); color: #c4b5fd; }
+    .badge-role-mgr  { background: rgba(251,191,36,.15);  color: #fcd34d; }
+    .badge-role-view { background: rgba(148,163,184,.12); color: #94a3b8; }
+  </style>
+</head>
+<body class="min-h-screen bg-stone-950 text-stone-100">
+
+<nav class="sticky top-0 z-50 flex items-center gap-1 px-5 h-14
+     bg-stone-950/95 backdrop-blur-sm border-b border-white/10 shadow-md flex-wrap">
+  <div class="flex items-center gap-2.5 mr-auto">
+    <a href="enterprise_landing.html"
+       class="flex items-center justify-center w-8 h-8 rounded-lg
+              bg-gradient-to-br from-violet-500 to-indigo-600
+              text-white font-black text-sm no-underline">L</a>
+    <a href="enterprise_landing.html"
+       class="font-bold text-white text-base no-underline">Lokigi</a>
+    <span class="px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300
+                 text-xs font-bold uppercase tracking-wider">Enterprise</span>
+  </div>
+  <a href="enterprise_landing.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">🏢 Plan Enterprise</a>
+<a href="step1_brand.html" class="px-3 py-2 rounded-lg text-sm font-semibold text-violet-200 bg-violet-500/20 border border-violet-400/20 no-underline">1 · Marca</a>
+<a href="step2_tenants.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">2 · Tenants</a>
+<a href="step3_locations.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">3 · Ubicaciones</a>
+<a href="step4_roles.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">4 · Roles</a>
+<a href="step5_dashboard_agency.html" class="px-3 py-2 rounded-lg text-sm font-medium text-stone-400 hover:text-white hover:bg-white/5 no-underline">5 · Dashboard Agency</a>
+
+</nav>
+
+<div class="mx-auto max-w-3xl px-4 py-10 sm:px-6 pb-20 fade-up">
+
+  <div class="mb-8">
+    <p class="text-xs uppercase tracking-[.2em] text-violet-300/70 mb-1">Paso 1 de 4</p>
+    <h1 class="text-3xl font-bold text-white">Configuración de Marca</h1>
+    <p class="mt-1 text-stone-400 text-sm">
+      Personaliza Lokigi con la identidad visual de tu agencia. Tu logo, tu paleta y tu dominio.
+    </p>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="flex gap-2 mb-10">
+    <div class="h-1.5 flex-1 rounded-full bg-violet-500"></div>
+    <div class="h-1.5 flex-1 rounded-full bg-white/10"></div>
+    <div class="h-1.5 flex-1 rounded-full bg-white/10"></div>
+    <div class="h-1.5 flex-1 rounded-full bg-white/10"></div>
+  </div>
+
+  <div class="space-y-5">
+
+    <!-- Logo -->
+    <section class="rounded-3xl border border-white/10 bg-white/5 p-6">
+      <div class="flex items-center gap-3 mb-5">
+        <div class="w-10 h-10 rounded-2xl bg-violet-500/15 flex items-center justify-center text-xl">🎨</div>
+        <div>
+          <h2 class="text-base font-semibold text-white m-0">Logo de la Agencia</h2>
+          <p class="text-xs text-stone-400 mt-0.5">PNG o SVG · recomendado 200×60 px</p>
+        </div>
+      </div>
+
+      <div class="border-2 border-dashed border-white/15 rounded-2xl p-8 text-center mb-4 cursor-pointer hover:border-violet-400/40 transition">
+        <div class="w-16 h-16 rounded-2xl bg-white/8 flex items-center justify-center text-3xl mx-auto mb-3">📁</div>
+        <p class="text-stone-300 font-semibold mb-1">Arrastra tu logo aquí</p>
+        <p class="text-stone-500 text-sm">o haz click para explorar archivos</p>
+        <p class="text-stone-600 text-xs mt-2">PNG, SVG, WebP · máx. 2 MB</p>
+      </div>
+
+      <!-- Preview con logo demo -->
+      <div class="rounded-2xl border border-white/10 bg-stone-950 p-4">
+        <p class="text-xs text-stone-500 uppercase tracking-wider mb-3">Vista previa del navbar</p>
+        <div class="flex items-center gap-3 h-10">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600
+                      flex items-center justify-center text-white font-black text-sm">A</div>
+          <span class="text-white font-bold text-base">Mi Agencia</span>
+          <span class="px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 text-xs font-bold">Agency</span>
+          <span class="ml-auto text-stone-500 text-xs">powered by Lokigi (oculto)</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Colores -->
+    <section class="rounded-3xl border border-white/10 bg-white/5 p-6">
+      <div class="flex items-center gap-3 mb-5">
+        <div class="w-10 h-10 rounded-2xl bg-indigo-500/15 flex items-center justify-center text-xl">🖌️</div>
+        <div>
+          <h2 class="text-base font-semibold text-white m-0">Paleta de Colores</h2>
+          <p class="text-xs text-stone-400 mt-0.5">Define el color primario y secundario de tu marca</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+        <div>
+          <label class="block text-xs text-stone-400 font-semibold uppercase tracking-wider mb-2">Color primario</label>
+          <div class="flex gap-3 items-center">
+            <input type="color" value="#7c3aed" class="w-14 flex-shrink-0" />
+            <input type="text" value="#7c3aed" placeholder="#7c3aed" class="flex-1" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs text-stone-400 font-semibold uppercase tracking-wider mb-2">Color secundario / acento</label>
+          <div class="flex gap-3 items-center">
+            <input type="color" value="#4f46e5" class="w-14 flex-shrink-0" />
+            <input type="text" value="#4f46e5" placeholder="#4f46e5" class="flex-1" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Palette preview -->
+      <div class="rounded-2xl border border-white/10 bg-stone-950 p-4">
+        <p class="text-xs text-stone-500 uppercase tracking-wider mb-3">Vista previa de componentes</p>
+        <div class="flex gap-3 flex-wrap items-center">
+          <button class="px-5 py-2.5 rounded-xl font-bold text-white text-sm"
+                  style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">
+            Acción principal
+          </button>
+          <span class="px-3 py-1 rounded-full text-xs font-bold text-white"
+                style="background:#7c3aed">Badge activo</span>
+          <div class="w-24 h-2 rounded-full" style="background:linear-gradient(90deg,#7c3aed,#4f46e5)"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Dominio -->
+    <section class="rounded-3xl border border-white/10 bg-white/5 p-6">
+      <div class="flex items-center gap-3 mb-5">
+        <div class="w-10 h-10 rounded-2xl bg-sky-500/15 flex items-center justify-center text-xl">🌐</div>
+        <div>
+          <h2 class="text-base font-semibold text-white m-0">Dominio Personalizado</h2>
+          <p class="text-xs text-stone-400 mt-0.5">Apunta un CNAME a nuestro CDN para activar tu subdominio</p>
+        </div>
+      </div>
+
+      <div class="space-y-4 mb-5">
+        <div>
+          <label class="block text-xs text-stone-400 font-semibold uppercase tracking-wider mb-2">Tu dominio</label>
+          <input type="text" value="qa.miagencia.com" placeholder="app.tuagencia.com" />
+        </div>
+        <div>
+          <label class="block text-xs text-stone-400 font-semibold uppercase tracking-wider mb-2">Nombre de la agencia (público)</label>
+          <input type="text" value="Mi Agencia Digital" placeholder="Nombre que verán tus clientes" />
+        </div>
+      </div>
+
+      <!-- DNS instructions -->
+      <div class="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4">
+        <p class="text-xs font-bold text-amber-300 uppercase tracking-wider mb-3">⚙️ Instrucciones DNS</p>
+        <p class="text-stone-300 text-sm mb-3">Añade este registro CNAME en tu proveedor de DNS:</p>
+        <div class="rounded-xl bg-stone-950 border border-white/10 p-3 font-mono text-xs text-stone-300 space-y-1">
+          <div><span class="text-stone-500">Tipo:</span> CNAME</div>
+          <div><span class="text-stone-500">Host:</span> <span class="text-violet-300">qa</span></div>
+          <div><span class="text-stone-500">Valor:</span> <span class="text-emerald-300">agency.lokigi.io</span></div>
+          <div><span class="text-stone-500">TTL:</span> Auto</div>
+        </div>
+        <div class="flex items-center gap-2 mt-3">
+          <div class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></div>
+          <span class="text-amber-300 text-xs font-semibold">Verificación pendiente</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- SSL / SEO -->
+    <section class="rounded-3xl border border-white/10 bg-white/5 p-6">
+      <div class="flex items-center gap-3 mb-5">
+        <div class="w-10 h-10 rounded-2xl bg-emerald-500/15 flex items-center justify-center text-xl">🔒</div>
+        <div>
+          <h2 class="text-base font-semibold text-white m-0">SSL y Configuración Avanzada</h2>
+          <p class="text-xs text-stone-400 mt-0.5">Certificado TLS automático · sin coste adicional</p>
+        </div>
+      </div>
+      <div class="divide-y divide-white/5">
+        <div class="flex justify-between items-center py-3">
+          <span class="text-sm text-stone-400">Certificado TLS (Let's Encrypt)</span>
+          <span class="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Auto-renovado</span>
+        </div>
+        <div class="flex justify-between items-center py-3">
+          <span class="text-sm text-stone-400">Footer "Powered by Lokigi"</span>
+          <div class="flex items-center gap-2">
+            <div class="w-10 h-5 rounded-full bg-stone-700 relative cursor-pointer">
+              <div class="absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-stone-400 transition-transform"></div>
+            </div>
+            <span class="text-stone-400 text-xs">Oculto</span>
+          </div>
+        </div>
+        <div class="flex justify-between items-center py-3">
+          <span class="text-sm text-stone-400">Emails transaccionales con tu dominio</span>
+          <span class="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">Habilitado</span>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Navigation -->
+  <div class="flex justify-between items-center mt-8">
+    <a href="enterprise_landing.html"
+       class="px-5 py-3 rounded-2xl border border-white/10 bg-white/5
+              text-stone-300 font-semibold text-sm hover:bg-white/10 no-underline">
+      ← Atrás
+    </a>
+    <a href="step2_tenants.html"
+       class="px-8 py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600
+              text-white font-bold text-sm hover:from-violet-500 hover:to-indigo-500 no-underline">
+      Siguiente: Tenants →
+    </a>
+  </div>
+</div>
+</body>
+</html>
