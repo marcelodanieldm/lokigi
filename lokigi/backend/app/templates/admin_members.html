@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestión de Equipo — lokigi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <style>
+    :root {
+      --brand:    #4f46e5;
+      --brand-lt: #eef2ff;
+      --bg:       #f9fafb;
+      --border:   #e5e7eb;
+      --surface:  #ffffff;
+      --muted:    #6b7280;
+      --subtle:   #f3f4f6;
+      --red:      #dc2626;
+      --green:    #16a34a;
+      --amber:    #ca8a04;
+    }
+    * { box-sizing: border-box; }
+    body {
+      background: var(--bg);
+      font-family: "Inter", system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+    .badge { display:inline-flex;align-items:center;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:600; }
+    .badge-active  { background:#dcfce7;color:#15803d; }
+    .badge-invited { background:#fef9c3;color:#854d0e; }
+    .badge-owner   { background:#ede9fe;color:#6d28d9; }
+    .badge-admin   { background:#dbeafe;color:#1d4ed8; }
+    .badge-member  { background:#f3f4f6;color:#374151; }
+    .badge-viewer  { background:#f3f4f6;color:#6b7280; }
+    .badge-neutral { background:#f3f4f6;color:#6b7280; }
+    .btn { display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:opacity .15s; }
+    .btn:hover { opacity:.87; }
+    .btn-primary { background:var(--brand);color:white; }
+    .btn-ghost   { background:var(--subtle);color:#374151; }
+    .btn-danger  { background:#fee2e2;color:var(--red); }
+    .btn-sm { padding:5px 12px;font-size:12px; }
+    table { width:100%;border-collapse:collapse; }
+    thead th { font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:10px 16px;text-align:left;border-bottom:1px solid var(--border); }
+    tbody tr { border-bottom:1px solid var(--border);transition:background .1s; }
+    tbody tr:hover { background:var(--subtle); }
+    tbody tr:last-child { border-bottom:none; }
+    td { padding:12px 16px;font-size:13px;vertical-align:middle; }
+    .perm-chip { display:inline-flex;align-items:center;gap:3px;padding:2px 8px;background:var(--brand-lt);color:var(--brand);border-radius:999px;font-size:10px;font-weight:600;margin:1px; }
+    /* Invite modal */
+    .modal-backdrop { position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:50;opacity:0;pointer-events:none;transition:opacity .2s; }
+    .modal-backdrop.open { opacity:1;pointer-events:all; }
+    .modal { background:white;border-radius:16px;padding:28px 32px;width:460px;max-width:95vw;transform:translateY(20px);transition:transform .2s; }
+    .modal-backdrop.open .modal { transform:translateY(0); }
+    /* Filter tabs */
+    .tab-btn { padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:background .15s;border:none;background:transparent;color:var(--muted); }
+    .tab-btn.active { background:var(--brand-lt);color:var(--brand); }
+    /* HTMX loading indicator */
+    .htmx-indicator { display:none; }
+    .htmx-request .htmx-indicator { display:inline-block; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .spinner { width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--brand);border-radius:50%;animation:spin .6s linear infinite;display:inline-block; }
+    /* Toast */
+    #toast { position:fixed;bottom:24px;right:24px;z-index:9999;transform:translateY(20px);opacity:0;transition:all .3s;pointer-events:none; }
+    #toast.show { transform:translateY(0);opacity:1; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+<!-- ── HEADER ──────────────────────────────────────────────────────────────── -->
+<header class="bg-white border-b border-[var(--border)] sticky top-0 z-30">
+  <div class="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <span class="font-bold text-[var(--brand)] text-lg">lokigi</span>
+      <span class="text-gray-300">/</span>
+      <span class="text-sm font-medium">{{ org.name }}</span>
+      <span class="badge badge-neutral text-[10px]">{{ org.status }}</span>
+    </div>
+    <div class="flex items-center gap-4">
+      <a href="/starter/dashboard?user_id={{ user_id }}" class="text-xs text-[var(--muted)] hover:text-gray-800">Dashboard</a>
+      <a href="/subscription/portal?user_id={{ user_id }}" class="text-xs text-[var(--muted)] hover:text-gray-800">Suscripción</a>
+      <span class="text-xs bg-[var(--brand-lt)] text-[var(--brand)] px-2.5 py-1 rounded-full font-semibold">
+        {{ requester_role | capitalize }}
+      </span>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-6 py-10 space-y-8">
+
+  <!-- ── ORG EXPIRED BANNER ──────────────────────────────────────────────── -->
+  {% if org.status == 'expired' %}
+  <div class="flex items-center gap-4 p-4 rounded-xl border-2 border-red-300 bg-red-50">
+    <span class="text-xl">🔴</span>
+    <div>
+      <p class="font-semibold text-red-800">Organización suspendida por suscripción vencida</p>
+      <p class="text-sm text-red-600 mt-0.5">Las funciones de IA y los workers de Celery están detenidos. <a href="/subscription/portal?user_id={{ user_id }}" class="underline font-semibold">Actualizar suscripción →</a></p>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── PAGE TITLE ─────────────────────────────────────────────────────── -->
+  <div class="flex items-start justify-between">
+    <div>
+      <h1 class="text-2xl font-bold">Gestión de Equipo</h1>
+      <p class="text-sm text-[var(--muted)] mt-1">Administra roles y accesos de los miembros de <strong>{{ org.name }}</strong>.</p>
+    </div>
+    {% if can_invite %}
+    <button class="btn btn-primary" onclick="openInviteModal()">
+      + Invitar miembro
+    </button>
+    {% endif %}
+  </div>
+
+  <!-- ── FILTER BAR ─────────────────────────────────────────────────────── -->
+  <div class="flex items-center gap-2 flex-wrap">
+    <span class="text-xs font-semibold text-[var(--muted)] mr-1">Filtrar por rol:</span>
+    <button class="tab-btn active" data-filter="all" onclick="filterMembers('all', this)">Todos</button>
+    <button class="tab-btn" data-filter="admin" onclick="filterMembers('admin', this)">Admin</button>
+    <button class="tab-btn" data-filter="member" onclick="filterMembers('member', this)">Member</button>
+    <button class="tab-btn" data-filter="viewer" onclick="filterMembers('viewer', this)">Viewer</button>
+    <span class="ml-4 text-xs font-semibold text-[var(--muted)]">Estado:</span>
+    <button class="tab-btn active" data-filter-status="all" onclick="filterStatus('all', this)">Todos</button>
+    <button class="tab-btn" data-filter-status="active" onclick="filterStatus('active', this)">Activos</button>
+    <button class="tab-btn" data-filter-status="invited" onclick="filterStatus('invited', this)">Invitados</button>
+  </div>
+
+  <!-- ── MEMBERS TABLE ──────────────────────────────────────────────────── -->
+  <div class="card overflow-hidden">
+    <!-- HTMX error row target -->
+    <div id="htmx-error-toast" class="hidden"></div>
+
+    <table id="members-table">
+      <thead>
+        <tr>
+          <th>Miembro</th>
+          <th>Estado</th>
+          <th>Rol</th>
+          <th>Se unió</th>
+          <th class="text-right">Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="members-tbody">
+        {% for m in members %}
+        <tr id="member-row-{{ m.id }}"
+            data-role="{{ m.role }}"
+            data-status="{{ m.status }}">
+          <td>
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-full bg-[var(--brand-lt)] flex items-center justify-center text-[var(--brand)] font-bold text-sm">
+                {{ (m.name or m.email)[0] | upper }}
+              </div>
+              <div>
+                <p class="font-medium text-sm">{{ m.name or m.email }}</p>
+                <p class="text-xs text-[var(--muted)]">{{ m.email }}</p>
+              </div>
+            </div>
+          </td>
+          <td>
+            {% if m.status == 'active' %}
+            <span class="badge badge-active">Activo</span>
+            {% else %}
+            <span class="badge badge-invited">Invitado</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if m.role == 'owner' %}
+            <span class="badge badge-owner">Propietario</span>
+            {% else %}
+            <form
+              hx-patch="/api/v1/admin/members/{{ m.id }}/role"
+              hx-target="#member-row-{{ m.id }}"
+              hx-swap="outerHTML"
+              hx-include="[name='role']"
+              class="inline"
+              {% if requester_role == 'member' or requester_role == 'viewer' %}data-disabled="true"{% endif %}
+            >
+              <input type="hidden" name="org_id" value="{{ org_id }}" />
+              <input type="hidden" name="requester_user_id" value="{{ user_id }}" />
+              <select
+                name="role"
+                onchange="{% if can_invite %}this.form.requestSubmit(){% else %}showToast('Solo administradores pueden cambiar roles','error'){% endif %}"
+                class="text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white hover:border-indigo-300 focus:ring-2 focus:ring-indigo-500 transition"
+              >
+                {% for r in all_roles %}
+                <option value="{{ r }}" {% if r == m.role %}selected{% endif %}>
+                  {{ r | capitalize }}
+                </option>
+                {% endfor %}
+              </select>
+              <span class="htmx-indicator ml-1"><span class="spinner"></span></span>
+            </form>
+            {% endif %}
+          </td>
+          <td class="text-xs text-[var(--muted)]">
+            {{ m.joined_at or "Pendiente" }}
+          </td>
+          <td class="text-right">
+            {% if m.role != 'owner' and can_invite %}
+            <button
+              hx-delete="/api/v1/admin/members/{{ m.id }}?org_id={{ org_id }}&requester_user_id={{ user_id }}"
+              hx-target="#member-row-{{ m.id }}"
+              hx-swap="outerHTML"
+              hx-confirm="¿Eliminar a {{ m.name or m.email }} del equipo?"
+              class="btn btn-danger btn-sm"
+            >
+              Eliminar
+            </button>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" class="py-10 text-center text-[var(--muted)]">
+            <p class="text-base">Sin miembros aún</p>
+            <p class="text-sm mt-1">Usa el botón "Invitar miembro" para añadir colaboradores.</p>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── ROLE PERMISSION REFERENCE ─────────────────────────────────────── -->
+  <div class="card p-6">
+    <h2 class="font-semibold text-sm mb-4 text-[var(--muted)] uppercase tracking-wide">Referencia de permisos por rol</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      {% for role_name, perms in role_permissions.items() %}
+      <div class="rounded-xl bg-[var(--subtle)] p-4">
+        <p class="font-bold text-sm mb-2 capitalize">{{ role_name }}</p>
+        <div class="flex flex-wrap gap-1">
+          {% for p in perms %}
+          <span class="perm-chip">✓ {{ p | replace('_', ' ') }}</span>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+</main>
+
+<!-- ── INVITE MODAL ─────────────────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="inviteModal">
+  <div class="modal">
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-xl font-bold">Invitar nuevo miembro</h2>
+      <button onclick="closeInviteModal()" class="text-gray-400 hover:text-gray-700 text-xl leading-none">✕</button>
+    </div>
+
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-semibold mb-1.5" for="invite-email">Correo electrónico</label>
+        <input
+          id="invite-email"
+          type="email"
+          placeholder="colega@empresa.com"
+          class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+        />
+      </div>
+
+      <div>
+        <label class="block text-sm font-semibold mb-1.5" for="invite-role">Rol</label>
+        <select id="invite-role"
+          class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
+          {% for r in all_roles %}
+          {% if loop.first %}<option value="{{ r }}" selected>{{ r | capitalize }}</option>
+          {% else %}<option value="{{ r }}">{{ r | capitalize }}</option>
+          {% endif %}
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Permissions preview -->
+      <div id="invite-perms-preview" class="p-3 rounded-lg bg-[var(--subtle)] text-xs text-[var(--muted)]">
+        <p class="font-semibold mb-1.5">Permisos del rol seleccionado:</p>
+        <div id="invite-perms-chips" class="flex flex-wrap gap-1"></div>
+      </div>
+    </div>
+
+    <div id="invite-error" class="hidden mt-3 p-3 rounded-lg bg-red-50 text-sm text-red-700"></div>
+
+    <div class="flex gap-3 justify-end mt-6">
+      <button class="btn btn-ghost" onclick="closeInviteModal()">Cancelar</button>
+      <button class="btn btn-primary" id="inviteBtn" onclick="submitInvite()">
+        <span id="invite-label">Enviar invitación</span>
+        <span id="invite-spinner" class="hidden spinner"></span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOAST ────────────────────────────────────────────────────────────────── -->
+<div id="toast" class="px-4 py-3 rounded-xl text-sm font-semibold shadow-lg max-w-xs"></div>
+
+<script>
+const USER_ID = "{{ user_id }}";
+const ORG_ID  = "{{ org_id }}";
+
+const ROLE_PERMISSIONS = {{ role_permissions | tojson }};
+
+// ── Filter functions ──────────────────────────────────────────────────────────
+let activeRoleFilter = 'all';
+let activeStatusFilter = 'all';
+
+function filterMembers(role, btn) {
+  activeRoleFilter = role;
+  document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  applyFilters();
+}
+function filterStatus(s, btn) {
+  activeStatusFilter = s;
+  document.querySelectorAll('[data-filter-status]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  applyFilters();
+}
+function applyFilters() {
+  document.querySelectorAll('#members-tbody tr[data-role]').forEach(row => {
+    const roleMatch  = activeRoleFilter === 'all'   || row.dataset.role   === activeRoleFilter;
+    const statusMatch = activeStatusFilter === 'all' || row.dataset.status === activeStatusFilter;
+    row.style.display = (roleMatch && statusMatch) ? '' : 'none';
+  });
+}
+
+// ── Invite modal ──────────────────────────────────────────────────────────────
+function openInviteModal() {
+  document.getElementById('inviteModal').classList.add('open');
+  updatePermsPreview();
+}
+function closeInviteModal() {
+  document.getElementById('inviteModal').classList.remove('open');
+  document.getElementById('invite-email').value = '';
+  document.getElementById('invite-error').classList.add('hidden');
+}
+function updatePermsPreview() {
+  const role = document.getElementById('invite-role').value;
+  const perms = ROLE_PERMISSIONS[role] || [];
+  const chips = perms.map(p =>
+    `<span style="background:#eef2ff;color:#4f46e5;border-radius:999px;padding:2px 8px;font-size:10px;font-weight:600;">✓ ${p.replace(/_/g,' ')}</span>`
+  ).join('');
+  document.getElementById('invite-perms-chips').innerHTML = chips;
+}
+document.getElementById('invite-role').addEventListener('change', updatePermsPreview);
+
+async function submitInvite() {
+  const email = document.getElementById('invite-email').value.trim();
+  const role  = document.getElementById('invite-role').value;
+  const errorEl = document.getElementById('invite-error');
+
+  if (!email || !email.includes('@')) {
+    errorEl.textContent = 'Introduce un correo electrónico válido.';
+    errorEl.classList.remove('hidden');
+    return;
+  }
+  errorEl.classList.add('hidden');
+
+  document.getElementById('invite-label').textContent = 'Enviando…';
+  document.getElementById('invite-spinner').classList.remove('hidden');
+  document.getElementById('inviteBtn').disabled = true;
+
+  try {
+    const res = await fetch('/api/v1/admin/members/invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ org_id: ORG_ID, inviter_user_id: USER_ID, email, role }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      const msg = (typeof data.detail === 'object') ? data.detail.message : (data.detail || 'Error al invitar');
+      errorEl.textContent = msg;
+      errorEl.classList.remove('hidden');
+    } else {
+      closeInviteModal();
+      showToast(`Invitación enviada a ${email}`, 'success');
+      setTimeout(() => location.reload(), 1800);
+    }
+  } catch {
+    errorEl.textContent = 'Error de red. Intenta de nuevo.';
+    errorEl.classList.remove('hidden');
+  } finally {
+    document.getElementById('invite-label').textContent = 'Enviar invitación';
+    document.getElementById('invite-spinner').classList.add('hidden');
+    document.getElementById('inviteBtn').disabled = false;
+  }
+}
+
+// ── HTMX error handling ───────────────────────────────────────────────────────
+document.addEventListener('htmx:responseError', function(evt) {
+  try {
+    const data = JSON.parse(evt.detail.xhr.responseText);
+    const msg = (typeof data.detail === 'object') ? data.detail.message : (data.detail || 'Error del servidor');
+    showToast(msg, 'error');
+  } catch {
+    showToast('Error al procesar la solicitud', 'error');
+  }
+});
+
+// HTMX after-swap: update data attributes if row changed
+document.addEventListener('htmx:afterSwap', function(evt) {
+  const row = evt.target;
+  if (row && row.id && row.id.startsWith('member-row-')) {
+    const select = row.querySelector('select[name="role"]');
+    if (select) {
+      row.dataset.role = select.value;
+      showToast('Rol actualizado', 'success');
+    }
+  }
+});
+
+// ── Toast helper ──────────────────────────────────────────────────────────────
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background  = type === 'success' ? '#dcfce7' : '#fee2e2';
+  t.style.color       = type === 'success' ? '#166534' : '#991b1b';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+// Close modal on backdrop click
+document.getElementById('inviteModal').addEventListener('click', function(e) {
+  if (e.target === this) closeInviteModal();
+});
+</script>
+</body>
+</html>

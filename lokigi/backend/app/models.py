@@ -37,6 +37,12 @@ class User(Base):
     growth_event_notifications: Mapped[list["GrowthEventNotification"]] = relationship(back_populates="user")
     competitor_entities: Mapped[list["CompetitorEntity"]] = relationship(back_populates="user")
     competitor_scrape_runs: Mapped[list["ScrapeRun"]] = relationship(back_populates="user")
+    business_context_entries: Mapped[list["BusinessContext"]] = relationship(back_populates="user")
+    google_qa_questions: Mapped[list["GoogleQAQuestion"]] = relationship(back_populates="user")
+    competitor_history_entries: Mapped[list["CompetitorHistory"]] = relationship(back_populates="user")
+    photo_optimization_jobs: Mapped[list["PhotoOptimizationJob"]] = relationship(back_populates="user")
+    customer_insight: Mapped["CustomerInsight | None"] = relationship(back_populates="user", uselist=False)
+    user_sessions: Mapped[list["UserSession"]] = relationship(back_populates="user")
 
 
 
@@ -193,6 +199,131 @@ class SubscriptionProfile(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     user: Mapped[User] = relationship(back_populates="subscription_profile")
+
+    # ── Usage tracking (reset monthly by a cron/startup check) ───────────────
+    ai_credits_used: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    ai_credits_reset_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # ── Free trial (Growth features for Starter users) ───────────────────────
+    trial_plan: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    trial_ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class BillingInvoice(Base):
+    """Locally generated invoice records with WeasyPrint PDFs.
+    Complements Stripe invoices for plans managed outside Stripe or for
+    in-house PDF downloads.
+    """
+
+    __tablename__ = "billing_invoices"
+    __table_args__ = (
+        Index("ix_billing_invoices_user_id", "user_id"),
+        UniqueConstraint("invoice_number", name="uq_billing_invoice_number"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+
+    invoice_number: Mapped[str] = mapped_column(String(64), nullable=False)
+    period_start: Mapped[date] = mapped_column(Date, nullable=False)
+    period_end: Mapped[date] = mapped_column(Date, nullable=False)
+    plan: Mapped[str] = mapped_column(String(50), nullable=False, default="starter")
+    amount_cents: Mapped[int] = mapped_column(Integer, nullable=False)
+    currency: Mapped[str] = mapped_column(String(8), nullable=False, default="USD")
+    # "paid" | "pending" | "void"
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
+    pdf_path: Mapped[str | None] = mapped_column(Text, nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+
+
+class ProrationCredit(Base):
+    """Records mid-cycle plan change proration calculations."""
+
+    __tablename__ = "proration_credits"
+    __table_args__ = (Index("ix_proration_credits_user_id", "user_id"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+
+    from_plan: Mapped[str] = mapped_column(String(50), nullable=False)
+    to_plan: Mapped[str] = mapped_column(String(50), nullable=False)
+    change_date: Mapped[date] = mapped_column(Date, nullable=False)
+    days_remaining: Mapped[int] = mapped_column(Integer, nullable=False)
+    credit_cents: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    debit_cents: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # Net amount charged/credited on next invoice (positive = charge, negative = credit)
+    net_cents: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # "pending" | "applied" | "voided"
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
+    applied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+
+
+class Organization(Base):
+    """Multi-seat organization. One owner_user_id holds the subscription; other
+    members are linked via OrgMember.  status: active | suspended | expired."""
+
+    __tablename__ = "organizations"
+    __table_args__ = (
+        Index("ix_organizations_owner_user_id", "owner_user_id"),
+        UniqueConstraint("slug", name="uq_organizations_slug"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    slug: Mapped[str] = mapped_column(String(100), nullable=False)
+    owner_user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="active")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+
+    members: Mapped[list["OrgMember"]] = relationship(back_populates="organization", cascade="all, delete-orphan")
+
+
+class OrgMember(Base):
+    """Links a user to an organization with a specific role.
+    A row with status='invited' is created before the user accepts; user_id
+    may be NULL until they register and claim the invite token.
+    role hierarchy: owner > admin > member > viewer
+    """
+
+    __tablename__ = "org_members"
+    __table_args__ = (
+        UniqueConstraint("org_id", "user_id", name="uq_org_members_org_user"),
+        Index("ix_org_members_org_id", "org_id"),
+        Index("ix_org_members_user_id", "user_id"),
+        Index("ix_org_members_invite_token", "invite_token"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    org_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
+    )
+    # NULL while invite is pending (user hasn't registered yet)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=True
+    )
+    # Invited email address (stable reference even before user_id is known)
+    email: Mapped[str] = mapped_column(String(255), nullable=False)
+    role: Mapped[str] = mapped_column(String(20), nullable=False, default="member")
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="active")
+
+    invite_token: Mapped[str | None] = mapped_column(String(128), nullable=True, unique=True)
+    invite_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    invited_by_user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    joined_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+
+    organization: Mapped["Organization"] = relationship(back_populates="members")
 
 
 class StarterMonthlyMetrics(Base):
@@ -890,6 +1021,7 @@ class CompetitorEntity(Base):
 
     user: Mapped[User] = relationship(back_populates="competitor_entities")
     snapshots: Mapped[list["CompetitorSnapshot"]] = relationship(back_populates="competitor")
+    history_entries: Mapped[list["CompetitorHistory"]] = relationship(back_populates="competitor")
 
 
 class ScrapeRun(Base):
@@ -1032,3 +1164,373 @@ class GrowthEventNotification(Base):
     seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     user: Mapped[User] = relationship(back_populates="growth_event_notifications")
+
+
+# ────────────────────────────────────────────────────────────────────────────────
+# GOOGLE Q&A MANAGER - FAQ AUTOMATION MODELS
+# ────────────────────────────────────────────────────────────────────────────────
+
+
+class BusinessContext(Base):
+    """Structured knowledge base for a business location.
+
+    Stores menu items, description snippets and pre-loaded FAQ pairs.
+    The RAG engine uses these entries to auto-answer Google Q&A questions.
+
+    context_type values:
+      - 'menu'        : free-text block describing products/services
+      - 'description' : copied from GBP profile description
+      - 'faq'         : a user-defined question + answer pair
+    """
+
+    __tablename__ = "business_context"
+    __table_args__ = (
+        Index("ix_business_context_user_type", "user_id", "context_type"),
+        Index("ix_business_context_active", "user_id", "is_active"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    location_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    context_type: Mapped[str] = mapped_column(String(20), nullable=False)  # menu | description | faq
+    # For faq entries: the question text the user pre-loaded
+    faq_question: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Main content: answer for faq, free text for menu/description
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
+
+    user: Mapped["User"] = relationship(back_populates="business_context_entries")
+
+
+class GoogleQAQuestion(Base):
+    """Tracks questions detected via the Google Business Profile Q&A API.
+
+    status values:
+      - 'pending'          : new question, not yet processed
+      - 'auto_answered'    : RAG engine answered with confidence >= 80%
+      - 'needs_intervention': RAG confidence < 80% or no match found
+      - 'user_answered'    : the business owner answered manually via Lokigi
+      - 'ignored'          : user dismissed the question
+    """
+
+    __tablename__ = "google_qa_questions"
+    __table_args__ = (
+        UniqueConstraint("google_question_id", name="uq_google_qa_question_id"),
+        Index("ix_google_qa_user_status", "user_id", "status"),
+        Index("ix_google_qa_user_detected", "user_id", "detected_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    location_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    # Resource name from Google API e.g. "locations/12345/questions/67890"
+    google_question_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    question_text: Mapped[str] = mapped_column(Text, nullable=False)
+    author_display_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    upvote_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    detected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    # RAG engine output
+    auto_answer_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    answer_confidence: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)  # 0-100
+    matched_context_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+
+    status: Mapped[str] = mapped_column(String(25), nullable=False, default="pending")
+    answered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Final text actually sent to Google (could be edited by user)
+    sent_answer_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    raw_payload: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
+
+    user: Mapped["User"] = relationship(back_populates="google_qa_questions")
+
+
+# ────────────────────────────────────────────────────────────────────────────────
+# LOCAL SCOUT — COMPETITOR HISTORY (48h Playwright scrape)
+# ────────────────────────────────────────────────────────────────────────────────
+
+
+class CompetitorHistory(Base):
+    """Time-series snapshot produced every 48 h by the Local Scout Celery task.
+
+    Each row captures the publicly visible metrics for one competitor URL at
+    one point in time.  Backed by the ``competitor_history`` table.
+    """
+
+    __tablename__ = "competitor_history"
+    __table_args__ = (
+        Index("ix_competitor_history_user_scraped", "user_id", "scraped_at"),
+        Index("ix_competitor_history_competitor_scraped", "competitor_id", "scraped_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    competitor_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("competitor.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    scraped_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    rating_avg: Mapped[float | None] = mapped_column(Float, nullable=True)        # 0.0 – 5.0
+    review_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    last_post_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    scrape_status: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="ok"
+    )  # ok | partial | error | blocked
+
+    competitor: Mapped["CompetitorEntity"] = relationship(back_populates="history_entries")
+    user: Mapped["User"] = relationship(back_populates="competitor_history_entries")
+
+
+# ────────────────────────────────────────────────────────────────────────────────
+# PHOTO OPTIMIZER — JOB LOG
+# ────────────────────────────────────────────────────────────────────────────────
+
+
+class PhotoOptimizationJob(Base):
+    """Audit log for every Smart-Upload processed via /photo/optimize.
+
+    One row per upload.  Stores the checklist outcome and the generated alt-text
+    so users can copy it without re-processing.
+    """
+
+    __tablename__ = "photo_optimization_jobs"
+    __table_args__ = (
+        Index("ix_photo_jobs_user_created", "user_id", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    original_filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    original_width: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    original_height: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    output_width: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    output_height: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    gps_lat: Mapped[float | None] = mapped_column(Float, nullable=True)
+    gps_lon: Mapped[float | None] = mapped_column(Float, nullable=True)
+    gps_injected: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    resized: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    alt_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    alt_text_source: Mapped[str | None] = mapped_column(String(32), nullable=True)  # llm | keyword
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+
+    user: Mapped["User"] = relationship(back_populates="photo_optimization_jobs")
+
+
+# ────────────────────────────────────────────────────────────────────────────────
+# CRM — CUSTOMER INSIGHT  (Health Score + CEO notes)
+# ────────────────────────────────────────────────────────────────────────────────
+
+
+class CustomerInsight(Base):
+    """Computed Customer Health Score and CEO annotations per user.
+
+    Health Score 0-100 derived from:
+      • login_score        (0-40)  — platform activity recency
+      • response_rate_score(0-35)  — % of reviews with reply_sent_at
+      • ranking_score      (0-25)  — SERP rank improvement vs 30 days ago
+
+    Buckets:
+      score >= 80  → upsell_candidate
+      score <  30  → churn_risk
+      else         → healthy
+    """
+
+    __tablename__ = "customer_insights"
+    __table_args__ = (
+        UniqueConstraint("user_id", name="uq_customer_insights_user_id"),
+        Index("ix_customer_insights_score", "health_score"),
+        Index("ix_customer_insights_bucket", "bucket"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    health_score: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    bucket: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="healthy"
+    )  # upsell_candidate | healthy | churn_risk
+
+    # Component sub-scores stored for transparency
+    login_score: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    response_rate_score: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    ranking_score: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    # Raw metrics stored alongside scores
+    days_since_last_activity: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    response_rate_pct: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
+    rank_delta: Mapped[int | None] = mapped_column(Integer, nullable=True)  # negative = improved
+
+    # CEO annotations
+    ceo_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    support_email_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    computed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow, nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+
+    user: Mapped["User"] = relationship(back_populates="customer_insight")
+
+
+# ────────────────────────────────────────────────────────────────────────────────
+# CRM — USER SESSION  (lightweight login tracker)
+# ────────────────────────────────────────────────────────────────────────────────
+
+
+class UserSession(Base):
+    """One row per platform login / OAuth token validation.
+
+    Created by the auth middleware / OAuth callback to track login frequency.
+    Only id, user_id and created_at are required — ip_hash is optional and
+    stored as a SHA-256 hex to avoid storing raw IPs.
+    """
+
+    __tablename__ = "user_sessions"
+    __table_args__ = (
+        Index("ix_user_sessions_user_created", "user_id", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    ip_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    user_agent: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow, nullable=False
+    )
+
+    user: Mapped["User"] = relationship(back_populates="user_sessions")
+
+
+# ────────────────────────────────────────────────────────────────────────────────
+# OKR MONITOR — Objetivos y Resultados Clave
+# ────────────────────────────────────────────────────────────────────────────────
+
+
+class OKRObjective(Base):
+    """A single quarterly objective (company-level — no user FK).
+
+    Examples
+    --------
+    "Alcanzar masa crítica de locales Enterprise"
+    "Reducir el Churn Rate por debajo del 3 %"
+    """
+
+    __tablename__ = "okr_objectives"
+    __table_args__ = (
+        Index("ix_okr_objectives_quarter_year", "quarter", "year"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    quarter: Mapped[int] = mapped_column(Integer, nullable=False)  # 1-4
+    year: Mapped[int] = mapped_column(Integer, nullable=False)
+    owner: Mapped[str | None] = mapped_column(String(64), nullable=True)  # CEO | Product | Sales
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    key_results: Mapped[list["OKRKeyResult"]] = relationship(
+        back_populates="objective",
+        cascade="all, delete-orphan",
+        order_by="OKRKeyResult.sort_order",
+    )
+
+
+class OKRKeyResult(Base):
+    """One measurable Key Result within an Objective.
+
+    metric_source links to an auto-computed value; current_value_override
+    is used when metric_source is None or 'manual'.
+
+    direction:
+        'increase' — higher current_value = more progress  (default)
+        'decrease' — lower current_value = more progress   (e.g. churn rate)
+    """
+
+    __tablename__ = "okr_key_results"
+    __table_args__ = (
+        Index("ix_okr_kr_objective_id", "objective_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    objective_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("okr_objectives.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    unit: Mapped[str] = mapped_column(String(32), nullable=False, default="")  # locales, %, $, usuarios…
+
+    # Target and baseline
+    target_value: Mapped[float] = mapped_column(Numeric(14, 2), nullable=False)
+    baseline_value: Mapped[float] = mapped_column(Numeric(14, 2), nullable=False, default=0)
+
+    # Auto-computed metric key (see okr_service.METRIC_RESOLVERS)
+    # Allowed values: count_users | count_active_subscriptions | count_enterprise_plans |
+    #   count_growth_plans | count_starter_plans | count_google_connections |
+    #   count_reviews_total | count_reviews_replied | avg_response_rate_pct |
+    #   count_upsell_candidates | count_churn_risk | count_lifecycle_churn_quarter |
+    #   count_monthly_reports | manual
+    metric_source: Mapped[str] = mapped_column(String(64), nullable=False, default="manual")
+
+    # Manual override — used when metric_source is 'manual'
+    current_value_override: Mapped[float | None] = mapped_column(Numeric(14, 2), nullable=True)
+
+    # 'increase' or 'decrease'
+    direction: Mapped[str] = mapped_column(String(16), nullable=False, default="increase")
+
+    weight: Mapped[float] = mapped_column(Numeric(4, 2), nullable=False, default=1.0)
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    objective: Mapped["OKRObjective"] = relationship(back_populates="key_results")
+

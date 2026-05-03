@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>CEO Command Center – lokigi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  {# HTMX for auto-refresh every 5 minutes #}
+  <script src="https://unpkg.com/htmx.org@1.9.12/dist/htmx.min.js" defer></script>
+
+  <style>
+    :root {
+      --surface: #0d1117;
+      --card: #161b22;
+      --border: rgba(255,255,255,0.07);
+      --text: #e6edf3;
+      --muted: #7d8590;
+      --green: #3fb950;
+      --red: #f85149;
+      --amber: #d29922;
+      --blue: #58a6ff;
+      --purple: #bc8cff;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { background: var(--surface); color: var(--text);
+                 font-family: 'Inter', system-ui, sans-serif; margin: 0; }
+
+    .kicker { font-size:.7rem; letter-spacing:.1em; text-transform:uppercase;
+              color: var(--blue); font-weight:700; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: .75rem;
+    }
+    .card:hover { border-color: rgba(255,255,255,0.14); }
+
+    /* KPI number */
+    .kpi-value { font-size: 2.4rem; font-weight: 800; line-height: 1; }
+    .kpi-label { font-size: .8rem; color: var(--muted); }
+    .kpi-delta {
+      font-size: .78rem; font-weight: 600; padding: .15rem .5rem;
+      border-radius: 999px; display: inline-flex; align-items: center; gap: .25rem;
+    }
+    .delta-up   { background: rgba(63,185,80,.15);  color: var(--green); }
+    .delta-down { background: rgba(248,81,73,.15);  color: var(--red); }
+    .delta-flat { background: rgba(210,153,34,.12); color: var(--amber); }
+
+    /* Sparkline canvas */
+    canvas.spark { width: 100% !important; height: 56px !important; }
+
+    /* Plan mix bar */
+    .plan-bar { height: .6rem; border-radius: 999px; }
+
+    /* Divider */
+    .divider { border-top: 1px solid var(--border); }
+
+    /* Refresh button */
+    .btn-refresh {
+      display: inline-flex; align-items: center; gap: .4rem;
+      padding: .45rem 1rem; border-radius: 999px;
+      background: rgba(88,166,255,.12); color: var(--blue);
+      border: 1px solid rgba(88,166,255,.25);
+      font-size: .82rem; font-weight: 600; cursor: pointer;
+      transition: opacity .2s;
+    }
+    .btn-refresh:hover { opacity: .8; }
+
+    /* htmx indicator */
+    .htmx-indicator { display: none; }
+    .htmx-request .htmx-indicator { display: inline-block; }
+    .htmx-request.htmx-indicator { display: inline-block; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+{# ── Top bar ─────────────────────────────────────────────────────────────── #}
+<header class="sticky top-0 z-10 flex items-center justify-between px-6 py-4"
+        style="background:rgba(13,17,23,0.92);backdrop-filter:blur(12px);
+               border-bottom:1px solid var(--border);">
+  <div>
+    <p class="kicker">CEO Command Center</p>
+    <h1 class="text-xl font-semibold mt-0.5">Métricas Financieras</h1>
+  </div>
+  <div class="flex items-center gap-3">
+    <span class="text-xs text-gray-500">
+      Actualizado: <span id="updated-at">{{ kpis.generated_at[:16].replace("T"," ") }} UTC</span>
+    </span>
+    <button class="btn-refresh htmx-trigger"
+            hx-get="/ceo/dashboard?key={{ ceo_key }}"
+            hx-target="body"
+            hx-swap="innerHTML"
+            hx-indicator="#spin">
+      <span id="spin" class="htmx-indicator">⏳</span>
+      ↻ Actualizar
+    </button>
+  </div>
+</header>
+
+{# ── HTMX auto-refresh every 5 min ───────────────────────────────────────── #}
+<div hx-get="/ceo/dashboard?key={{ ceo_key }}"
+     hx-target="body"
+     hx-swap="innerHTML"
+     hx-trigger="every 300s"
+     style="display:none"></div>
+
+<main class="mx-auto max-w-7xl px-4 sm:px-6 py-8 space-y-8">
+
+  {# ── Row 1: Primary KPI cards ──────────────────────────────────────────── #}
+  <section>
+    <p class="kicker mb-4">KPIs principales</p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+
+      {# MRR #}
+      <div class="card">
+        <div class="kpi-label">MRR (Ingreso Mensual Recurrente)</div>
+        <div class="kpi-value" style="color:var(--green)">{{ kpis.mrr.display }}</div>
+        <div class="text-xs text-gray-500">{{ kpis.users.active }} suscriptores activos</div>
+        <div class="divider"></div>
+        <canvas class="spark" id="spark-mrr"></canvas>
+      </div>
+
+      {# Churn Rate #}
+      {% set churn_color = "var(--green)" if kpis.churn.current_rate_pct < 3 else ("var(--amber)" if kpis.churn.current_rate_pct < 7 else "var(--red)") %}
+      <div class="card">
+        <div class="kpi-label">Churn Rate (mensual)</div>
+        <div class="kpi-value" style="color:{{ churn_color }}">
+          {{ kpis.churn.current_rate_pct }}%
+        </div>
+        <div class="text-xs text-gray-500">
+          {% if kpis.churn.current_rate_pct < 3 %}Saludable (&lt;3%)
+          {% elif kpis.churn.current_rate_pct < 7 %}Atención (3-7%)
+          {% else %}Crítico (&gt;7%){% endif %}
+        </div>
+        <div class="divider"></div>
+        <canvas class="spark" id="spark-churn"></canvas>
+      </div>
+
+      {# LTV #}
+      <div class="card">
+        <div class="kpi-label">LTV (Valor Vida del Cliente)</div>
+        <div class="kpi-value" style="color:var(--purple)">
+          {{ kpis.ltv.ltv_display }}
+        </div>
+        <div class="text-xs text-gray-500">ARPU €{{ kpis.ltv.arpu }} · Churn ~{{ kpis.ltv.avg_monthly_churn_rate_pct }}%/mes</div>
+        <div class="divider"></div>
+        <div class="text-xs text-gray-600 italic">LTV = ARPU ÷ Churn Rate mensual</div>
+      </div>
+
+      {# Users #}
+      <div class="card">
+        <div class="kpi-label">Usuarios</div>
+        <div class="kpi-value" style="color:var(--blue)">{{ kpis.users.total }}</div>
+        <span class="kpi-delta delta-up">+{{ kpis.users.new_mtd }} este mes</span>
+        <div class="divider"></div>
+        <div class="text-xs text-gray-500">{{ kpis.users.active }} con suscripción activa</div>
+      </div>
+
+    </div>
+  </section>
+
+  {# ── Row 2: Revenue trend + Plan mix ─────────────────────────────────────── #}
+  <section class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+
+    {# Revenue area chart #}
+    <div class="card xl:col-span-2">
+      <p class="kicker">Ingresos mensuales (últimos 12 meses)</p>
+      <canvas id="chart-revenue" style="height:220px;"></canvas>
+    </div>
+
+    {# Plan mix #}
+    <div class="card">
+      <p class="kicker">Mix de planes</p>
+      <div class="space-y-4 mt-2">
+        {% set plan_colors = {"starter": "#58a6ff", "growth": "#3fb950", "enterprise": "#bc8cff"} %}
+        {% for p in kpis.plan_mix %}
+        <div>
+          <div class="flex justify-between text-sm mb-1">
+            <span class="font-semibold capitalize">{{ p.plan }}</span>
+            <span class="text-gray-400">{{ p.count }} — {{ p.pct }}%</span>
+          </div>
+          <div style="background:rgba(255,255,255,0.06);border-radius:999px;height:.6rem;">
+            <div class="plan-bar"
+                 style="width:{{ p.pct }}%;background:{{ plan_colors.get(p.plan, '#7d8590') }};"></div>
+          </div>
+        </div>
+        {% endfor %}
+        {% if not kpis.plan_mix %}
+        <p class="text-gray-500 text-sm">Sin datos de suscripción todavía.</p>
+        {% endif %}
+      </div>
+
+      <div class="divider mt-auto"></div>
+      <div class="text-xs text-gray-600">
+        MRR por plan:
+        {% for plan, v in kpis.mrr.breakdown.items() %}
+          <span class="font-semibold capitalize">{{ plan }}</span> €{{ v.subtotal | round(0) | int }}
+          {% if not loop.last %} · {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+  </section>
+
+  {# ── Row 3: Churn series table ─────────────────────────────────────────── #}
+  <section class="card">
+    <p class="kicker">Serie de Churn mensual (últimos 12 meses)</p>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-gray-500 border-b" style="border-color:var(--border);">
+            <th class="pb-2 pr-6">Mes</th>
+            <th class="pb-2 pr-6">Bajas</th>
+            <th class="pb-2 pr-6">Base activa</th>
+            <th class="pb-2">Churn %</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in kpis.churn.series %}
+          <tr class="border-b" style="border-color:var(--border);">
+            <td class="py-2 pr-6 font-mono text-gray-300">{{ row.month }}</td>
+            <td class="py-2 pr-6">{{ row.churns }}</td>
+            <td class="py-2 pr-6 text-gray-400">{{ row.active_base }}</td>
+            <td class="py-2">
+              {% set r = row.rate %}
+              <span class="kpi-delta {{ 'delta-up' if r < 3 else ('delta-flat' if r < 7 else 'delta-down') }}">
+                {{ r }}%
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<script>
+// ── Helpers ─────────────────────────────────────────────────────────────────
+const CHART_DEFAULTS = {
+  responsive: true,
+  maintainAspectRatio: false,
+  animation: false,
+  plugins: { legend: { display: false }, tooltip: { mode: "index", intersect: false } },
+  scales: {
+    x: { ticks: { color: "#7d8590", font: { size: 10 } }, grid: { color: "rgba(255,255,255,0.04)" } },
+    y: { ticks: { color: "#7d8590", font: { size: 10 } }, grid: { color: "rgba(255,255,255,0.06)" } },
+  },
+};
+
+function sparkline(id, labels, data, color) {
+  const ctx = document.getElementById(id)?.getContext("2d");
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        data,
+        borderColor: color,
+        borderWidth: 1.5,
+        pointRadius: 0,
+        fill: true,
+        backgroundColor: color.replace("rgb", "rgba").replace(")", ", 0.1)"),
+        tension: 0.4,
+      }],
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      scales: {
+        x: { display: false },
+        y: { display: false },
+      },
+    },
+  });
+}
+
+// ── MRR sparkline ─────────────────────────────────────────────────────────
+sparkline(
+  "spark-mrr",
+  {{ kpis.mrr.sparkline_labels | tojson }},
+  {{ kpis.mrr.sparkline | tojson }},
+  "rgb(63,185,80)"
+);
+
+// ── Churn sparkline ───────────────────────────────────────────────────────
+sparkline(
+  "spark-churn",
+  {{ kpis.churn.sparkline_labels | tojson }},
+  {{ kpis.churn.sparkline | tojson }},
+  "rgb(248,81,73)"
+);
+
+// ── Revenue area chart ────────────────────────────────────────────────────
+(function () {
+  const ctx = document.getElementById("chart-revenue")?.getContext("2d");
+  if (!ctx) return;
+  const labels = {{ kpis.mrr.sparkline_labels | tojson }};
+  const data   = {{ kpis.mrr.sparkline | tojson }};
+
+  const gradient = ctx.createLinearGradient(0, 0, 0, 220);
+  gradient.addColorStop(0, "rgba(63,185,80,0.35)");
+  gradient.addColorStop(1, "rgba(63,185,80,0.0)");
+
+  new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label: "Ingresos (€)",
+        data,
+        borderColor: "rgb(63,185,80)",
+        borderWidth: 2,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        fill: true,
+        backgroundColor: gradient,
+        tension: 0.35,
+      }],
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` €${ctx.parsed.y.toLocaleString("es-ES", {minimumFractionDigits:0})}`,
+          },
+        },
+      },
+    },
+  });
+})();
+</script>
+</body>
+</html>

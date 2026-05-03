@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CRM Ejecutivo — lokigi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --muted: #8b949e;
+      --green: #3fb950;
+      --red: #f85149;
+      --amber: #d29922;
+      --blue: #58a6ff;
+      --purple: #bc8cff;
+    }
+    body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+
+    /* Score bar */
+    .score-bar { background: var(--border); border-radius: 4px; height: 8px; overflow: hidden; }
+    .score-fill { height: 100%; border-radius: 4px; transition: width .3s; }
+
+    /* Bucket badges */
+    .badge-upsell  { background: rgba(63,185,80,.18); color: var(--green);  border: 1px solid rgba(63,185,80,.4);  }
+    .badge-healthy { background: rgba(88,166,255,.14); color: var(--blue);  border: 1px solid rgba(88,166,255,.35); }
+    .badge-churn   { background: rgba(248,81,73,.18); color: var(--red);    border: 1px solid rgba(248,81,73,.4);  }
+    .badge-unknown { background: rgba(139,148,158,.12); color: var(--muted); border: 1px solid var(--border); }
+
+    /* Row tint */
+    .row-upsell  { background: rgba(63,185,80,.05); }
+    .row-churn   { background: rgba(248,81,73,.07); }
+    .row-healthy { background: transparent; }
+
+    /* Modal */
+    #email-modal { background: rgba(0,0,0,.75); backdrop-filter: blur(4px); }
+    #email-modal .inner { animation: fadeUp .2s ease-out; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+
+    /* Toast */
+    #toast { transition: opacity .4s; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+<!-- ─── HEADER ─────────────────────────────────────────────────────────────── -->
+<header class="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--bg)]/90 backdrop-blur">
+  <div class="max-w-screen-2xl mx-auto px-6 h-14 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <span class="text-lg font-bold text-white tracking-tight">lokigi</span>
+      <span class="text-[var(--muted)] text-sm">/ CRM Ejecutivo</span>
+    </div>
+    <nav class="flex items-center gap-4">
+      <a href="/ceo/dashboard?key={{ ceo_key }}" class="text-sm text-[var(--muted)] hover:text-white transition">CEO Dashboard</a>
+      <span class="text-sm text-[var(--muted)]">{{ total }} clientes</span>
+    </nav>
+  </div>
+</header>
+
+<!-- ─── TOAST ───────────────────────────────────────────────────────────────── -->
+<div id="toast" class="fixed top-4 right-4 z-50 opacity-0 pointer-events-none px-4 py-3 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-sm text-white shadow-xl"></div>
+
+<!-- ─── FILTERS ─────────────────────────────────────────────────────────────── -->
+<main class="max-w-screen-2xl mx-auto px-6 py-8 space-y-6">
+
+  <form method="get" action="/crm/dashboard" class="card p-4 flex flex-wrap gap-3 items-end">
+    <input type="hidden" name="key" value="{{ ceo_key }}" />
+
+    <!-- Search -->
+    <div class="flex-1 min-w-52">
+      <label class="block text-xs text-[var(--muted)] mb-1 uppercase tracking-wide">Buscar</label>
+      <input
+        type="text" name="search" placeholder="Negocio o email…"
+        value="{{ search }}"
+        class="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-white placeholder-[var(--muted)] focus:outline-none focus:border-[var(--blue)]"
+      />
+    </div>
+
+    <!-- Bucket filter -->
+    <div>
+      <label class="block text-xs text-[var(--muted)] mb-1 uppercase tracking-wide">Riesgo</label>
+      <select name="bucket" class="bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[var(--blue)]">
+        <option value="">Todos</option>
+        <option value="churn_risk"      {% if active_bucket == 'churn_risk'      %}selected{% endif %}>Riesgo de Churn</option>
+        <option value="healthy"         {% if active_bucket == 'healthy'         %}selected{% endif %}>Saludable</option>
+        <option value="upsell_candidate"{% if active_bucket == 'upsell_candidate'%}selected{% endif %}>Candidato a Upsell</option>
+      </select>
+    </div>
+
+    <!-- Plan filter -->
+    <div>
+      <label class="block text-xs text-[var(--muted)] mb-1 uppercase tracking-wide">Plan</label>
+      <select name="plan" class="bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[var(--blue)]">
+        <option value="">Todos</option>
+        <option value="starter"   {% if active_plan == 'starter'   %}selected{% endif %}>Starter</option>
+        <option value="growth"    {% if active_plan == 'growth'    %}selected{% endif %}>Growth</option>
+        <option value="enterprise"{% if active_plan == 'enterprise'%}selected{% endif %}>Enterprise</option>
+      </select>
+    </div>
+
+    <button type="submit" class="bg-[var(--blue)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition">
+      Filtrar
+    </button>
+    <a href="/crm/dashboard?key={{ ceo_key }}" class="text-[var(--muted)] hover:text-white text-sm px-2 py-2">Limpiar</a>
+  </form>
+
+  <!-- ─── STATS ROW ──────────────────────────────────────────────────────────── -->
+  {% set churn_count  = customers | selectattr('bucket','eq','churn_risk')       | list | length %}
+  {% set upsell_count = customers | selectattr('bucket','eq','upsell_candidate') | list | length %}
+  {% set healthy_count= customers | selectattr('bucket','eq','healthy')          | list | length %}
+  <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+    <div class="card px-5 py-4 flex items-center gap-4">
+      <span class="text-2xl font-bold text-[var(--red)]">{{ churn_count }}</span>
+      <span class="text-sm text-[var(--muted)]">Riesgo de Churn</span>
+    </div>
+    <div class="card px-5 py-4 flex items-center gap-4">
+      <span class="text-2xl font-bold text-[var(--text)]">{{ healthy_count }}</span>
+      <span class="text-sm text-[var(--muted)]">Saludables</span>
+    </div>
+    <div class="card px-5 py-4 flex items-center gap-4">
+      <span class="text-2xl font-bold text-[var(--green)]">{{ upsell_count }}</span>
+      <span class="text-sm text-[var(--muted)]">Candidatos Upsell</span>
+    </div>
+  </div>
+
+  <!-- ─── TABLE ──────────────────────────────────────────────────────────────── -->
+  <div class="card overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-[var(--border)] text-[var(--muted)] text-xs uppercase tracking-wide">
+            <th class="px-4 py-3 text-left">Negocio / Email</th>
+            <th class="px-4 py-3 text-left">Plan</th>
+            <th class="px-4 py-3 text-left w-48">Health Score</th>
+            <th class="px-4 py-3 text-left">Segmento</th>
+            <th class="px-4 py-3 text-right">Login</th>
+            <th class="px-4 py-3 text-right">Respuesta</th>
+            <th class="px-4 py-3 text-right">Ranking Δ</th>
+            <th class="px-4 py-3 text-left max-w-xs">Notas CEO</th>
+            <th class="px-4 py-3 text-center">Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in customers %}
+          {% set tint = 'row-churn' if c.bucket == 'churn_risk' else ('row-upsell' if c.bucket == 'upsell_candidate' else 'row-healthy') %}
+          <tr class="{{ tint }} border-b border-[var(--border)] hover:bg-white/[.03] transition-colors group">
+
+            <!-- Business / Email -->
+            <td class="px-4 py-3">
+              <div class="font-medium text-white truncate max-w-[16rem]">{{ c.business_name or '—' }}</div>
+              <div class="text-[var(--muted)] text-xs truncate">{{ c.email }}</div>
+            </td>
+
+            <!-- Plan -->
+            <td class="px-4 py-3">
+              <span class="uppercase text-xs font-medium px-2 py-0.5 rounded bg-[var(--bg)] border border-[var(--border)]">
+                {{ c.plan }}
+              </span>
+            </td>
+
+            <!-- Health Score bar -->
+            <td class="px-4 py-3">
+              {% if c.health_score is not none %}
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-white w-6 text-right">{{ c.health_score }}</span>
+                <div class="score-bar flex-1">
+                  {% set fill_color = '#f85149' if c.health_score < 30 else ('#d29922' if c.health_score < 80 else '#3fb950') %}
+                  <div class="score-fill" style="width:{{ c.health_score }}%; background:{{ fill_color }};"></div>
+                </div>
+                <span class="text-[10px] text-[var(--muted)]">/100</span>
+              </div>
+              {% else %}
+              <span class="text-[var(--muted)]">—</span>
+              {% endif %}
+            </td>
+
+            <!-- Bucket badge -->
+            <td class="px-4 py-3">
+              {% if c.bucket == 'upsell_candidate' %}
+              <span class="badge-upsell text-xs font-medium px-2 py-0.5 rounded-full">↑ Upsell</span>
+              {% elif c.bucket == 'churn_risk' %}
+              <span class="badge-churn text-xs font-medium px-2 py-0.5 rounded-full">⚠ Churn</span>
+              {% else %}
+              <span class="badge-healthy text-xs font-medium px-2 py-0.5 rounded-full">✓ OK</span>
+              {% endif %}
+            </td>
+
+            <!-- Login sub-score -->
+            <td class="px-4 py-3 text-right">
+              {% if c.days_since_last_activity is not none %}
+              <span class="text-[var(--text)]">{{ c.days_since_last_activity }}d</span>
+              {% else %}<span class="text-[var(--muted)]">—</span>{% endif %}
+              <div class="text-[10px] text-[var(--muted)]">({{ c.login_score }}/40)</div>
+            </td>
+
+            <!-- Response rate -->
+            <td class="px-4 py-3 text-right">
+              {% if c.response_rate_pct is not none %}
+              <span class="{% if c.response_rate_pct >= 75 %}text-[var(--green)]{% elif c.response_rate_pct >= 40 %}text-[var(--amber)]{% else %}text-[var(--red)]{% endif %}">
+                {{ c.response_rate_pct | round(0) | int }}%
+              </span>
+              {% else %}<span class="text-[var(--muted)]">—</span>{% endif %}
+            </td>
+
+            <!-- Ranking delta -->
+            <td class="px-4 py-3 text-right">
+              {% if c.rank_delta is not none %}
+              {% if c.rank_delta < 0 %}
+              <span class="text-[var(--green)]">▲ {{ (-c.rank_delta) }}</span>
+              {% elif c.rank_delta > 0 %}
+              <span class="text-[var(--red)]">▼ {{ c.rank_delta }}</span>
+              {% else %}
+              <span class="text-[var(--muted)]">─</span>
+              {% endif %}
+              {% else %}
+              <span class="text-[var(--muted)]">—</span>
+              {% endif %}
+            </td>
+
+            <!-- CEO Notes (inline edit) -->
+            <td class="px-4 py-3 max-w-xs">
+              <div
+                contenteditable="true"
+                data-uid="{{ c.user_id }}"
+                data-ceokey="{{ ceo_key }}"
+                class="ceo-notes-cell rounded px-2 py-1 text-xs text-[var(--muted)] hover:bg-[var(--bg)] focus:bg-[var(--bg)] focus:text-white focus:outline-none min-h-[1.5rem] truncate"
+                title="{{ c.ceo_notes or '' }}"
+              >{{ c.ceo_notes or '' }}</div>
+            </td>
+
+            <!-- Action button -->
+            <td class="px-4 py-3 text-center">
+              <button
+                onclick="openEmailModal('{{ c.user_id }}','{{ c.business_name or c.email }}','{{ c.bucket }}','{{ c.email }}')"
+                class="send-email-btn text-xs font-medium px-3 py-1.5 rounded-lg border transition
+                  {% if c.bucket == 'churn_risk' %}
+                  border-[var(--red)] text-[var(--red)] hover:bg-red-500/10
+                  {% elif c.bucket == 'upsell_candidate' %}
+                  border-[var(--green)] text-[var(--green)] hover:bg-green-500/10
+                  {% else %}
+                  border-[var(--border)] text-[var(--muted)] hover:text-white hover:border-[var(--blue)]
+                  {% endif %}
+                  {% if c.support_email_sent_at %} opacity-60{% endif %}"
+                title="{% if c.support_email_sent_at %}Enviado: {{ c.support_email_sent_at }}{% else %}Enviar email{% endif %}"
+              >
+                {% if c.support_email_sent_at %}✓ Enviado{% else %}✉ Email{% endif %}
+              </button>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="9" class="text-center py-16 text-[var(--muted)]">No se encontraron clientes con los filtros actuales.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- ─── EMAIL MODAL ─────────────────────────────────────────────────────────── -->
+<div id="email-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div class="inner card w-full max-w-lg p-6 space-y-4 relative">
+    <button onclick="closeEmailModal()" class="absolute top-4 right-4 text-[var(--muted)] hover:text-white text-lg">✕</button>
+    <h2 class="text-lg font-semibold text-white" id="modal-title">Enviar email de soporte</h2>
+
+    <div class="space-y-1">
+      <div class="text-xs text-[var(--muted)] uppercase tracking-wide">Para</div>
+      <div id="modal-to" class="text-sm text-white"></div>
+    </div>
+
+    <div class="space-y-1">
+      <div class="text-xs text-[var(--muted)] uppercase tracking-wide">Plantilla</div>
+      <select id="modal-template" class="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[var(--blue)]">
+        <option value="auto">Auto (según segmento)</option>
+        <option value="churn_risk">Soporte — Riesgo de Churn</option>
+        <option value="upsell_candidate">Upsell — Plan Growth</option>
+        <option value="healthy">Agradecimiento</option>
+      </select>
+    </div>
+
+    <div id="modal-preview" class="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-4 text-xs text-[var(--muted)] leading-relaxed max-h-48 overflow-y-auto"></div>
+
+    <div class="flex gap-3 pt-2">
+      <button
+        id="modal-send-btn"
+        onclick="sendEmail()"
+        class="flex-1 bg-[var(--blue)] text-white rounded-lg py-2.5 text-sm font-semibold hover:opacity-90 transition"
+      >
+        Enviar email
+      </button>
+      <button onclick="closeEmailModal()" class="px-4 py-2.5 text-sm text-[var(--muted)] border border-[var(--border)] rounded-lg hover:text-white transition">
+        Cancelar
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+const CEO_KEY = "{{ ceo_key }}";
+let _modalUserId = null;
+
+const PREVIEWS = {
+  churn_risk:       "<strong>Asunto:</strong> ¿Podemos ayudarte? Tu opinión es muy importante para nosotros<br><br>Hola <em>{name}</em>, hemos notado que últimamente no has estado tan activo en tu cuenta de lokigi...",
+  upsell_candidate: "<strong>Asunto:</strong> 🚀 Tus resultados son excelentes — descubre el Plan Growth<br><br>Hola <em>{name}</em>, ¡Enhorabuena! Has estado respondiendo a tus reseñas con una tasa de respuesta excepcional...",
+  healthy:          "<strong>Asunto:</strong> Gracias por confiar en lokigi<br><br>Hola <em>{name}</em>, queremos agradecerte por ser un cliente activo de lokigi...",
+};
+
+function openEmailModal(userId, businessName, bucket, email) {
+  _modalUserId = userId;
+  document.getElementById('modal-title').textContent = 'Enviar email a ' + businessName;
+  document.getElementById('modal-to').textContent = email;
+
+  const sel = document.getElementById('modal-template');
+  sel.value = 'auto';
+  updatePreview(bucket, businessName);
+  sel.onchange = () => updatePreview(sel.value === 'auto' ? bucket : sel.value, businessName);
+
+  document.getElementById('email-modal').classList.remove('hidden');
+}
+
+function updatePreview(bucket, name) {
+  const key = PREVIEWS[bucket] ? bucket : 'healthy';
+  document.getElementById('modal-preview').innerHTML = PREVIEWS[key].replace(/{name}/g, name);
+}
+
+function closeEmailModal() {
+  document.getElementById('email-modal').classList.add('hidden');
+  _modalUserId = null;
+}
+
+async function sendEmail() {
+  if (!_modalUserId) return;
+  const tpl = document.getElementById('modal-template').value;
+  const btn = document.getElementById('modal-send-btn');
+  btn.disabled = true;
+  btn.textContent = 'Enviando…';
+
+  try {
+    const res = await fetch(`/api/v1/crm/customers/${_modalUserId}/support-email?template=${tpl}`, {
+      method: 'POST',
+      headers: { 'X-CEO-Key': CEO_KEY },
+    });
+    const data = await res.json();
+    if (data.sent) {
+      showToast('✓ Email enviado correctamente', 'green');
+    } else {
+      showToast('⚠ Email guardado pero no enviado (SendGrid no configurado)', 'amber');
+    }
+  } catch (e) {
+    showToast('✕ Error al enviar email', 'red');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Enviar email';
+    closeEmailModal();
+  }
+}
+
+function showToast(msg, color) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  const colors = { green: '#3fb950', amber: '#d29922', red: '#f85149' };
+  t.style.color = colors[color] || '#c9d1d9';
+  t.style.opacity = '1';
+  t.style.pointerEvents = 'auto';
+  setTimeout(() => { t.style.opacity = '0'; t.style.pointerEvents = 'none'; }, 4000);
+}
+
+// ── Inline notes save (debounced) ──────────────────────────────────────────
+let _notesTimer = null;
+
+document.addEventListener('input', (e) => {
+  const cell = e.target.closest('.ceo-notes-cell');
+  if (!cell) return;
+  clearTimeout(_notesTimer);
+  _notesTimer = setTimeout(async () => {
+    const uid = cell.dataset.uid;
+    const text = cell.textContent.trim();
+    try {
+      await fetch(`/api/v1/crm/customers/${uid}/notes`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'X-CEO-Key': CEO_KEY },
+        body: JSON.stringify({ notes: text }),
+      });
+      showToast('✓ Nota guardada', 'green');
+    } catch {
+      showToast('✕ Error guardando nota', 'red');
+    }
+  }, 1000);
+});
+
+// Close modal on background click
+document.getElementById('email-modal').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeEmailModal();
+});
+</script>
+
+</body>
+</html>

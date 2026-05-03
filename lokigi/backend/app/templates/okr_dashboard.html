@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OKRs Q{{ data.quarter }}·{{ data.year }} — lokigi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ── Design tokens ───────────────────────────────────────────── */
+    :root {
+      --bg:       #fafafa;
+      --surface:  #ffffff;
+      --border:   #e5e7eb;
+      --text:     #111827;
+      --muted:    #6b7280;
+      --subtle:   #f3f4f6;
+      --on-track: #16a34a;
+      --at-risk:  #ca8a04;
+      --off-track:#dc2626;
+      --brand:    #4f46e5;
+      --radius:   14px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Inter", system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Progress bar ────────────────────────────────────────────── */
+    .prog-track {
+      background: var(--border);
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+    }
+    .prog-fill {
+      border-radius: 999px;
+      transition: width 1s cubic-bezier(.22,1,.36,1);
+    }
+
+    /* ── Objective card ─────────────────────────────────────────── */
+    .obj-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .obj-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 20px 24px;
+      cursor: pointer;
+      user-select: none;
+      transition: background .15s;
+    }
+    .obj-header:hover { background: var(--subtle); }
+    .obj-body {
+      border-top: 1px solid var(--border);
+      padding: 20px 24px;
+    }
+
+    /* ── KR row ─────────────────────────────────────────────────── */
+    .kr-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px 16px;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .kr-row:last-child { border-bottom: none; }
+
+    /* ── Status dot ─────────────────────────────────────────────── */
+    .dot {
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot-on-track  { background: var(--on-track); }
+    .dot-at-risk   { background: var(--at-risk); }
+    .dot-off-track { background: var(--off-track); }
+
+    /* ── Overall ring ───────────────────────────────────────────── */
+    .ring-svg { transform: rotate(-90deg); }
+    .ring-bg   { fill: none; stroke: var(--border); stroke-width: 8; }
+    .ring-fill { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 1.2s cubic-bezier(.22,1,.36,1); }
+
+    /* ── Chevron toggle ─────────────────────────────────────────── */
+    .chevron { transition: transform .25s; }
+    .expanded .chevron { transform: rotate(180deg); }
+
+    /* ── Print / presentation mode ──────────────────────────────── */
+    @media print {
+      .no-print { display: none !important; }
+      body { background: white; }
+      .obj-body { display: block !important; }
+    }
+
+    /* ── Pulse animation for live dot ──────────────────────────── */
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .live-dot { animation: pulse 2.5s ease-in-out infinite; }
+  </style>
+</head>
+
+<body class="min-h-screen">
+
+<!-- ─── HEADER ───────────────────────────────────────────────────────────── -->
+<header class="no-print sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-[var(--border)]">
+  <div class="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <span class="font-bold text-[var(--brand)] tracking-tight text-lg">lokigi</span>
+      <span class="text-[var(--muted)] text-sm">/</span>
+      <span class="text-sm font-medium">Objetivos Estratégicos</span>
+    </div>
+    <div class="flex items-center gap-4">
+      <!-- Quarter switcher -->
+      {% if available_quarters | length > 1 %}
+      <div class="flex items-center gap-1 text-sm">
+        {% for q in available_quarters %}
+        <a
+          href="/okr/dashboard?key={{ ceo_key }}&quarter={{ q.quarter }}&year={{ q.year }}"
+          class="px-3 py-1 rounded-full text-xs font-medium transition
+            {% if q.quarter == data.quarter and q.year == data.year %}
+              bg-[var(--brand)] text-white
+            {% else %}
+              text-[var(--muted)] hover:bg-[var(--subtle)]
+            {% endif %}"
+        >Q{{ q.quarter }}·{{ q.year }}</a>
+        {% endfor %}
+      </div>
+      {% endif %}
+      <a href="/ceo/dashboard?key={{ ceo_key }}" class="text-xs text-[var(--muted)] hover:text-[var(--text)] transition">CEO Dashboard</a>
+      <a href="/crm/dashboard?key={{ ceo_key }}" class="text-xs text-[var(--muted)] hover:text-[var(--text)] transition">CRM</a>
+      <div class="flex items-center gap-1.5 text-xs text-[var(--muted)]">
+        <span class="live-dot dot" style="background:var(--on-track);"></span>
+        En vivo
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ─── HERO: Overall progress ───────────────────────────────────────────── -->
+<section class="max-w-4xl mx-auto px-6 pt-12 pb-8">
+  <div class="flex flex-col sm:flex-row items-center gap-8">
+
+    <!-- Ring chart -->
+    <div class="relative flex-shrink-0">
+      <svg width="140" height="140" viewBox="0 0 140 140" class="ring-svg">
+        <circle class="ring-bg" cx="70" cy="70" r="56" />
+        <circle
+          class="ring-fill"
+          cx="70" cy="70" r="56"
+          stroke="{{ data.overall_color }}"
+          stroke-dasharray="{{ (56 * 2 * 3.14159) | round(2) }}"
+          stroke-dashoffset="{{ ((1 - data.overall_pct / 100) * 56 * 2 * 3.14159) | round(2) }}"
+        />
+      </svg>
+      <div class="absolute inset-0 flex flex-col items-center justify-center">
+        <span class="text-3xl font-bold" style="color: {{ data.overall_color }}">{{ data.overall_pct | int }}%</span>
+        <span class="text-[10px] text-[var(--muted)] uppercase tracking-widest mt-0.5">global</span>
+      </div>
+    </div>
+
+    <!-- Title + meta -->
+    <div class="text-center sm:text-left">
+      <h1 class="text-2xl sm:text-3xl font-bold leading-tight">
+        Objetivos <span class="text-[var(--brand)]">Q{{ data.quarter }}·{{ data.year }}</span>
+      </h1>
+      <p class="text-[var(--muted)] mt-1 text-sm">
+        {{ data.objectives | length }} objetivo{% if data.objectives | length != 1 %}s{% endif %} ·
+        {% set total_krs = data.objectives | sum(attribute='key_results' | length) %}
+        {% set total_krs_count = namespace(n=0) %}
+        {% for obj in data.objectives %}{% set total_krs_count.n = total_krs_count.n + (obj.key_results | length) %}{% endfor %}
+        {{ total_krs_count.n }} resultados clave
+      </p>
+
+      <!-- Status summary pills -->
+      <div class="flex flex-wrap justify-center sm:justify-start gap-2 mt-3">
+        {% set on_count = namespace(n=0) %}{% set at_count = namespace(n=0) %}{% set off_count = namespace(n=0) %}
+        {% for obj in data.objectives %}
+          {% if obj.status == 'on_track' %}{% set on_count.n = on_count.n + 1 %}
+          {% elif obj.status == 'at_risk' %}{% set at_count.n = at_count.n + 1 %}
+          {% else %}{% set off_count.n = off_count.n + 1 %}{% endif %}
+        {% endfor %}
+        {% if on_count.n > 0 %}
+        <span class="text-xs font-medium px-3 py-1 rounded-full" style="background:rgba(22,163,74,.1);color:var(--on-track);">
+          ✓ {{ on_count.n }} en camino
+        </span>
+        {% endif %}
+        {% if at_count.n > 0 %}
+        <span class="text-xs font-medium px-3 py-1 rounded-full" style="background:rgba(202,138,4,.1);color:var(--at-risk);">
+          ⚡ {{ at_count.n }} en riesgo
+        </span>
+        {% endif %}
+        {% if off_count.n > 0 %}
+        <span class="text-xs font-medium px-3 py-1 rounded-full" style="background:rgba(220,38,38,.1);color:var(--off-track);">
+          ✕ {{ off_count.n }} atrasado{% if off_count.n != 1 %}s{% endif %}
+        </span>
+        {% endif %}
+      </div>
+
+      <p class="text-[10px] text-[var(--muted)] mt-3">
+        Actualizado: {{ data.refreshed_at[:16] | replace("T", " ") }} UTC
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ─── OBJECTIVE CARDS ───────────────────────────────────────────────────── -->
+<main class="max-w-4xl mx-auto px-6 pb-16 space-y-4">
+
+  {% for obj in data.objectives %}
+  {% set card_id = "obj-" ~ loop.index %}
+
+  <div class="obj-card" id="{{ card_id }}">
+
+    <!-- ── Objective header (clickable) ────────────────────────── -->
+    <div class="obj-header" onclick="toggleObj('{{ card_id }}')">
+
+      <!-- Status dot -->
+      <span class="dot dot-{{ obj.status }}"></span>
+
+      <!-- Title + owner -->
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 flex-wrap">
+          <h2 class="text-sm font-semibold leading-snug">{{ obj.title }}</h2>
+          {% if obj.owner %}
+          <span class="text-[10px] font-medium px-2 py-0.5 rounded bg-[var(--subtle)] text-[var(--muted)] flex-shrink-0">
+            {{ obj.owner }}
+          </span>
+          {% endif %}
+        </div>
+        {% if obj.description %}
+        <p class="text-xs text-[var(--muted)] mt-0.5 leading-relaxed hidden-desc" id="{{ card_id }}-desc">
+          {{ obj.description }}
+        </p>
+        {% endif %}
+
+        <!-- Objective progress bar -->
+        <div class="mt-3 flex items-center gap-3">
+          <div class="prog-track h-2 flex-1">
+            <div
+              class="prog-fill h-2"
+              style="width: {{ obj.progress_pct }}%; background: {{ obj.status_color }};"
+            ></div>
+          </div>
+          <span class="text-xs font-bold w-9 text-right flex-shrink-0" style="color: {{ obj.status_color }}">
+            {{ obj.progress_pct | int }}%
+          </span>
+        </div>
+      </div>
+
+      <!-- Chevron -->
+      <svg class="chevron w-4 h-4 text-[var(--muted)] flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+      </svg>
+    </div>
+
+    <!-- ── Key Results (hidden by default, show on expand) ──────── -->
+    <div class="obj-body hidden" id="{{ card_id }}-body">
+
+      <!-- KR column headers -->
+      <div class="grid grid-cols-[1fr_80px_80px_80px] gap-4 px-1 pb-2">
+        <span class="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">Resultado Clave</span>
+        <span class="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)] text-right">Actual</span>
+        <span class="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)] text-right">Objetivo</span>
+        <span class="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)] text-right">Progreso</span>
+      </div>
+
+      {% for kr in obj.key_results %}
+      <div class="kr-row grid grid-cols-[1fr_80px_80px_80px] gap-4 px-1">
+
+        <!-- KR title + progress bar -->
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="dot dot-{{ kr.status }} w-1.5 h-1.5 flex-shrink-0"></span>
+            <span class="text-xs text-[var(--text)] leading-snug">{{ kr.title }}</span>
+          </div>
+          <div class="mt-2 prog-track h-1.5">
+            <div
+              class="prog-fill h-1.5"
+              style="width: {{ kr.progress_pct }}%; background: {{ kr.status_color }};"
+            ></div>
+          </div>
+        </div>
+
+        <!-- Current value -->
+        <div class="text-right">
+          <span class="text-sm font-semibold text-[var(--text)]">
+            {% if kr.current_value == (kr.current_value | int) %}{{ kr.current_value | int }}{% else %}{{ "%.1f" | format(kr.current_value) }}{% endif %}
+          </span>
+          {% if kr.unit %}<span class="text-[10px] text-[var(--muted)] ml-0.5">{{ kr.unit }}</span>{% endif %}
+        </div>
+
+        <!-- Target value -->
+        <div class="text-right">
+          <span class="text-xs text-[var(--muted)]">
+            {% if kr.target_value == (kr.target_value | int) %}{{ kr.target_value | int }}{% else %}{{ "%.1f" | format(kr.target_value) }}{% endif %}
+          </span>
+          {% if kr.unit %}<span class="text-[10px] text-[var(--muted)] ml-0.5">{{ kr.unit }}</span>{% endif %}
+        </div>
+
+        <!-- Progress pct -->
+        <div class="text-right">
+          <span class="text-sm font-bold" style="color: {{ kr.status_color }}">{{ kr.progress_pct | int }}%</span>
+        </div>
+
+      </div>
+      {% endfor %}
+
+      <!-- Metric source footnote -->
+      <div class="mt-4 flex flex-wrap gap-3">
+        {% for kr in obj.key_results %}
+        {% if kr.metric_source and kr.metric_source != 'manual' %}
+        <span class="text-[10px] text-[var(--muted)] px-2 py-0.5 bg-[var(--subtle)] rounded">
+          ⚡ {{ kr.title[:28] }}… → <code>{{ kr.metric_source }}</code>
+        </span>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+  {% else %}
+  <div class="text-center py-20 text-[var(--muted)]">
+    <p class="text-lg font-medium">Sin OKRs para Q{{ data.quarter }}·{{ data.year }}</p>
+    <p class="text-sm mt-1">Envía un POST a <code>/api/v1/okr/seed</code> para cargar datos de ejemplo.</p>
+  </div>
+  {% endfor %}
+
+</main>
+
+<!-- ─── PRINT FOOTER ─────────────────────────────────────────────────────── -->
+<footer class="hidden print:block text-center text-xs text-[var(--muted)] pb-8">
+  lokigi · OKRs Q{{ data.quarter }}·{{ data.year }} · {{ data.refreshed_at[:10] }}
+</footer>
+
+<script>
+// Expand / collapse objective cards
+function toggleObj(id) {
+  const card = document.getElementById(id);
+  const body = document.getElementById(id + '-body');
+  const isOpen = !body.classList.contains('hidden');
+  body.classList.toggle('hidden', isOpen);
+  card.classList.toggle('expanded', !isOpen);
+}
+
+// Auto-expand card with worst status on first load
+(function autoExpand() {
+  const statuses = ['off_track', 'at_risk', 'on_track'];
+  for (const st of statuses) {
+    const dot = document.querySelector('.obj-card .dot-' + st);
+    if (dot) {
+      const card = dot.closest('.obj-card');
+      if (card) { toggleObj(card.id); break; }
+    }
+  }
+})();
+
+// Animate progress bars after paint
+requestAnimationFrame(() => {
+  document.querySelectorAll('.prog-fill').forEach(el => {
+    const target = el.style.width;
+    el.style.width = '0%';
+    requestAnimationFrame(() => { el.style.width = target; });
+  });
+
+  // Ring
+  const ring = document.querySelector('.ring-fill');
+  if (ring) {
+    const target = ring.getAttribute('stroke-dashoffset');
+    const total  = ring.getAttribute('stroke-dasharray');
+    ring.style.strokeDashoffset = total;
+    requestAnimationFrame(() => { ring.style.strokeDashoffset = target; });
+  }
+});
+</script>
+
+</body>
+</html>

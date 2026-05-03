@@ -65,6 +65,12 @@ class Settings(BaseSettings):
         "Chrome/124.0.0.0 Safari/537.36"
     )
 
+    # CEO Command Center — set a long random secret in production
+    ceo_api_key: str = "change-me-in-production-ceo"
+
+    # Redis (for CEO financial KPI cache)
+    redis_url: str = "redis://localhost:6379/0"
+
     # JWT
     jwt_secret_key: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"

@@ -196,3 +196,72 @@ class GoogleBusinessProfileClient:
         if response.status_code >= 400:
             raise GoogleOAuthError(f"Cannot create local post: {response.text}")
         return response.json()
+
+    # ── Google Q&A API ────────────────────────────────────────────────────────
+
+    async def list_questions(
+        self,
+        access_token: str,
+        location_name: str,
+        page_size: int = 10,
+        answers_per_question: int = 1,
+    ) -> list[dict[str, Any]]:
+        """List Q&A questions for a location (unanswered first).
+
+        Google API: GET https://mybusiness.googleapis.com/v4/{parent}/questions
+        Returns a flat list of question resource dicts.
+        """
+        headers = {"Authorization": f"Bearer {access_token}"}
+        params: dict[str, Any] = {
+            "pageSize": page_size,
+            "answersPerQuestion": answers_per_question,
+            "orderBy": "update_time desc",
+        }
+        questions: list[dict[str, Any]] = []
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            next_page_token: str | None = None
+            while True:
+                if next_page_token:
+                    params["pageToken"] = next_page_token
+                response = await client.get(
+                    f"https://mybusiness.googleapis.com/v4/{location_name}/questions",
+                    headers=headers,
+                    params=params,
+                )
+                if response.status_code == 404:
+                    # Q&A not enabled for this location
+                    return []
+                if response.status_code >= 400:
+                    raise GoogleOAuthError(f"Cannot list Q&A questions: {response.text}")
+                data = response.json()
+                questions.extend(data.get("questions", []))
+                next_page_token = data.get("nextPageToken")
+                if not next_page_token:
+                    break
+        return questions
+
+    async def post_qa_answer(
+        self,
+        access_token: str,
+        question_name: str,
+        answer_text: str,
+    ) -> dict[str, Any]:
+        """Create or overwrite the owner answer for a Q&A question.
+
+        Google API: POST https://mybusiness.googleapis.com/v4/{parent}/answers:upsert
+        Returns the answer resource on success.
+        """
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+        }
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.post(
+                f"https://mybusiness.googleapis.com/v4/{question_name}/answers:upsert",
+                headers=headers,
+                json={"answer": {"text": answer_text}},
+            )
+        if response.status_code >= 400:
+            raise GoogleOAuthError(f"Cannot post Q&A answer: {response.text}")
+        return response.json()
+

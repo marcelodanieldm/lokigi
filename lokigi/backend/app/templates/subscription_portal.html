@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portal de Suscripción — lokigi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --brand:    #4f46e5;
+      --brand-lt: #eef2ff;
+      --surface:  #ffffff;
+      --bg:       #f9fafb;
+      --border:   #e5e7eb;
+      --text:     #111827;
+      --muted:    #6b7280;
+      --subtle:   #f3f4f6;
+      --green:    #16a34a;
+      --amber:    #ca8a04;
+      --red:      #dc2626;
+      --radius:   12px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Inter", system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .prog-track {
+      background: var(--border);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .prog-fill {
+      border-radius: 999px;
+      transition: width 1s cubic-bezier(.22,1,.36,1);
+    }
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 10px; border-radius: 999px;
+      font-size: 11px; font-weight: 600; line-height: 1.6;
+    }
+    .badge-active  { background:#dcfce7; color:#15803d; }
+    .badge-trial   { background:#ede9fe; color:#6d28d9; }
+    .badge-warning { background:#fef9c3; color:#854d0e; }
+    .badge-danger  { background:#fee2e2; color:#b91c1c; }
+    .badge-neutral { background:var(--subtle); color:var(--muted); }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 13px;
+      font-weight: 600; cursor: pointer; transition: opacity .15s, background .15s;
+      border: none; text-decoration: none;
+    }
+    .btn:hover { opacity: .88; }
+    .btn-primary { background: var(--brand); color: white; }
+    .btn-outline { background: transparent; color: var(--brand); border: 1.5px solid var(--brand); }
+    .btn-ghost   { background: var(--subtle); color: var(--text); }
+    .btn-danger  { background: #fee2e2; color: var(--red); }
+    .btn-sm { padding: 5px 12px; font-size: 12px; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px;
+      color: var(--muted); padding: 8px 12px; text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+    tbody tr:hover { background: var(--subtle); }
+    tbody tr:last-child { border-bottom: none; }
+    td { padding: 11px 12px; font-size: 13px; }
+    .plan-card {
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      position: relative;
+      transition: border-color .2s;
+    }
+    .plan-card.current { border-color: var(--brand); }
+    .plan-card.current::before {
+      content: "Plan actual";
+      position: absolute; top: -11px; left: 16px;
+      background: var(--brand); color: white;
+      font-size: 10px; font-weight: 700;
+      padding: 2px 10px; border-radius: 999px;
+    }
+    /* Tooltip */
+    [data-tip] { position: relative; cursor: help; }
+    [data-tip]::after {
+      content: attr(data-tip);
+      position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%);
+      background: #1f2937; color: white; font-size: 11px; padding: 5px 10px;
+      border-radius: 6px; white-space: nowrap; pointer-events: none;
+      opacity: 0; transition: opacity .15s;
+    }
+    [data-tip]:hover::after { opacity: 1; }
+    /* Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,.4);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 50; opacity: 0; pointer-events: none; transition: opacity .2s;
+    }
+    .modal-backdrop.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: white; border-radius: 16px; padding: 28px 32px; width: 460px;
+      max-width: 95vw; transform: translateY(20px); transition: transform .2s;
+    }
+    .modal-backdrop.open .modal { transform: translateY(0); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+    .anim-pulse { animation: pulse 2s ease-in-out infinite; }
+  </style>
+</head>
+
+<body class="min-h-screen">
+
+<!-- ── HEADER ─────────────────────────────────────────────────────────────── -->
+<header class="bg-white border-b border-[var(--border)] sticky top-0 z-20">
+  <div class="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <span class="font-bold text-[var(--brand)] text-lg tracking-tight">lokigi</span>
+      <span class="text-[var(--muted)] text-sm">/</span>
+      <span class="text-sm font-medium">Portal de Suscripción</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="/starter/dashboard?user_id={{ user_id }}" class="text-xs text-[var(--muted)] hover:text-[var(--text)] transition">Dashboard</a>
+      <a href="/starter/subscription?user_id={{ user_id }}" class="text-xs text-[var(--muted)] hover:text-[var(--text)] transition">Billing</a>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-5xl mx-auto px-6 py-10 space-y-8">
+
+  <!-- ── ALERT BANNER: trial active ──────────────────────────────────────── -->
+  {% if trial.trial_active %}
+  <div class="flex items-center gap-4 p-4 rounded-xl border-2 border-violet-300 bg-violet-50">
+    <span class="text-2xl anim-pulse">🚀</span>
+    <div class="flex-1">
+      <p class="font-semibold text-violet-800">
+        Prueba Growth activa — {{ trial.remaining_days | round(1) }} días restantes
+      </p>
+      <p class="text-sm text-violet-600 mt-0.5">
+        Estás disfrutando de todas las funcionalidades del Plan Growth.
+        Tu cuenta volverá a Starter al vencer el período de prueba.
+      </p>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="openUpgradeModal('growth')">
+      Quedarme en Growth — $89/mes
+    </button>
+  </div>
+  {% endif %}
+
+  <!-- ── ALERT BANNER: AI soft limit ─────────────────────────────────────── -->
+  {% if usage.ai_credits.at_soft_limit and not usage.ai_credits.at_hard_limit %}
+  <div class="flex items-center gap-4 p-4 rounded-xl border border-amber-300 bg-amber-50">
+    <span class="text-xl">⚡</span>
+    <div class="flex-1">
+      <p class="font-semibold text-amber-800">
+        Consumo de IA al {{ usage.ai_credits.pct }}% del límite mensual
+      </p>
+      <p class="text-sm text-amber-700">
+        Has usado {{ usage.ai_credits.used }} de {{ usage.ai_credits.limit }} créditos.
+        Actualiza tu plan para evitar interrupciones en las respuestas automáticas.
+      </p>
+    </div>
+    <button class="btn btn-outline btn-sm" onclick="openUpgradeModal('growth')">Actualizar ahora</button>
+  </div>
+  {% endif %}
+
+  <!-- ── ALERT BANNER: AI hard limit ─────────────────────────────────────── -->
+  {% if usage.ai_credits.at_hard_limit %}
+  <div class="flex items-center gap-4 p-4 rounded-xl border-2 border-red-300 bg-red-50">
+    <span class="text-xl">🚫</span>
+    <div class="flex-1">
+      <p class="font-semibold text-red-800">Créditos de IA agotados para este mes</p>
+      <p class="text-sm text-red-700">
+        Las respuestas automáticas están suspendidas hasta que actualices tu plan o se renueve el período mensual.
+      </p>
+    </div>
+    <button class="btn btn-danger btn-sm" onclick="openUpgradeModal('growth')">Reactivar — Actualizar plan</button>
+  </div>
+  {% endif %}
+
+  <!-- ── ALERT BANNER: location hard limit ───────────────────────────────── -->
+  {% if usage.locations.at_hard_limit %}
+  <div class="flex items-center gap-4 p-4 rounded-xl border border-orange-300 bg-orange-50">
+    <span class="text-xl">📍</span>
+    <div class="flex-1">
+      <p class="font-semibold text-orange-800">
+        Has alcanzado el límite de ubicaciones del Plan {{ usage.effective_plan_label }}
+      </p>
+      <p class="text-sm text-orange-700">
+        Para conectar más ubicaciones, actualiza a un plan superior.
+      </p>
+    </div>
+    <button class="btn btn-outline btn-sm" onclick="openUpgradeModal('growth')">Actualizar plan</button>
+  </div>
+  {% endif %}
+
+  <!-- ══ ROW 1: Plan actual + uso ══════════════════════════════════════════ -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+    <!-- Plan card -->
+    <div class="card p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-semibold text-base">Plan actual</h2>
+        <span class="badge {% if trial.trial_active %}badge-trial{% else %}badge-active{% endif %}">
+          {% if trial.trial_active %}🚀 Trial Growth{% else %}✓ Activo{% endif %}
+        </span>
+      </div>
+
+      <div class="flex items-end gap-2 mb-1">
+        <span class="text-4xl font-extrabold text-[var(--brand)]">{{ usage.effective_plan_label }}</span>
+      </div>
+      <p class="text-sm text-[var(--muted)] mb-4">
+        ${{ "%.2f" | format(usage.pricing.monthly_usd) }}/mes
+        {% if usage.current_period_end %}
+        · Renueva el {{ usage.current_period_end[:10] }}
+        {% endif %}
+      </p>
+
+      {% if not trial.trial_active and usage.base_plan != 'enterprise' %}
+      <div class="flex gap-2 flex-wrap">
+        {% if usage.base_plan == 'starter' %}
+        <button class="btn btn-primary btn-sm" onclick="openUpgradeModal('growth')">Actualizar a Growth →</button>
+        {% elif usage.base_plan == 'growth' %}
+        <button class="btn btn-primary btn-sm" onclick="openUpgradeModal('enterprise')">Actualizar a Enterprise →</button>
+        <button class="btn btn-ghost btn-sm" onclick="openUpgradeModal('starter')">Bajar a Starter</button>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {% if usage.can_activate_trial %}
+      <div class="mt-4 pt-4 border-t border-[var(--border)]">
+        <p class="text-xs text-[var(--muted)] mb-2">¿Quieres probar Growth gratis?</p>
+        <button class="btn btn-outline btn-sm" onclick="activateTrial()">
+          🚀 Prueba Growth por 7 días gratis
+        </button>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Usage meters -->
+    <div class="card p-6 space-y-5">
+      <h2 class="font-semibold text-base mb-1">Uso del plan</h2>
+
+      <!-- Locations -->
+      <div>
+        <div class="flex justify-between text-sm mb-1.5">
+          <span class="font-medium">Ubicaciones conectadas</span>
+          <span class="text-[var(--muted)]">
+            {{ usage.locations.used }}
+            {% if usage.locations.limit %}/ {{ usage.locations.limit }}{% else %}/ ∞{% endif %}
+          </span>
+        </div>
+        {% if usage.locations.limit %}
+        <div class="prog-track h-2.5">
+          <div
+            class="prog-fill h-2.5"
+            style="width: {{ [usage.locations.pct, 100] | min }}%;
+              background: {% if usage.locations.at_hard_limit %}var(--red){% elif usage.locations.pct >= 80 %}var(--amber){% else %}var(--brand){% endif %};"
+          ></div>
+        </div>
+        {% if usage.locations.at_hard_limit %}
+        <p class="text-xs text-red-600 mt-1">⛔ Límite alcanzado</p>
+        {% endif %}
+        {% else %}
+        <div class="prog-track h-2.5">
+          <div class="prog-fill h-2.5 w-8 bg-[var(--brand)]"></div>
+        </div>
+        <p class="text-xs text-[var(--muted)] mt-1">Ubicaciones ilimitadas</p>
+        {% endif %}
+      </div>
+
+      <!-- AI credits -->
+      <div>
+        <div class="flex justify-between text-sm mb-1.5">
+          <span class="font-medium" data-tip="Respuestas automáticas generadas por IA este mes">Créditos de IA</span>
+          <span class="text-[var(--muted)]">
+            {{ usage.ai_credits.used }}
+            {% if usage.ai_credits.limit %}/ {{ usage.ai_credits.limit }}{% else %}/ ∞{% endif %}
+            {% if usage.ai_credits.limit %}({{ usage.ai_credits.pct }}%){% endif %}
+          </span>
+        </div>
+        {% if usage.ai_credits.limit %}
+        <div class="prog-track h-2.5">
+          <div
+            class="prog-fill h-2.5"
+            style="width: {{ [usage.ai_credits.pct, 100] | min }}%;
+              background: {% if usage.ai_credits.at_hard_limit %}var(--red){% elif usage.ai_credits.at_soft_limit %}var(--amber){% else %}var(--green){% endif %};"
+          ></div>
+        </div>
+        {% if usage.ai_credits.at_hard_limit %}
+        <p class="text-xs text-red-600 mt-1">⛔ Créditos agotados — respuestas suspendidas</p>
+        {% elif usage.ai_credits.at_soft_limit %}
+        <p class="text-xs text-amber-700 mt-1">⚡ Límite suave alcanzado — considera actualizar</p>
+        {% else %}
+        <p class="text-xs text-[var(--muted)] mt-1">Se renueva el 1° de cada mes</p>
+        {% endif %}
+        {% else %}
+        <div class="prog-track h-2.5">
+          <div class="prog-fill h-2.5 w-8 bg-green-500"></div>
+        </div>
+        <p class="text-xs text-[var(--muted)] mt-1">Créditos de IA ilimitados</p>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ ROW 2: Plan comparison ════════════════════════════════════════════ -->
+  <div>
+    <h2 class="font-semibold text-base mb-4">Comparativa de planes</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {% set plan_features = {
+        "starter": [
+          ("📍", "1 ubicación Google Business"),
+          ("⭐", "Respuestas automáticas a reseñas (500/mes)"),
+          ("📊", "Reporte mensual PDF"),
+          ("🔔", "Alertas de reseñas negativas"),
+          ("✗", "Sin gestión de equipo"),
+          ("✗", "Sin análisis de competencia"),
+        ],
+        "growth": [
+          ("📍", "Hasta 10 ubicaciones"),
+          ("⭐", "Respuestas automáticas (5 000/mes)"),
+          ("📊", "Reportes avanzados + PDF"),
+          ("🔔", "Alertas + análisis NLP"),
+          ("👥", "Gestión de equipo multi-sede"),
+          ("🏆", "Análisis de competencia"),
+        ],
+        "enterprise": [
+          ("📍", "Ubicaciones ilimitadas"),
+          ("⭐", "IA ilimitada + auto-reply avanzado"),
+          ("📊", "Reportes ejecutivos CEO"),
+          ("🔔", "Alertas en tiempo real"),
+          ("👥", "Multi-org con RBAC"),
+          ("🏆", "Competitive intelligence"),
+        ],
+      } %}
+      {% for plan in plan_options %}
+      <div class="plan-card {% if plan.is_current %}current{% endif %}">
+        <div class="flex justify-between items-start mb-3">
+          <div>
+            <h3 class="font-bold text-lg">{{ plan.label }}</h3>
+            <p class="text-2xl font-extrabold mt-1">${{ "%.0f" | format(plan.price_usd) }}<span class="text-sm font-normal text-[var(--muted)]">/mes</span></p>
+          </div>
+          {% if plan.is_current %}
+          <span class="badge badge-active text-[10px]">Actual</span>
+          {% endif %}
+        </div>
+        <ul class="space-y-1.5 text-sm mb-5">
+          {% for icon, feat in plan_features.get(plan.key, []) %}
+          <li class="flex items-start gap-2 {% if icon == '✗' %}text-[var(--muted)] line-through{% else %}text-gray-700{% endif %}">
+            <span class="mt-0.5 shrink-0 {% if icon == '✗' %}text-gray-300{% endif %}">
+              {% if icon == '✗' %}✗{% else %}{{ icon }}{% endif %}
+            </span>
+            <span>{{ feat }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% if not plan.is_current %}
+        <button
+          class="btn btn-sm w-full {% if plan.price_usd > usage.pricing.monthly_usd %}btn-primary{% else %}btn-ghost{% endif %}"
+          onclick="openUpgradeModal('{{ plan.key }}')"
+        >
+          {% if plan.price_usd > usage.pricing.monthly_usd %}Actualizar a {{ plan.label }}{% else %}Bajar a {{ plan.label }}{% endif %}
+        </button>
+        {% else %}
+        <div class="text-center text-xs text-[var(--muted)] py-1 font-medium">Plan activo ✓</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ══ ROW 3: Pending proration ══════════════════════════════════════════ -->
+  {% if pending_prorations %}
+  <div class="card p-6">
+    <h2 class="font-semibold text-base mb-4">Ajustes pendientes de prorrateo</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Cambio</th>
+          <th>Fecha</th>
+          <th>Ajuste neto</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in pending_prorations %}
+        <tr>
+          <td class="font-medium">{{ p.from_plan | title }} → {{ p.to_plan | title }}</td>
+          <td class="text-[var(--muted)]">{{ p.change_date }}</td>
+          <td>
+            {% if p.net_cents > 0 %}
+            <span class="text-red-600 font-medium">+${{ "%.2f" | format(p.net_cents / 100) }}</span>
+            {% elif p.net_cents < 0 %}
+            <span class="text-green-600 font-medium">-${{ "%.2f" | format(p.net_cents | abs / 100) }}</span>
+            {% else %}
+            <span class="text-[var(--muted)]">$0.00</span>
+            {% endif %}
+          </td>
+          <td><span class="badge badge-warning">Pendiente</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="text-xs text-[var(--muted)] mt-3">
+      Los ajustes de prorrateo se aplican en tu próximo ciclo de facturación.
+    </p>
+  </div>
+  {% endif %}
+
+  <!-- ══ ROW 4: Invoices ════════════════════════════════════════════════════ -->
+  <div class="card p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="font-semibold text-base">Historial de facturas</h2>
+      <button class="btn btn-ghost btn-sm" onclick="generateInvoice()">+ Generar factura</button>
+    </div>
+
+    {% if invoices %}
+    <table>
+      <thead>
+        <tr>
+          <th>Nro. Factura</th>
+          <th>Período</th>
+          <th>Plan</th>
+          <th>Importe</th>
+          <th>Estado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inv in invoices %}
+        <tr>
+          <td class="font-medium font-mono text-xs">{{ inv.invoice_number or inv.number or inv.id[:8] }}</td>
+          <td class="text-[var(--muted)] text-xs">
+            {% if inv.period_start %}{{ inv.period_start[:7] }}{% elif inv.created_at %}{{ inv.created_at[:7] }}{% else %}—{% endif %}
+          </td>
+          <td>
+            {% if inv.plan %}{{ inv.plan | title }}{% else %}—{% endif %}
+          </td>
+          <td class="font-semibold">
+            ${{ "%.2f" | format(inv.amount_usd or inv.amount_paid or 0) }}
+            <span class="text-[10px] text-[var(--muted)]">{{ inv.currency or 'USD' }}</span>
+          </td>
+          <td>
+            {% set s = inv.status or 'paid' %}
+            {% if s == 'paid' %}<span class="badge badge-active">Pagado</span>
+            {% elif s == 'pending' or s == 'open' %}<span class="badge badge-warning">Pendiente</span>
+            {% else %}<span class="badge badge-neutral">{{ s | title }}</span>
+            {% endif %}
+          </td>
+          <td class="text-right">
+            <div class="flex justify-end gap-2">
+              {% if inv.pdf_url %}
+              <a href="{{ inv.pdf_url }}&user_id={{ user_id }}" target="_blank" class="btn btn-ghost btn-sm">
+                ⬇ PDF
+              </a>
+              {% elif inv.invoice_pdf %}
+              <a href="{{ inv.invoice_pdf }}" target="_blank" class="btn btn-ghost btn-sm">⬇ PDF</a>
+              {% elif inv.hosted_invoice_url %}
+              <a href="{{ inv.hosted_invoice_url }}" target="_blank" class="btn btn-ghost btn-sm">Ver</a>
+              {% else %}
+              <span class="text-xs text-[var(--muted)]">Sin PDF</span>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="py-10 text-center text-[var(--muted)]">
+      <p class="text-lg">Sin facturas aún</p>
+      <p class="text-sm mt-1">Las facturas aparecerán aquí una vez procesadas.</p>
+    </div>
+    {% endif %}
+  </div>
+
+</main>
+
+<!-- ══ PLAN CHANGE MODAL ══════════════════════════════════════════════════ -->
+<div class="modal-backdrop" id="upgradeModal">
+  <div class="modal">
+    <h2 class="text-xl font-bold mb-1" id="modalTitle">Cambiar plan</h2>
+    <p class="text-sm text-[var(--muted)] mb-5" id="modalSubtitle">Calculando prorrateo…</p>
+
+    <div id="prorationBox" class="hidden p-4 rounded-xl bg-[var(--subtle)] mb-5 space-y-2 text-sm">
+      <div class="flex justify-between"><span class="text-[var(--muted)]">Plan actual</span><span id="pro_from" class="font-medium"></span></div>
+      <div class="flex justify-between"><span class="text-[var(--muted)]">Plan nuevo</span><span id="pro_to" class="font-medium"></span></div>
+      <div class="flex justify-between"><span class="text-[var(--muted)]">Días restantes</span><span id="pro_days"></span></div>
+      <div class="flex justify-between"><span class="text-[var(--muted)]">Crédito por plan actual</span><span id="pro_credit" class="text-green-600 font-medium"></span></div>
+      <div class="flex justify-between"><span class="text-[var(--muted)]">Cargo por plan nuevo</span><span id="pro_debit" class="text-red-600 font-medium"></span></div>
+      <div class="flex justify-between border-t border-[var(--border)] pt-2 font-bold"><span>Ajuste neto en próxima factura</span><span id="pro_net"></span></div>
+      <p class="text-xs text-[var(--muted)]" id="pro_summary"></p>
+    </div>
+
+    <div id="prorationSpinner" class="flex items-center justify-center py-6">
+      <div class="w-6 h-6 border-2 border-[var(--brand)] border-t-transparent rounded-full animate-spin"></div>
+    </div>
+
+    <div class="flex gap-3 justify-end mt-2">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" id="confirmChangeBtn" disabled onclick="confirmPlanChange()">
+        Confirmar cambio
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+const USER_ID = "{{ user_id }}";
+let _targetPlan = null;
+
+// ── Modal helpers ─────────────────────────────────────────────────────────
+function openUpgradeModal(plan) {
+  _targetPlan = plan;
+  const modal = document.getElementById('upgradeModal');
+  const labels = { starter: 'Starter ($39/mes)', growth: 'Growth ($89/mes)', enterprise: 'Enterprise ($299/mes)' };
+  document.getElementById('modalTitle').textContent = 'Cambiar a ' + (labels[plan] || plan);
+  document.getElementById('modalSubtitle').textContent = 'Calculando prorrateo exacto…';
+  document.getElementById('prorationBox').classList.add('hidden');
+  document.getElementById('prorationSpinner').style.display = 'flex';
+  document.getElementById('confirmChangeBtn').disabled = true;
+  modal.classList.add('open');
+  fetchProration(plan);
+}
+
+function closeModal() {
+  document.getElementById('upgradeModal').classList.remove('open');
+  _targetPlan = null;
+}
+
+function fetchProration(plan) {
+  fetch(`/api/v1/subscription/proration/preview?user_id=${USER_ID}&to_plan=${plan}`)
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('prorationSpinner').style.display = 'none';
+      document.getElementById('prorationBox').classList.remove('hidden');
+      document.getElementById('pro_from').textContent = (data.from_plan || '').replace(/^\w/, c => c.toUpperCase());
+      document.getElementById('pro_to').textContent = (data.to_plan || '').replace(/^\w/, c => c.toUpperCase());
+      document.getElementById('pro_days').textContent = data.days_remaining + ' días';
+      document.getElementById('pro_credit').textContent = '-$' + (data.credit_usd || 0).toFixed(2);
+      document.getElementById('pro_debit').textContent = '+$' + (data.debit_usd || 0).toFixed(2);
+      const net = data.net_usd || 0;
+      const netEl = document.getElementById('pro_net');
+      netEl.textContent = (net >= 0 ? '+' : '') + '$' + net.toFixed(2);
+      netEl.style.color = net > 0 ? 'var(--red)' : net < 0 ? 'var(--green)' : 'var(--text)';
+      document.getElementById('pro_summary').textContent = data.summary || '';
+      document.getElementById('modalSubtitle').textContent = 'Revisa el resumen del prorrateo antes de confirmar.';
+      document.getElementById('confirmChangeBtn').disabled = false;
+    })
+    .catch(() => {
+      document.getElementById('prorationSpinner').style.display = 'none';
+      document.getElementById('modalSubtitle').textContent = 'No se pudo calcular el prorrateo. Puedes confirmar de todas formas.';
+      document.getElementById('confirmChangeBtn').disabled = false;
+    });
+}
+
+function confirmPlanChange() {
+  if (!_targetPlan) return;
+  document.getElementById('confirmChangeBtn').disabled = true;
+  document.getElementById('confirmChangeBtn').textContent = 'Procesando…';
+
+  fetch('/api/v1/subscription/change-plan', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: USER_ID, to_plan: _targetPlan }),
+  })
+    .then(r => r.json())
+    .then(data => {
+      closeModal();
+      showToast(`Plan actualizado a ${(data.new_plan || _targetPlan).replace(/^\w/, c => c.toUpperCase())} correctamente.`, 'success');
+      setTimeout(() => location.reload(), 1600);
+    })
+    .catch(() => {
+      showToast('Error al cambiar el plan. Intenta de nuevo.', 'error');
+      document.getElementById('confirmChangeBtn').disabled = false;
+      document.getElementById('confirmChangeBtn').textContent = 'Confirmar cambio';
+    });
+}
+
+// ── Free trial ────────────────────────────────────────────────────────────
+function activateTrial() {
+  if (!confirm('¿Activar prueba gratuita de Growth por 7 días? Solo se permite una prueba por cuenta.')) return;
+  fetch('/api/v1/subscription/trial/activate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: USER_ID }),
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.detail) {
+        showToast(data.detail.message || JSON.stringify(data.detail), 'error');
+      } else {
+        showToast(data.message || 'Prueba de Growth activada.', 'success');
+        setTimeout(() => location.reload(), 1800);
+      }
+    })
+    .catch(() => showToast('Error al activar la prueba. Intenta de nuevo.', 'error'));
+}
+
+// ── Generate invoice ──────────────────────────────────────────────────────
+function generateInvoice() {
+  const today = new Date();
+  const y = today.getFullYear();
+  const m = String(today.getMonth() + 1).padStart(2, '0');
+  const start = `${y}-${m}-01`;
+  const lastDay = new Date(y, today.getMonth() + 1, 0).getDate();
+  const end = `${y}-${m}-${lastDay}`;
+
+  fetch('/api/v1/subscription/invoices/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      user_id: USER_ID,
+      plan: '{{ usage.base_plan }}',
+      period_start: start,
+      period_end: end,
+    }),
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.invoice_id) {
+        showToast('Factura generada. Descargando PDF…', 'success');
+        window.open(data.pdf_url + '?user_id=' + USER_ID, '_blank');
+        setTimeout(() => location.reload(), 2000);
+      } else {
+        showToast('Error al generar factura.', 'error');
+      }
+    })
+    .catch(() => showToast('Error al generar factura.', 'error'));
+}
+
+// ── Toast notifications ───────────────────────────────────────────────────
+function showToast(msg, type = 'success') {
+  const t = document.createElement('div');
+  t.style.cssText = `
+    position:fixed; bottom:24px; right:24px; z-index:9999;
+    padding:12px 20px; border-radius:10px; font-size:13px; font-weight:600;
+    max-width:340px; box-shadow:0 4px 20px rgba(0,0,0,.15);
+    background:${type === 'success' ? '#dcfce7' : '#fee2e2'};
+    color:${type === 'success' ? '#166534' : '#991b1b'};
+    transition:opacity .3s;
+  `;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3500);
+}
+
+// ── Animate progress bars ─────────────────────────────────────────────────
+requestAnimationFrame(() => {
+  document.querySelectorAll('.prog-fill').forEach(el => {
+    const w = el.style.width;
+    el.style.width = '0%';
+    requestAnimationFrame(() => { el.style.width = w; });
+  });
+});
+
+// ── Close modal on backdrop click ─────────────────────────────────────────
+document.getElementById('upgradeModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+</script>
+
+</body>
+</html>

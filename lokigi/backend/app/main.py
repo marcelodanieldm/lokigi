@@ -50,15 +50,23 @@ from .starter_tip_service import generate_starter_tip
 from .monthly_report_worker import _build_response_velocity, build_scheduler
 from tasks.review_processing import process_google_review, process_reviews
 from .routes import (
+  admin_routes,
   cancellation_routes,
+  ceo_routes,
+  crm_routes,
+  okr_routes,
+  subscription_routes,
   competitor_scrape_routes,
   grace_period_routes,
+  google_qa_routes,
   growth_dashboard_routes,
   growth_event_routes,
   growth_routes,
   growth_seo_routes,
+  local_scout_routes,
   nlp_analysis_routes,
   onboarding_routes,
+  photo_optimizer_routes,
   starter_inbox_routes,
 )
 from app.enterprise.offboarding_router import router as offboarding_router
@@ -108,15 +116,23 @@ app = FastAPI(title=settings.app_name, lifespan=lifespan)
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.parsed_allowed_hosts())
 
 app.include_router(cancellation_routes.router)
+app.include_router(ceo_routes.router)
+app.include_router(crm_routes.router)
+app.include_router(okr_routes.router)
+app.include_router(admin_routes.router)
+app.include_router(subscription_routes.router)
 app.include_router(grace_period_routes.router)
+app.include_router(google_qa_routes.router)
 app.include_router(growth_routes.router)
 app.include_router(growth_dashboard_routes.router)
 app.include_router(growth_event_routes.router)
 app.include_router(competitor_scrape_routes.router)
 app.include_router(growth_seo_routes.router)
+app.include_router(local_scout_routes.router)
 app.include_router(nlp_analysis_routes.router)
 app.include_router(onboarding_routes.router)
 app.include_router(offboarding_router)
+app.include_router(photo_optimizer_routes.router)
 app.include_router(starter_inbox_routes.router)
 app.mount("/starter-realtime", socketio_app)
 
@@ -1038,6 +1054,49 @@ def render_starter_onboarding_html(user_id: UUID, location_id: str, connect_url:
 """
 
 
+def _render_qa_teaser_html(user_id: UUID, qa_stats: dict | None) -> str:
+    stats = qa_stats or {}
+    total = stats.get("total", 0)
+    pending = stats.get("pending", 0)
+    auto = stats.get("auto_answered", 0)
+
+    pending_color = "#b45309" if pending > 0 else "#16a34a"
+    pending_badge = f'<strong style="color:{pending_color}">{pending}</strong>'
+
+    return f"""
+      <div class="qa-teaser-head">
+        <div>
+          <div class="qa-teaser-kicker">Google Maps Q&amp;A</div>
+          <h2 style="margin:0;font-size:20px;">Preguntas de Clientes</h2>
+          <p class="muted" style="margin:6px 0 0;font-size:13px;">
+            La IA detecta preguntas en tu perfil y las responde automáticamente con tu base de conocimiento.
+          </p>
+        </div>
+        <a href="/google/qa/manager?user_id={user_id}" class="btn primary" style="white-space:nowrap">
+          Gestionar Q&amp;A
+        </a>
+      </div>
+      <div class="qa-teaser-stats">
+        <div class="qa-stat">
+          <strong>{total}</strong>
+          <span>Total detectadas</span>
+        </div>
+        <div class="qa-stat">
+          {pending_badge}
+          <span>Requieren revisión</span>
+        </div>
+        <div class="qa-stat">
+          <strong style="color:#0f62fe">{auto}</strong>
+          <span>Auto-respondidas</span>
+        </div>
+      </div>
+      <p style="font-size:12px;color:#64748b;margin:0;">
+        ¿Sin contexto aún? <a href="/google/qa/manager?user_id={user_id}#tab-context" style="color:#0f62fe">Agrega tu menú y FAQ</a>
+        para que la IA responda con confianza ≥ 80 %.
+      </p>
+"""
+
+
 def render_starter_dashboard_html(
     user_id: UUID,
     connection: GoogleConnection | None,
@@ -1055,6 +1114,7 @@ def render_starter_dashboard_html(
     starter_tip: dict[str, Any],
     report_history: list[dict[str, Any]],
     optimization_center_html: str,
+    qa_stats: dict[str, int] | None = None,
 ) -> str:
     status_text = "Conectado" if connection else "Sin conectar"
     status_color = "#0f766e" if connection else "#b91c1c"
@@ -1299,6 +1359,13 @@ def render_starter_dashboard_html(
       .keyword-chip {{ display:inline-flex; align-items:center; padding:7px 12px; border-radius:999px; background:#eef5ff; color:#1d4ed8; font-size:13px; font-weight:700; }}
 
       .tip-card {{ margin-top: 14px; border: 1px solid #bfdbfe; background: linear-gradient(180deg, #f8fbff, #eef5ff); }}
+      .qa-teaser-card {{ border: 1px solid #d1fae5; background: linear-gradient(180deg, #f0fdf4, #ffffff); }}
+      .qa-teaser-head {{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:14px; }}
+      .qa-teaser-kicker {{ font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:#059669; font-weight:700; margin-bottom:4px; }}
+      .qa-teaser-stats {{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; margin-bottom:14px; }}
+      .qa-stat {{ border:1px solid var(--border); border-radius:12px; padding:10px 12px; background:#fff; text-align:center; }}
+      .qa-stat strong {{ display:block; font-size:22px; line-height:1; margin-bottom:4px; }}
+      .qa-stat span {{ font-size:12px; color:var(--muted); }}
       .hub-tabs {{ display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }}
       .hub-tab {{ display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:999px; border:1px solid var(--border); background:#fff; color:#0f172a; text-decoration:none; font-weight:700; font-size:14px; }}
       .hub-tab.active {{ border-color:#bfdbfe; background:#eff6ff; color:#0f62fe; }}
@@ -1416,6 +1483,7 @@ def render_starter_dashboard_html(
       <nav class=\"hub-tabs\" aria-label=\"Secciones del dashboard\">
         <a class=\"hub-tab\" href=\"#resumen\">Resumen</a>
         {render_optimization_hub_tab_html(has_optimization_alert)}
+        <a class=\"hub-tab\" href=\"#qa-section\">❓ Q&amp;A</a>
         <a class=\"hub-tab\" href=\"#reviews-section\">Reseñas</a>
       </nav>
 
@@ -1481,6 +1549,10 @@ def render_starter_dashboard_html(
           <div class=\"value-title\">Keyword Cloud</div>
           <div class=\"keyword-cloud\">{keyword_html}</div>
         </article>
+      </section>
+
+      <section class=\"card qa-teaser-card\" style=\"margin-top:14px\" id=\"qa-section\">
+        {_render_qa_teaser_html(user_id, qa_stats)}
       </section>
 
       <section class=\"card\" style=\"margin-top:14px\" id=\"reviews-section\">
@@ -2381,6 +2453,25 @@ async def starter_dashboard(user_id: UUID, db: Session = Depends(get_db)) -> HTM
         suggestion=seo_suggestions[0] if seo_suggestions else None,
       )
 
+    # Q&A stats for the teaser card
+    from .models import GoogleQAQuestion as GoogleQAQuestionModel
+    qa_total = db.scalar(
+        select(func.count(GoogleQAQuestionModel.id)).where(GoogleQAQuestionModel.user_id == user_id)
+    ) or 0
+    qa_pending = db.scalar(
+        select(func.count(GoogleQAQuestionModel.id)).where(
+            GoogleQAQuestionModel.user_id == user_id,
+            GoogleQAQuestionModel.status.in_(["pending", "needs_intervention"]),
+        )
+    ) or 0
+    qa_auto = db.scalar(
+        select(func.count(GoogleQAQuestionModel.id)).where(
+            GoogleQAQuestionModel.user_id == user_id,
+            GoogleQAQuestionModel.status == "auto_answered",
+        )
+    ) or 0
+    qa_stats = {"total": qa_total, "pending": qa_pending, "auto_answered": qa_auto}
+
     return HTMLResponse(
         render_starter_dashboard_html(
             user_id=user_id,
@@ -2399,6 +2490,7 @@ async def starter_dashboard(user_id: UUID, db: Session = Depends(get_db)) -> HTM
             starter_tip=starter_tip,
             report_history=report_history,
             optimization_center_html=optimization_center_html,
+            qa_stats=qa_stats,
         )
     )
 

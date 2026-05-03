@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Local Scout – Radar de Posicionamiento</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <style>
+    body { background: #0c0f14; color: #e2e8f0; font-family: 'Inter', system-ui, sans-serif; }
+    .card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 1.25rem; padding: 1.5rem; }
+    .kicker { font-size: .72rem; letter-spacing: .1em; text-transform: uppercase;
+              color: #34d399; font-weight: 700; margin-bottom: .35rem; }
+    .axis-pill { display:inline-flex; flex-direction:column; align-items:center;
+                 background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);
+                 border-radius:.75rem; padding:.6rem 1rem; min-width:5rem; }
+    .axis-pill .score { font-size:1.5rem; font-weight:700; line-height:1; }
+    .axis-pill .label { font-size:.65rem; color:#94a3b8; margin-top:.2rem; }
+    .score-high   { color:#34d399; }
+    .score-mid    { color:#fbbf24; }
+    .score-low    { color:#f87171; }
+    .spinner { border:3px solid rgba(255,255,255,0.12); border-top-color:#34d399;
+               border-radius:50%; width:2.5rem; height:2.5rem; animation:spin .8s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .btn-trigger { display:inline-flex; align-items:center; gap:.5rem; padding:.55rem 1.1rem;
+                   border-radius:999px; background:#34d399; color:#052e16; font-weight:700;
+                   font-size:.85rem; cursor:pointer; border:none; transition:opacity .2s; }
+    .btn-trigger:hover { opacity:.85; }
+    .btn-trigger:disabled { opacity:.45; cursor:not-allowed; }
+  </style>
+</head>
+<body class="min-h-screen p-4 sm:p-6 lg:p-10">
+
+  <div class="mx-auto max-w-4xl space-y-6">
+
+    {# ── Header ── #}
+    <header class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p class="kicker">Plan Growth · SEO Local</p>
+        <h1 class="text-3xl font-semibold leading-tight">Radar de Posicionamiento</h1>
+        <p class="mt-1 text-sm text-slate-400">
+          Comparativa de tu negocio contra <strong class="text-white">{{ competitor_count }}</strong>
+          competidores monitoreados. Datos actualizados cada 48 h.
+        </p>
+      </div>
+      <button id="btn-trigger" class="btn-trigger" onclick="triggerScrape()">
+        ⟳ Actualizar ahora
+      </button>
+    </header>
+
+    {# ── Axis score pills ── #}
+    <div class="card">
+      <p class="kicker">Puntuación por eje (0 – 100)</p>
+      <div id="axis-pills" class="mt-3 flex flex-wrap gap-3">
+        <div class="flex items-center justify-center w-full h-14">
+          <div class="spinner"></div>
+        </div>
+      </div>
+      <p id="scraped-at" class="mt-3 text-xs text-slate-500"></p>
+    </div>
+
+    {# ── Spider chart ── #}
+    <div class="card">
+      <p class="kicker">Spider Chart – Radar vs Competencia</p>
+      <div id="chart-wrap" class="relative mt-4 flex items-center justify-center" style="height:380px">
+        <div class="spinner" id="chart-spinner"></div>
+        <canvas id="radarChart" style="display:none; max-height:380px;"></canvas>
+      </div>
+    </div>
+
+    {# ── Legend / insight ── #}
+    <div id="insight-box" class="card hidden">
+      <p class="kicker">Análisis Sentiment Delta</p>
+      <div id="insight-text" class="mt-2 text-sm text-slate-300 leading-relaxed"></div>
+    </div>
+
+  </div>
+
+  <script>
+    const USER_ID = "{{ user_id }}";
+    let radarChart = null;
+
+    async function loadRadar() {
+      try {
+        const res = await fetch(`/growth/local-scout/radar?user_id=${USER_ID}`);
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+
+        renderAxisPills(data.axes, data.scraped_at);
+        renderRadarChart(data);
+        renderInsight(data);
+      } catch (err) {
+        document.getElementById("axis-pills").innerHTML =
+          `<p class="text-rose-400 text-sm">No se pudo cargar: ${err.message}</p>`;
+        document.getElementById("chart-spinner").remove();
+      }
+    }
+
+    function scoreClass(v) {
+      if (v >= 70) return "score-high";
+      if (v >= 40) return "score-mid";
+      return "score-low";
+    }
+
+    function renderAxisPills(axes, scrapedAt) {
+      const container = document.getElementById("axis-pills");
+      container.innerHTML = Object.entries(axes).map(([lbl, val]) => `
+        <div class="axis-pill">
+          <span class="score ${scoreClass(val)}">${val}</span>
+          <span class="label">${lbl}</span>
+        </div>
+      `).join("");
+
+      if (scrapedAt) {
+        const d = new Date(scrapedAt);
+        document.getElementById("scraped-at").textContent =
+          `Última actualización: ${d.toLocaleDateString("es-ES", { day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" })}`;
+      }
+    }
+
+    function renderRadarChart(data) {
+      document.getElementById("chart-spinner").style.display = "none";
+      const canvas = document.getElementById("radarChart");
+      canvas.style.display = "block";
+
+      if (radarChart) radarChart.destroy();
+
+      radarChart = new Chart(canvas, {
+        type: "radar",
+        data: {
+          labels: data.labels,
+          datasets: data.datasets,
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            r: {
+              min: 0,
+              max: 100,
+              ticks: {
+                stepSize: 25,
+                color: "rgba(148,163,184,0.7)",
+                backdropColor: "transparent",
+                font: { size: 10 },
+              },
+              pointLabels: {
+                color: "#e2e8f0",
+                font: { size: 13, weight: "600" },
+              },
+              grid: { color: "rgba(255,255,255,0.08)" },
+              angleLines: { color: "rgba(255,255,255,0.08)" },
+            },
+          },
+          plugins: {
+            legend: {
+              labels: { color: "#cbd5e1", font: { size: 12 }, boxWidth: 14 },
+            },
+            tooltip: {
+              callbacks: {
+                label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.r} pts`,
+              },
+            },
+          },
+        },
+      });
+    }
+
+    function renderInsight(data) {
+      if (!data.has_data) return;
+      const axes = data.axes;
+      const weakest = Object.entries(axes).sort((a,b) => a[1]-b[1])[0];
+      const strongest = Object.entries(axes).sort((a,b) => b[1]-a[1])[0];
+      const rivals = data.datasets.length - 1;
+
+      const box = document.getElementById("insight-box");
+      box.classList.remove("hidden");
+      document.getElementById("insight-text").innerHTML = `
+        <p>Tu negocio supera a <strong>${rivals}</strong> rival${rivals !== 1 ? "es" : ""} monitoreados.
+        Tu eje más sólido es <strong class="text-emerald-400">${strongest[0]} (${strongest[1]} pts)</strong>.
+        Enfócate en mejorar <strong class="text-amber-400">${weakest[0]} (${weakest[1]} pts)</strong>
+        para subir posiciones en el radar local.</p>
+      `;
+    }
+
+    async function triggerScrape() {
+      const btn = document.getElementById("btn-trigger");
+      btn.disabled = true;
+      btn.textContent = "Iniciando…";
+      try {
+        const res = await fetch(`/growth/local-scout/scrape/trigger?user_id=${USER_ID}`, {
+          method: "POST",
+        });
+        const data = await res.json();
+        btn.textContent = "✓ En cola – espera ~2 min";
+        setTimeout(() => {
+          btn.textContent = "⟳ Actualizar ahora";
+          btn.disabled = false;
+          loadRadar();
+        }, 120_000);
+      } catch {
+        btn.textContent = "Error – reintenta";
+        btn.disabled = false;
+      }
+    }
+
+    loadRadar();
+  </script>
+</body>
+</html>

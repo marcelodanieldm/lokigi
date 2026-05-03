@@ -104,7 +104,23 @@ def build_scheduler() -> AsyncIOScheduler:
         coalesce=True,
         misfire_grace_time=60,
     )
+    scheduler.add_job(
+        _run_qa_poll_wrapper,
+        trigger=IntervalTrigger(hours=6),
+        id="google_qa_poll_job",
+        name="Poll Google Q&A for new questions (all users)",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=1800,
+    )
     return scheduler
+
+
+async def _run_qa_poll_wrapper() -> None:
+    """Thin async wrapper so APScheduler can import without circular deps."""
+    from .google_qa_service import run_qa_poll_all_users  # deferred import
+    await run_qa_poll_all_users()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
