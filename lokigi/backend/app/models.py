@@ -44,6 +44,20 @@ class User(Base):
     customer_insight: Mapped["CustomerInsight | None"] = relationship(back_populates="user", uselist=False)
     user_sessions: Mapped[list["UserSession"]] = relationship(back_populates="user")
 
+    # ── Auth fields ───────────────────────────────────────────────────────────
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    mfa_secret: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    mfa_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    failed_login_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # "email" | "google"
+    auth_provider: Mapped[str] = mapped_column(String(20), nullable=False, default="email")
+    # Stable Google OpenID identifier for account linking and deduplication.
+    google_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
+
+    password_reset_tokens: Mapped[list["PasswordResetToken"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    device_verification_codes: Mapped[list["DeviceVerificationCode"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+
 
 
 class GoogleConnection(Base):
@@ -1448,6 +1462,75 @@ class UserSession(Base):
 # OKR MONITOR — Objetivos y Resultados Clave
 # ────────────────────────────────────────────────────────────────────────────────
 
+
+# ────────────────────────────────────────────────────────────────────────────────
+# AUTH — Enterprise config, password reset, device verification
+# ────────────────────────────────────────────────────────────────────────────────
+
+
+class EnterpriseConfig(Base):
+    """White-label branding config for an Enterprise org.
+    Controls the login screen appearance at /login/enterprise/{slug}.
+    """
+
+    __tablename__ = "enterprise_configs"
+    __table_args__ = (
+        UniqueConstraint("org_id", name="uq_enterprise_configs_org_id"),
+        Index("ix_enterprise_configs_login_domain", "login_domain"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    org_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
+    )
+    logo_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    brand_primary_color: Mapped[str] = mapped_column(String(7), nullable=False, default="#6366f1")
+    brand_bg_color: Mapped[str] = mapped_column(String(7), nullable=False, default="#f8fafc")
+    welcome_message: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # Custom domain, e.g. "login.myagency.com"
+    login_domain: Mapped[str | None] = mapped_column(String(255), nullable=True, unique=True)
+    mfa_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    min_password_length: Mapped[int] = mapped_column(Integer, nullable=False, default=12)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+
+
+class PasswordResetToken(Base):
+    """Single-use password reset token (1-hour TTL)."""
+
+    __tablename__ = "password_reset_tokens"
+    __table_args__ = (Index("ix_prt_user_id", "user_id"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    token_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+
+    user: Mapped["User"] = relationship(back_populates="password_reset_tokens")
+
+
+class DeviceVerificationCode(Base):
+    """6-digit OTP sent by email when a suspicious IP is detected (10-minute TTL)."""
+
+    __tablename__ = "device_verification_codes"
+    __table_args__ = (Index("ix_dvc_user_id", "user_id"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    # SHA-256 of the 6-digit code — never store plaintext
+    code: Mapped[str] = mapped_column(String(64), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+
+    user: Mapped["User"] = relationship(back_populates="device_verification_codes")
 
 class OKRObjective(Base):
     """A single quarterly objective (company-level — no user FK).

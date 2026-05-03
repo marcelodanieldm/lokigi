@@ -9,6 +9,7 @@ from uuid import UUID
 
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -51,6 +52,7 @@ from .monthly_report_worker import _build_response_velocity, build_scheduler
 from tasks.review_processing import process_google_review, process_reviews
 from .routes import (
   admin_routes,
+  auth_routes,
   cancellation_routes,
   ceo_routes,
   crm_routes,
@@ -114,12 +116,19 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.parsed_allowed_hosts())
+app.add_middleware(
+  SessionMiddleware,
+  secret_key=settings.oauth_state_secret,
+  same_site="lax",
+  https_only=settings.session_cookie_secure,
+)
 
 app.include_router(cancellation_routes.router)
 app.include_router(ceo_routes.router)
 app.include_router(crm_routes.router)
 app.include_router(okr_routes.router)
 app.include_router(admin_routes.router)
+app.include_router(auth_routes.router)
 app.include_router(subscription_routes.router)
 app.include_router(grace_period_routes.router)
 app.include_router(google_qa_routes.router)

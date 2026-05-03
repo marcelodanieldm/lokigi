@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Elige tu plan — lokigi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/json-enc.js"></script>
+  <style>
+    :root {
+      --brand:    #4f46e5;
+      --brand-lt: #eef2ff;
+    }
+    body { font-family: "Inter", system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+    .plan-card { transition: transform .15s, box-shadow .15s; }
+    .plan-card:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(0,0,0,.10); }
+    .plan-card.featured { border-color: #4f46e5; box-shadow: 0 0 0 2px #4f46e5; }
+    .btn-plan { transition: opacity .15s; }
+    .btn-plan:hover { opacity: .88; }
+    .htmx-request .btn-plan { opacity: .5; pointer-events: none; }
+    .htmx-indicator { display: none; }
+    .htmx-request .htmx-indicator { display: inline-block; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+
+  <!-- Top nav -->
+  <nav class="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+    <span class="font-bold text-lg text-indigo-600 tracking-tight">lokigi</span>
+    <a href="/api/auth/logout"
+       hx-post="/api/auth/logout"
+       hx-target="body"
+       class="text-sm text-gray-500 hover:text-gray-700">Cerrar sesión</a>
+  </nav>
+
+  <!-- Hero -->
+  <section class="max-w-4xl mx-auto text-center px-4 pt-14 pb-6">
+    <h1 class="text-3xl font-bold text-gray-900 mb-2">
+      ¡Hola, <span class="text-indigo-600">{{ user_name }}</span>!
+    </h1>
+    <p class="text-gray-500 text-lg">Tu cuenta está lista. Elige el plan que mejor se adapte a tu negocio.</p>
+  </section>
+
+  <!-- Plan cards -->
+  <section class="max-w-5xl mx-auto w-full px-4 pb-16">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+      <!-- ── Starter ── -->
+      <div class="plan-card bg-white border border-gray-200 rounded-2xl p-8 flex flex-col">
+        <div class="mb-4">
+          <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Starter</span>
+          <div class="mt-2 flex items-end gap-1">
+            <span class="text-4xl font-bold text-gray-900">$39</span>
+            <span class="text-gray-400 mb-1">/mes</span>
+          </div>
+          <p class="mt-2 text-sm text-gray-500">Ideal para negocios locales que quieren empezar a crecer.</p>
+        </div>
+        <ul class="space-y-2 text-sm text-gray-600 mb-8 flex-1">
+          <li class="flex items-center gap-2"><span class="text-green-500 font-bold">✓</span> 1 ubicación</li>
+          <li class="flex items-center gap-2"><span class="text-green-500 font-bold">✓</span> 500 créditos IA / mes</li>
+          <li class="flex items-center gap-2"><span class="text-green-500 font-bold">✓</span> Bandeja de reseñas</li>
+          <li class="flex items-center gap-2"><span class="text-green-500 font-bold">✓</span> Respuestas automáticas</li>
+        </ul>
+        <button
+          class="btn-plan w-full bg-gray-800 hover:bg-gray-700 text-white font-semibold py-3 rounded-xl"
+          hx-post="/api/plans/select"
+          hx-ext="json-enc"
+          hx-vals='{"plan": "starter"}'
+          hx-target="body"
+          hx-swap="none"
+        >
+          <span class="htmx-indicator mr-2 animate-spin">⏳</span>
+          Empezar con Starter
+        </button>
+      </div>
+
+      <!-- ── Growth (featured) ── -->
+      <div class="plan-card featured bg-white border-2 rounded-2xl p-8 flex flex-col relative">
+        <div class="absolute -top-3 left-1/2 -translate-x-1/2">
+          <span class="bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">Más popular</span>
+        </div>
+        <div class="mb-4">
+          <span class="text-xs font-semibold uppercase tracking-wider text-indigo-500">Growth</span>
+          <div class="mt-2 flex items-end gap-1">
+            <span class="text-4xl font-bold text-gray-900">$89</span>
+            <span class="text-gray-400 mb-1">/mes</span>
+          </div>
+          <p class="mt-2 text-sm text-gray-500">Para negocios con múltiples sucursales y ambición de escalar.</p>
+        </div>
+        <ul class="space-y-2 text-sm text-gray-600 mb-8 flex-1">
+          <li class="flex items-center gap-2"><span class="text-indigo-500 font-bold">✓</span> Hasta 10 ubicaciones</li>
+          <li class="flex items-center gap-2"><span class="text-indigo-500 font-bold">✓</span> 5,000 créditos IA / mes</li>
+          <li class="flex items-center gap-2"><span class="text-indigo-500 font-bold">✓</span> Dashboard Growth</li>
+          <li class="flex items-center gap-2"><span class="text-indigo-500 font-bold">✓</span> Análisis de competidores</li>
+          <li class="flex items-center gap-2"><span class="text-indigo-500 font-bold">✓</span> SEO local avanzado</li>
+        </ul>
+        <button
+          class="btn-plan w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-xl"
+          hx-post="/api/plans/select"
+          hx-ext="json-enc"
+          hx-vals='{"plan": "growth"}'
+          hx-target="body"
+          hx-swap="none"
+        >
+          <span class="htmx-indicator mr-2 animate-spin">⏳</span>
+          Empezar con Growth
+        </button>
+      </div>
+
+      <!-- ── Enterprise ── -->
+      <div class="plan-card bg-white border border-gray-200 rounded-2xl p-8 flex flex-col">
+        <div class="mb-4">
+          <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Enterprise</span>
+          <div class="mt-2 flex items-end gap-1">
+            <span class="text-4xl font-bold text-gray-900">$299</span>
+            <span class="text-gray-400 mb-1">/mes</span>
+          </div>
+          <p class="mt-2 text-sm text-gray-500">Solución white-label para agencias y cadenas de negocio.</p>
+        </div>
+        <ul class="space-y-2 text-sm text-gray-600 mb-8 flex-1">
+          <li class="flex items-center gap-2"><span class="text-amber-500 font-bold">✓</span> Ubicaciones ilimitadas</li>
+          <li class="flex items-center gap-2"><span class="text-amber-500 font-bold">✓</span> Créditos IA ilimitados</li>
+          <li class="flex items-center gap-2"><span class="text-amber-500 font-bold">✓</span> White-label + API</li>
+          <li class="flex items-center gap-2"><span class="text-amber-500 font-bold">✓</span> SLA prioritario</li>
+          <li class="flex items-center gap-2"><span class="text-amber-500 font-bold">✓</span> Account manager dedicado</li>
+        </ul>
+        <button
+          class="btn-plan w-full bg-amber-500 hover:bg-amber-400 text-white font-semibold py-3 rounded-xl"
+          hx-post="/api/plans/select"
+          hx-ext="json-enc"
+          hx-vals='{"plan": "enterprise"}'
+          hx-target="body"
+          hx-swap="none"
+        >
+          <span class="htmx-indicator mr-2 animate-spin">⏳</span>
+          Empezar con Enterprise
+        </button>
+      </div>
+
+    </div>
+
+    <p class="text-center text-xs text-gray-400 mt-8">
+      Todos los planes incluyen 7 días de prueba gratuita. Sin compromiso. Cancela cuando quieras.
+    </p>
+  </section>
+
+  <script>
+    // HTMX processes the HX-Redirect response header automatically.
+    // No extra JS needed — htmx will navigate when the POST returns HX-Redirect.
+    htmx.on("htmx:beforeRequest", function(evt) {
+      // Disable all plan buttons during the request
+      document.querySelectorAll(".btn-plan").forEach(b => b.disabled = true);
+    });
+    htmx.on("htmx:afterRequest", function(evt) {
+      document.querySelectorAll(".btn-plan").forEach(b => b.disabled = false);
+    });
+  </script>
+
+</body>
+</html>

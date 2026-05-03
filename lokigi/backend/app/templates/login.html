@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% if ceo_mode %}Acceso CEO — {% endif %}Lokigi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <style>
+    .auth-error {
+      @apply text-red-600 text-sm mt-2 p-3 bg-red-50 border border-red-200 rounded-lg;
+    }
+    .auth-success {
+      @apply text-green-700 text-sm mt-2 p-3 bg-green-50 border border-green-200 rounded-lg;
+    }
+    .input-field {
+      @apply block w-full px-4 py-3 border border-gray-200 rounded-xl text-sm
+             focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
+             transition-all duration-200 bg-white;
+    }
+    .btn-primary {
+      @apply w-full flex justify-center items-center gap-2 px-4 py-3 rounded-xl
+             bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm
+             transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500;
+    }
+    .btn-google {
+      @apply w-full flex justify-center items-center gap-3 px-4 py-3 rounded-xl
+             border-2 border-gray-200 hover:border-indigo-300 hover:bg-indigo-50
+             text-gray-700 font-medium text-sm transition-all duration-200
+             focus:outline-none focus:ring-2 focus:ring-indigo-500;
+    }
+  </style>
+</head>
+<body class="h-full bg-gradient-to-br from-slate-50 via-white to-indigo-50 flex items-center justify-center p-4">
+
+  <div class="w-full max-w-md">
+
+    <!-- Logo / Header -->
+    <div class="text-center mb-8">
+      {% if ceo_mode %}
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-900 rounded-2xl mb-4 shadow-lg">
+          <svg class="w-8 h-8 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+          </svg>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">Acceso CEO</h1>
+        <p class="text-sm text-gray-500 mt-1">Área de acceso restringido</p>
+      {% else %}
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-2xl mb-4 shadow-lg">
+          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">Bienvenido a Lokigi</h1>
+        <p class="text-sm text-gray-500 mt-1">Gestiona tu presencia local</p>
+      {% endif %}
+    </div>
+
+    <!-- Card -->
+    <div class="bg-white rounded-2xl shadow-xl shadow-indigo-100/50 p-8 border border-gray-100">
+
+      <!-- Success / error messages from query params -->
+      {% if error == 'org_not_found' %}
+        <div class="auth-error mb-4">Organización no encontrada. Verifica el enlace.</div>
+      {% elif error == 'google_auth_failed' %}
+        <div class="auth-error mb-4">Error al conectar con Google. Intenta de nuevo.</div>
+      {% elif error == 'google_already_linked' %}
+        <div class="auth-error mb-4">Esta cuenta de Google ya esta vinculada con otro usuario.</div>
+      {% elif error == 'google_mismatch' %}
+        <div class="auth-error mb-4">La identidad de Google no coincide con tu cuenta Lokigi.</div>
+      {% elif error == 'session_expired' %}
+        <div class="auth-error mb-4">Sesión expirada. Vuelve a iniciar sesión.</div>
+      {% endif %}
+      {% if request.query_params.get('msg') == 'password_reset_ok' %}
+        <div class="auth-success mb-4">Contraseña actualizada correctamente. Inicia sesión.</div>
+      {% elif request.query_params.get('msg') == 'logout_seguro' %}
+        <div class="auth-success mb-4">Has salido de Lokigi de forma segura.</div>
+      {% endif %}
+
+      <!-- HTMX error placeholder -->
+      <div id="error-msg"></div>
+
+      <!-- Email / Password form -->
+      <form
+        hx-post="/api/auth/token"
+        hx-target="#error-msg"
+        hx-swap="outerHTML"
+        hx-indicator="#login-spinner"
+        class="space-y-4"
+      >
+        <input type="hidden" name="next" value="{{ next }}" />
+
+        <div>
+          <label for="email" class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
+            Correo electrónico
+          </label>
+          <input
+            id="email"
+            type="email"
+            name="email"
+            required
+            autocomplete="email"
+            placeholder="tu@empresa.com"
+            class="input-field"
+          />
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label for="password" class="block text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              Contraseña
+            </label>
+            {% if not ceo_mode %}
+              <button
+                type="button"
+                onclick="showForgotModal()"
+                class="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+              >
+                ¿Olvidé mi contraseña?
+              </button>
+            {% endif %}
+          </div>
+          <div class="relative">
+            <input
+              id="password"
+              type="password"
+              name="password"
+              required
+              autocomplete="current-password"
+              placeholder="••••••••"
+              class="input-field pr-10"
+            />
+            <button
+              type="button"
+              onclick="togglePasswordVisibility()"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              tabindex="-1"
+            >
+              <svg id="eye-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary mt-2">
+          <span id="login-spinner" class="htmx-indicator">
+            <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+            </svg>
+          </span>
+          Iniciar sesión
+        </button>
+      </form>
+
+      <!-- Google button -->
+      {% if google_enabled and not ceo_mode %}
+        <div class="relative my-6">
+          <div class="absolute inset-0 flex items-center">
+            <div class="w-full border-t border-gray-100"></div>
+          </div>
+          <div class="relative flex justify-center text-xs text-gray-400 uppercase tracking-wider">
+            <span class="bg-white px-3">o continúa con</span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          class="btn-google"
+          hx-get="/auth/login?next={{ next | urlencode }}"
+          hx-swap="none"
+          hx-indicator="#google-spinner"
+          hx-disabled-elt="this"
+          id="google-login-btn"
+        >
+          <span id="google-spinner" class="htmx-indicator">
+            <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+            </svg>
+          </span>
+          <svg class="w-5 h-5" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          Continuar con Google
+        </button>
+      {% endif %}
+
+      <!-- CEO mode notice -->
+      {% if ceo_mode %}
+        <p class="text-center text-xs text-gray-400 mt-6 flex items-center justify-center gap-1">
+          <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+          </svg>
+          Sesión cifrada · Autenticación de dos factores requerida
+        </p>
+      {% endif %}
+    </div>
+
+    <p class="text-center text-xs text-gray-400 mt-6">
+      &copy; {{ now.year if now else "2026" }} Lokigi. Todos los derechos reservados.
+    </p>
+  </div>
+
+  <!-- Forgot password modal -->
+  {% if not ceo_mode %}
+  <div id="forgot-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm">
+      <h2 class="text-lg font-bold text-gray-900 mb-1">Recuperar contraseña</h2>
+      <p class="text-sm text-gray-500 mb-4">Ingresa tu correo y te enviaremos un enlace.</p>
+
+      <div id="forgot-msg"></div>
+
+      <form
+        hx-post="/api/auth/password/forgot"
+        hx-target="#forgot-msg"
+        hx-swap="outerHTML"
+        class="space-y-4"
+      >
+        <input
+          type="email"
+          name="email"
+          required
+          placeholder="tu@empresa.com"
+          class="input-field"
+        />
+        <div class="flex gap-3">
+          <button type="button" onclick="hideForgotModal()"
+            class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition">
+            Cancelar
+          </button>
+          <button type="submit"
+            class="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition">
+            Enviar enlace
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+  <script>
+    function togglePasswordVisibility() {
+      const input = document.getElementById('password');
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    function showForgotModal() {
+      document.getElementById('forgot-modal').classList.remove('hidden');
+    }
+
+    function hideForgotModal() {
+      document.getElementById('forgot-modal').classList.add('hidden');
+    }
+
+    // HTMX: If response has HX-Redirect, navigate
+    document.body.addEventListener('htmx:responseError', function(evt) {
+      const msg = evt.detail.xhr?.responseText || 'Error de conexión.';
+      document.getElementById('error-msg').innerHTML =
+        `<div class="auth-error">${msg}</div>`;
+    });
+
+    // Real-time email validation
+    document.getElementById('email')?.addEventListener('blur', function() {
+      const val = this.value.trim();
+      const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+      this.classList.toggle('border-red-400', val && !valid);
+      this.classList.toggle('border-gray-200', !val || valid);
+    });
+  </script>
+</body>
+</html>

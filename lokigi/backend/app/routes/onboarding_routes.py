@@ -786,3 +786,38 @@ async def onboarding_activate(
     resp = Response(status_code=200, content="")
     resp.headers["HX-Redirect"] = redirect_url
     return resp
+
+
+# ── Plan selection paywall ─────────────────────────────────────────────────────
+
+@router.get("/select-plan", response_class=HTMLResponse)
+async def onboarding_select_plan(request: Request, db: Session = Depends(get_db)):
+    """
+    Paywall shown to users who have no active subscription after login.
+    Displays the 3 plan cards (Starter / Growth / Enterprise).
+    User identity is read from the JWT cookie — no query param needed.
+    """
+    from ..auth_service import decode_access_token
+    from ..subscription_engine import PLAN_CONFIG
+    from uuid import UUID as _UUID
+
+    token = request.cookies.get("access_token", "")
+    user_name = "Usuario"
+    if token:
+        try:
+            data = decode_access_token(token)
+            user_id = _UUID(data["sub"])
+            user = db.get(User, user_id)
+            if user:
+                user_name = user.email.split("@")[0]
+        except Exception:
+            pass
+
+    return templates.TemplateResponse(
+        "onboarding_select_plan.html",
+        {
+            "request": request,
+            "user_name": user_name,
+            "plan_config": PLAN_CONFIG,
+        },
+    )

@@ -79,6 +79,19 @@ class Settings(BaseSettings):
     # Enterprise onboarding — local asset uploads
     assets_upload_dir: str = "assets/uploads"
 
+    # Auth / Login system
+    jwt_access_token_expire_hours: int = 8
+    totp_issuer: str = "Lokigi"
+    # Comma-separated IPv4/IPv6 allowed for CEO login. Empty = allow all (dev only).
+    ceo_allowed_ips: str = ""
+    login_max_attempts: int = 5
+    login_lockout_minutes: int = 30
+    # Google OAuth2 for user login (openid email profile)
+    google_login_redirect_uri: str = "http://localhost:8000/auth/callback"
+    # Session cookie config
+    session_cookie_secure: bool = False  # Set True in production (HTTPS)
+    session_cookie_samesite: str = "lax"
+
     def parsed_allowed_hosts(self) -> list[str]:
         value = self.allowed_hosts.strip()
         if not value:

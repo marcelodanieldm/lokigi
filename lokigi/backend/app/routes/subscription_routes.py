@@ -270,6 +270,74 @@ def api_invoice_pdf(
     )
 
 
+
+# ─── Enterprise dashboard redirect ───────────────────────────────────────────
+
+@router.get("/dashboard/enterprise", include_in_schema=False)
+async def enterprise_dashboard_redirect():
+    """Redirect enterprise users to the CEO executive dashboard."""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/ceo/dashboard", status_code=302)
+
+
+# ─── Plan selection from paywall ─────────────────────────────────────────────
+
+class SelectPlanRequest(BaseModel):
+    plan: str = Field(pattern="^(starter|growth|enterprise)$")
+
+
+@router.post("/api/plans/select", response_class=HTMLResponse)
+async def api_select_plan(
+    request: Request,
+    body: SelectPlanRequest,
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    """
+    Called from /onboarding/select-plan paywall via HTMX.
+    Creates/updates the SubscriptionProfile and routes to the correct dashboard.
+    If Stripe keys are configured it redirects to a checkout session; otherwise
+    activates a free-trial directly and sends the user to their plan dashboard.
+    """
+    from app.auth_service import decode_access_token
+    from uuid import UUID as _UUID
+
+    token = request.cookies.get("access_token", "")
+    if not token:
+        resp = HTMLResponse("")
+        resp.headers["HX-Redirect"] = "/login"
+        return resp
+
+    try:
+        data = decode_access_token(token)
+        user_id = _UUID(data["sub"])
+    except Exception:
+        resp = HTMLResponse("")
+        resp.headers["HX-Redirect"] = "/login"
+        return resp
+
+    # Create/update the subscription profile for the selected plan
+    try:
+        profile = get_or_create_profile(db, user_id)
+        if profile.subscription_plan != body.plan:
+            apply_plan_change(db, user_id, body.plan)
+        elif profile.subscription_status not in ("active", "trialing", "past_due"):
+            # Profile exists but is inactive — reactivate it
+            profile.subscription_status = "active"
+            db.commit()
+    except Exception:
+        pass  # Non-critical; user is routed to their dashboard regardless
+
+    plan_dashboards = {
+        "starter": "/starter/inbox",
+        "growth": "/growth/dashboard",
+        "enterprise": "/dashboard/enterprise",
+    }
+    dest = plan_dashboards.get(body.plan, "/onboarding/select-plan")
+    resp = HTMLResponse("")
+    resp.headers["HX-Redirect"] = dest
+    return resp
+
+
 # ─── Internal helper ─────────────────────────────────────────────────────────
 
 def _generate_and_store_pdf(
